@@ -9,7 +9,7 @@ namespace Assets
         // Use this for initialization
         void Start()
         {
-
+            // load scene
         }
 
         // Update is called once per frame
