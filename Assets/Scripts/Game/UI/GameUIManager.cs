@@ -1,5 +1,7 @@
-using System.Collections;
+using Game.Managers;
+using Game.UI;
 using System.Collections.Generic;
+using System.ComponentModel;
 using Tools;
 using UnityEngine;
 
@@ -7,17 +9,36 @@ public class GameUIManager : MonoBehaviour
 {
     static GameUIManager s_Instance;
 
-    const string c_HealthBarContainerPrefix = "HealthBarContainer_";
-    const int NUM_TEAMS = 2;
+    const string        c_HealthBarContainerPrefix  = "HealthBarContainer_";
+    const string        c_SpellsContainer           = "SpellsContainer";
+    const int           NUM_TEAMS                   = 2;
 
-    public GameObject HealthBar;
+    /// <summary> Spell item template to instantiate on Character Instantiation </summary>
+    public GameObject   SpellTemplate;
+    /// <summary> Health bar template to instantiate on Character Instantiation </summary>
+    public GameObject   HealthBar;
 
-    List<GameObject> m_HealthBarContainers;
+    GameObject          m_SpellContainer;
+    List<GameObject>    m_HealthBarContainers;
+    List<SpellItemUI>   m_SpellItems;   
+
+    public GameObject SpellContainer => m_SpellContainer;
 
 
     #region Initialization
 
     void Initialize()
+    {
+        m_SpellItems = new List<SpellItemUI>();
+
+        FindHealthbarContainers();
+        FindSpellsContainer();
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    void FindHealthbarContainers()
     {
         m_HealthBarContainers = new List<GameObject>();
         for (int i = 0; i < NUM_TEAMS; i++)
@@ -35,10 +56,27 @@ public class GameUIManager : MonoBehaviour
 
             // add container as container for team "i"
             m_HealthBarContainers.Add(container);
-        }   
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    void FindSpellsContainer()
+    {
+        m_SpellContainer = GameObject.Find(c_SpellsContainer);
+        if (!Checker.NotNull(m_SpellContainer))
+            return;
+
+        // remove all potential content in container
+        foreach (Transform child in m_SpellContainer.transform)
+        {
+            Destroy(child.gameObject);
+        }
     }
 
     #endregion
+
 
     #region Public Manipulators
 
@@ -60,10 +98,15 @@ public class GameUIManager : MonoBehaviour
         return healthBar.GetComponent<HealthBar>();
     }
 
+    public void CreateSpellTemplate(ESpells spell)
+    {
+        m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell));
+    }
+
     #endregion
 
 
-    #region Dependent Members
+    #region Static Members
 
     public static GameUIManager Instance
     {
@@ -71,7 +114,7 @@ public class GameUIManager : MonoBehaviour
         {
             if (s_Instance == null)
             {
-                s_Instance = FindObjectOfType<GameUIManager>();
+                s_Instance = FindFirstObjectByType<GameUIManager>();
                 if (s_Instance == null)
                 {
                     GameObject obj = new GameObject();

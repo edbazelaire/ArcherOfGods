@@ -24,13 +24,19 @@ namespace Game
     {
         #region Members
 
-        public List<Controller> Controllers { get; set; }
+        const string c_PlateformPrefix  = "Plateform_";
+        const string c_SpawnerPrefix    = "SpawnPoint_";
+        const int c_NumTeams = 2;
+        const int c_PlayerTeam = 0;
 
+        static GameManager      s_Instance;
+        List<List<Transform>>   m_Spawns;
+        List<PlayerData>        m_PlayerDatas;
 
-        static GameManager s_Instance;
-        List<Transform> m_Spawns;
-        List<PlayerData> m_PlayerDatas;
-        GameObject m_Arena;
+        public List<Controller> Players;
+        public Controller CurrentPlayer;
+        public GameObject Arena;
+        public Transform TargetHight;
 
         #endregion
 
@@ -39,7 +45,7 @@ namespace Game
 
         private void Start()
         {
-            Initialize();
+            s_Instance = Instance;
         }
 
         #endregion
@@ -49,6 +55,7 @@ namespace Game
 
         void Initialize()
         {
+            /// ====================================================================
             // TODO : elsewhere
             m_PlayerDatas = new List<PlayerData>();
             ReceivePlayerData( new PlayerData(ECharacter.GreenArcher, true, 0) );
@@ -58,6 +65,8 @@ namespace Game
             InitializeArena();
             InitializeSpawns();
             CreatePlayers();
+
+            CurrentPlayer.SetupSpellUI();
         }
 
         public void ReceivePlayerData(PlayerData playerData)
@@ -66,14 +75,19 @@ namespace Game
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
         void InitializeArena()
         {
-            m_Arena = GameObject.Find("Arena");
-            if (!Checker.NotNull(m_Arena))
+            Arena = GameObject.Find("Arena");
+            if (!Checker.NotNull(Arena))
             {
                 ErrorHandler.FatalError("Arena not found");
                 return;
             }
+
+            TargetHight = Finder.Find(Arena, "TargetHight").GetComponent<Transform>();
         }   
 
         /// <summary>
@@ -81,14 +95,21 @@ namespace Game
         /// </summary>
         void InitializeSpawns()
         {
-            m_Spawns = new List<Transform>();
+            m_Spawns = new List<List<Transform>>();
 
-            GameObject[] spawns = m_Arena.transform.FindGameObjectsWithTag("Respawn");
-
-            foreach (GameObject spawn in spawns)
+            List<GameObject> plateforms = Finder.Finds(Arena, c_PlateformPrefix);
+            int team = 0;
+            foreach (GameObject plateform in plateforms)
             {
-                m_Spawns.Add(spawn.transform);
+                List<Transform> spawns = new List<Transform>();
+                foreach (GameObject spawner in Finder.Finds(plateform, c_SpawnerPrefix))
+                    spawns.Add(spawner.transform);
+
+                m_Spawns.Add(spawns);
+                team++;
             }
+
+            Checker.CheckEmpty(m_Spawns);
         }
 
         /// <summary>
@@ -96,33 +117,52 @@ namespace Game
         /// </summary>
         void CreatePlayers()
         {
-            Controllers = new List<Controller>();
+            Players = new List<Controller>();
 
             for (int i = 0; i < m_PlayerDatas.Count; i++)
             {
-                if (i >= m_Spawns.Count)
-                {
-                    ErrorHandler.Error("Not enough spawns for all players");
-                    break;
-                }
+                int j = i % m_Spawns[m_PlayerDatas[i].Team].Count;
 
                 // create requested character
                 PlayerData playerData = m_PlayerDatas[i];
-                GameObject character = CharacterLoader.Instance.InstantiateChar(playerData.Character, m_Spawns[i]);
+                bool isCurrentPlayer = playerData.Team == 0;
+                Transform spawn = m_Spawns[playerData.Team][j];
+                GameObject character = CharacterLoader.GetCharacterData(playerData.Character).Instantiate(
+                    playerData.Team, 
+                    playerData.IsPlayer, 
+                    Arena.transform, 
+                    spawn.position, 
+                    spawn.rotation
+                );
+                
+                Players.Add(character.GetComponent<Controller>());
 
-                // get controller of the character
-                Controller controller = character.GetComponent<Controller>();
-                if (! Checker.NotNull(controller))
-                    return;
-
-                // init controller with a new health bar and add to list of controllers
-                HealthBar healthBar = GameUIManager.Instance.CreateHealthBar(playerData.Team);
-                if (!Checker.NotNull(healthBar))
-                    return;
-
-                controller.Initialize(healthBar);
-                Controllers.Add(controller);
+                if (isCurrentPlayer)
+                    CurrentPlayer = Players[i];
             }
+        }
+
+        #endregion
+
+
+        #region Public Manipulators
+
+        public Controller GetPlayer(int team)
+        {
+            foreach (Controller controller in Players)
+                if (controller.Team == team)
+                    return controller;
+
+            return null;
+        }
+
+        public Controller GetEnemy(int myTeam)
+        {
+            foreach (Controller controller in Players)
+                if (controller.Team != myTeam)
+                    return controller;
+
+            return null;
         }
 
         #endregion
@@ -136,7 +176,7 @@ namespace Game
             {
                 if (s_Instance == null)
                 {
-                    s_Instance = new GameManager();
+                    s_Instance = FindAnyObjectByType<GameManager>();
                     s_Instance.Initialize();
                 }
                 return s_Instance;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -40,9 +41,22 @@ namespace Tools
 
         #region Specific Errors
 
+        /// <summary>
+        /// Add an error of type "Null Object" to the stack
+        /// </summary>
+        /// <param name="message"></param>
         public static void NullObject(string message = "")
         {
             AddError("Null object" + (message != "" ? " : " + message : ""), EError.Error);
+        }
+
+        /// <summary>
+        /// Add an error of type "Array Size" to the stack
+        /// </summary>
+        /// <param name="message"></param>
+        public static void ArraySize(string message)
+        {
+            AddError("Array size error" + (message != "" ? " : " + message : ""), EError.Error);
         }
 
         #endregion

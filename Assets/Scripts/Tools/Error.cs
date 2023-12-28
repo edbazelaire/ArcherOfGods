@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Tools
 {
-    public enum EError { Log, Warning, Error, FatalError }
+    public enum EError { Log, Warning, Error, FatalError, Count }
 
     public class Error : System.Exception
     {
@@ -24,7 +24,12 @@ namespace Tools
                 case EError.FatalError:
                     Debug.LogError(message);
                     break;
+                default:
+                    break;
             }
+
+            if (type == EError.Error || type == EError.FatalError)
+                throw this;
         }
     }
 }

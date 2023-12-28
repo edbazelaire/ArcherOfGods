@@ -1,12 +1,12 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Life : MonoBehaviour
 {
     public int InitialHp;
     public Action<int> OnHealthChanged;
+
+    Controller m_Controller;
 
     int m_Hp;
     public int Hp { get { return m_Hp; } }  
@@ -15,6 +15,7 @@ public class Life : MonoBehaviour
     void Start()
     {
         m_Hp = InitialHp;
+        m_Controller = GetComponent<Controller>();
     }
 
     // Update is called once per frame
@@ -26,21 +27,13 @@ public class Life : MonoBehaviour
             Heal(10);
     }
 
-    #region Private Manipulators
-
-    /// <summary>
-    /// Kill the character
-    /// </summary>
-    void Die()
-    {
-        Destroy(gameObject);
-    }   
+    #region Public Manipulators
 
     /// <summary>
     /// Apply damage to the character
     /// </summary>
     /// <param name="damage"> amount of damages </param>
-    void Hit(int damage)
+    public void Hit(int damage)
     {
         if ( damage < 0 )
         {
@@ -53,14 +46,14 @@ public class Life : MonoBehaviour
         OnHealthChanged?.Invoke(m_Hp);
 
         if (m_Hp <= 0)
-            Die();
-    }   
+            m_Controller.Die();
+    }
 
     /// <summary>
     /// Apply healing to the character
     /// </summary>
     /// <param name="heal"></param>
-    void Heal(int heal)
+    public void Heal(int heal)
     {
         if (heal < 0)
         {

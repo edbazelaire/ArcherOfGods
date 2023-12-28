@@ -1,3 +1,4 @@
+using Data;
 using System.Collections;
 using System.Collections.Generic;
 using Tools;
@@ -17,7 +18,8 @@ namespace Game.Managers
     {
         #region Members
 
-        public List<GameObject> Characters;
+        public List<CharacterData> CharactersList;
+        public Dictionary<ECharacter, CharacterData> Characters;
 
         static CharacterLoader s_Instance;
 
@@ -28,23 +30,40 @@ namespace Game.Managers
 
         void Initialize()
         {
-            if (Characters.Count != (int)ECharacter.Count)
+            Characters = new Dictionary<ECharacter, CharacterData>();
+            if (CharactersList.Count != (int)ECharacter.Count)
             {
                 ErrorHandler.FatalError("CharacterLoader : Characters list is not complete");
                 return;
             }
+
+            foreach (CharacterData character in CharactersList)
+            {
+                if (Characters.ContainsKey(character.Name))
+                {
+                    ErrorHandler.FatalError($"CharacterLoader : Characters list contains duplicate : {character}");
+                    return;
+                }
+                Characters.Add(character.Name, character);
+            }   
 
             DontDestroyOnLoad(this);
         }
 
         #endregion
 
+        
+        #region Public Static Manipulators
 
-        #region Public Manipulators
-
-        public GameObject InstantiateChar(ECharacter character, Transform spawn)
+        public static CharacterData GetCharacterData(ECharacter character)
         {
-            return GameObject.Instantiate(Characters[(int)character], spawn);
+            if (!CharacterLoader.Instance.Characters.ContainsKey(character))
+            {
+                ErrorHandler.FatalError($"CharacterLoader : Character {character} not found");
+                return null;
+            }
+
+            return Instance.Characters[character];
         }
 
         #endregion
@@ -58,7 +77,7 @@ namespace Game.Managers
             {
                 if (s_Instance == null)
                 {
-                    s_Instance = FindObjectOfType<CharacterLoader>();
+                    s_Instance = FindFirstObjectByType<CharacterLoader>();
                     s_Instance.Initialize();
                 }
                 return s_Instance;
