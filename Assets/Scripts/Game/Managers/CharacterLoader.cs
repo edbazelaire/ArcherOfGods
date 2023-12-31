@@ -1,4 +1,5 @@
 using Data;
+using Enums;
 using System.Collections;
 using System.Collections.Generic;
 using Tools;
@@ -7,13 +8,6 @@ using UnityEngine;
 
 namespace Game.Managers
 {
-    public enum ECharacter
-    {
-        GreenArcher,
-
-        Count
-    }
-
     public class CharacterLoader: MonoBehaviour
     {
         #region Members

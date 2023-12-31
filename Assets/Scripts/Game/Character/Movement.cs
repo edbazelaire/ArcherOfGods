@@ -1,18 +1,27 @@
+using Unity.Netcode;
 using UnityEngine;
 
 namespace Game.Character
 {
-    public class Movement : MonoBehaviour
+    public class Movement : NetworkBehaviour
     {
+        #region Members
+
         public float InitialSpeed;
 
-        int m_MoveX = 0;
+        Controller m_Controller;
         float m_SpeedFactor = 1f;
 
-        Controller m_Controller;
+        NetworkVariable<int> m_MoveX = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        private NetworkVariable<bool> m_MovementCancelled = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        #endregion
+
+
+        #region Inherited Manipulators
 
         // Start is called before the first frame update
-        void Start()
+        public override void OnNetworkSpawn()
         {
             m_Controller = GetComponent<Controller>();
         }
@@ -20,30 +29,33 @@ namespace Game.Character
         // Update is called once per frame
         void Update()
         {
-            SelectMovement();
+            if (!IsOwner)
+                return;
+
+            CheckInputs();
             UpdateMovement();
         }
 
-        #region Update Methods
+        #endregion
 
-        void SelectMovement()
+
+        #region Server RPCs
+
+        [ServerRpc]
+        void UpdateMovementAnimationServerRpc()
         {
-            if (m_Controller.IsPlayer)
-            {
-                CheckInputs();
-                return;
-            }
-
-            MovementIA();
-            return;
+            UpdateMovementAnimationClientRpc();
         }
 
-        /// <summary>
-        /// Apply speed on position
-        /// </summary>
-        void UpdateMovement()
+        #endregion
+
+
+        #region Client RPCs
+
+        [ClientRpc]
+        void UpdateMovementAnimationClientRpc()
         {
-            transform.position += new Vector3(m_MoveX * Speed * Time.deltaTime, 0f, 0f);
+            m_Controller.Animator.SetBool("IsMoving", IsMoving);
         }
 
         #endregion
@@ -51,23 +63,64 @@ namespace Game.Character
 
         #region Private Manipulators
 
+        /// <summary>
+        /// Apply speed on position
+        /// </summary>
+        void UpdateMovement()
+        {
+            transform.position += new Vector3(m_MoveX.Value * Speed * Time.deltaTime, 0f, 0f);
+            UpdateMovementAnimationServerRpc();
+        }
+
+        void SetRotation(float y)
+        {
+            transform.rotation = Quaternion.Euler(0f, y, 0f);
+        }
 
         /// <summary>
         /// Check if movement inputs have beed pressed
         /// </summary>
         void CheckInputs()
         {
-            m_MoveX = 0;
+            m_MoveX.Value = 0;
+
+            // if movement has been cancelled, wait for all inputs to be released
+            if (m_MovementCancelled.Value)
+            {
+                if (Input.GetKeyUp(KeyCode.Q) || Input.GetKeyUp(KeyCode.A) || Input.GetKeyUp(KeyCode.D))
+                    m_MovementCancelled.Value = false;
+                return;
+            }
 
             if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.A))
-                m_MoveX = -1;
+            {
+                m_MoveX.Value = -1;
+                SetRotation(180f);
+            }
             else if (Input.GetKey(KeyCode.D))
-                m_MoveX = 1;
+            {
+                m_MoveX.Value = 1;
+                SetRotation(0f);
+            } 
         }
 
-        void MovementIA()
+        #endregion
+
+
+        #region Public Manipulators
+
+        public void CancelMovement(bool cancel)
         {
-            return;
+            if (cancel && ! IsMoving)
+                return;
+
+            m_MovementCancelled.Value = cancel;
+
+            if (cancel)
+            {
+                m_MoveX.Value = 0;
+                UpdateMovementAnimationServerRpc();
+            }
         }
 
         #endregion
@@ -80,6 +133,18 @@ namespace Game.Character
             get { return InitialSpeed * m_SpeedFactor; }
         }
 
+        public bool IsMoving
+        {
+            get { return m_MoveX.Value != 0; }
+        }
+
         #endregion
+
+        public void DebugMessage()
+        {
+            Debug.Log("MoveX : " + m_MoveX.Value);
+            Debug.Log("IsMoving : " + IsMoving);
+            Debug.Log("Rotation : " + transform.rotation);
+        }
     }
 }

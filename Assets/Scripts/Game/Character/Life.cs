@@ -3,13 +3,18 @@ using UnityEngine;
 
 public class Life : MonoBehaviour
 {
+    // initial health points
     public int InitialHp;
-    public Action<int> OnHealthChanged;
+    // thrown when the character dies
+    public Action DiedEvent;
+    // thrown when the character's health changes
+    public Action<int> HealthChangedEvent;
 
     Controller m_Controller;
 
     int m_Hp;
     public int Hp { get { return m_Hp; } }  
+    public bool IsAlive { get { return m_Hp > 0; } }
 
     // Start is called before the first frame update
     void Start()
@@ -43,7 +48,7 @@ public class Life : MonoBehaviour
 
         m_Hp -= damage;
 
-        OnHealthChanged?.Invoke(m_Hp);
+        HealthChangedEvent?.Invoke(m_Hp);
 
         if (m_Hp <= 0)
             m_Controller.Die();
@@ -66,7 +71,7 @@ public class Life : MonoBehaviour
         else
             m_Hp += heal;
 
-        OnHealthChanged?.Invoke(m_Hp);
+        HealthChangedEvent?.Invoke(m_Hp);
     }   
 
     #endregion

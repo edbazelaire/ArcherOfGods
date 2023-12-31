@@ -1,51 +1,75 @@
 using Data;
+using Enums;
+using Game;
 using Game.Character;
 using Game.Managers;
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using Tools;
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
-public class Controller : MonoBehaviour
+public class Controller : NetworkBehaviour
 {
+    const string c_CharacterPreview = "CharacterPreview";
+
+    public int              Id              { get; set; }
     public ECharacter       Character       { get; set; }
     public int              Team            { get; set; }
     public bool             IsCurrentPlayer { get; set; }
     public bool             IsPlayer        { get; set; }
 
+    GameObject              m_CharacterPreview;
+
+    Animator                m_Animator;
     Movement                m_Movement;
     Life                    m_Life;
-    HealthBar               m_HealthBar;
     SpellHandler            m_SpellHandler;
+    HealthBar               m_HealthBar;
 
-    public Movement         Movement        => m_Movement;
-    public Life             Life            => m_Life;
-    public SpellHandler     SpellHandler    => m_SpellHandler;
+    public GameObject       CharacterPreview    => m_CharacterPreview;
+    public Animator         Animator            => m_Animator;
+    public Movement         Movement            => m_Movement;
+    public Life             Life                => m_Life;
+    public SpellHandler     SpellHandler        => m_SpellHandler;
 
 
     #region Setup 
 
+    public override void OnNetworkSpawn()
+    {
+        int team = GameManager.Instance.Players.Count;
+        Initialize(0, ECharacter.GreenArcher, team, true, true);
+
+        GameManager.Instance.AddPlayer(this);
+    }
+ 
     /// <summary>
     /// Initialize the controller
     /// </summary>
-    public void Initialize(ECharacter character, int team, bool isPlayer, bool isCurrentPlayer, HealthBar healthBar)
+    public void Initialize(int id, ECharacter character, int team, bool isPlayer, bool isCurrentPlayer)
     {
+        Id              = id;
         Character       = character;
         Team            = team;
         IsPlayer        = isPlayer;
         IsPlayer        = isCurrentPlayer;
-        m_Life          = GetComponent<Life>();
-        m_Movement      = GetComponent<Movement>();
-        m_SpellHandler  = GetComponent<SpellHandler>();
+
+        m_CharacterPreview = Finder.Find(gameObject, c_CharacterPreview);
+
+        m_Animator      = Finder.FindComponent<Animator>(m_CharacterPreview);
+        m_Life          = Finder.FindComponent<Life>(gameObject);
+        m_Movement      = Finder.FindComponent<Movement>(gameObject);
+        m_SpellHandler  = Finder.FindComponent<SpellHandler>(gameObject);
 
         Checker.NotNull(m_Life);
         Checker.NotNull(m_Movement);    
 
-        SetHealthBar(healthBar);
+        m_SpellHandler.Initialize(CharacterLoader.GetCharacterData(Character).Spells);
+        SetHealthBar(GameUIManager.Instance.CreateHealthBar(team));
+        SetupSpellUI();
 
-        if (IsCurrentPlayer) 
-            SetupSpellUI();
+        transform.position = GameManager.Instance.Spawns[Team][0].position;
+        ResetRotation();
     }
 
     /// <summary>
@@ -57,7 +81,7 @@ public class Controller : MonoBehaviour
         m_HealthBar = healthBar;
         m_HealthBar.SetMaxHealth(m_Life.InitialHp);
 
-        m_Life.OnHealthChanged += m_HealthBar.SetHealth;
+        m_Life.HealthChangedEvent += m_HealthBar.SetHealth;
     }
 
     /// <summary>
@@ -65,23 +89,56 @@ public class Controller : MonoBehaviour
     /// </summary>
     public void SetupSpellUI()
     {
-        foreach (SpellData spell in CharacterLoader.GetCharacterData(Character).SpellData)
+        if (!IsOwner)
+            return;
+
+        foreach (ESpells spell in CharacterLoader.GetCharacterData(Character).Spells)
         {
-            GameUIManager.Instance.CreateSpellTemplate(spell.Name);
+            GameUIManager.Instance.CreateSpellTemplate(this, spell);
         }
-    }   
+    }
+
+    #endregion
+
+
+    #region Server RPC
+    
+
+    #endregion
+
+
+    #region Inherited Manipulators
+
+    void Update()
+    {
+        if (!IsOwner)
+            return;
+
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            m_Movement.DebugMessage();
+        }
+    }
+
 
     #endregion
 
 
     #region Public Manipulators
+    public void ResetRotation()
+    {
+        transform.rotation = Quaternion.Euler(0f, Team == 0 ? 0f : -180f, 0f);
+    }
 
     /// <summary>
     /// Kill the character
     /// </summary>
     public void Die()
     {
-        Destroy(gameObject);
+        m_CharacterPreview.SetActive(false);
+        m_Movement.enabled = false;
+        m_SpellHandler.enabled = false;
+        GameUIManager.Instance.enabled = false;
     }
 
     #endregion

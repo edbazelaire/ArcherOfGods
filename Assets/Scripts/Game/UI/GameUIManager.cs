@@ -1,3 +1,4 @@
+using Enums;
 using Game.Managers;
 using Game.UI;
 using System.Collections.Generic;
@@ -18,11 +19,29 @@ public class GameUIManager : MonoBehaviour
     /// <summary> Health bar template to instantiate on Character Instantiation </summary>
     public GameObject   HealthBar;
 
+    bool                m_Initialized;
     GameObject          m_SpellContainer;
     List<GameObject>    m_HealthBarContainers;
     List<SpellItemUI>   m_SpellItems;   
+    SpellItemUI         m_SelectedSpell;
 
     public GameObject SpellContainer => m_SpellContainer;
+
+
+    #region Inherited Manipulators
+
+    private void Update()
+    {
+        if (!m_Initialized)
+            return;
+
+        foreach (var spellItemUI in m_SpellItems)
+        {
+            spellItemUI.Update();
+        }
+    }
+
+    #endregion
 
 
     #region Initialization
@@ -33,6 +52,8 @@ public class GameUIManager : MonoBehaviour
 
         FindHealthbarContainers();
         FindSpellsContainer();
+
+        m_Initialized = true;
     }
 
     /// <summary>
@@ -98,9 +119,9 @@ public class GameUIManager : MonoBehaviour
         return healthBar.GetComponent<HealthBar>();
     }
 
-    public void CreateSpellTemplate(ESpells spell)
+    public void CreateSpellTemplate(Controller owner, ESpells spell)
     {
-        m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell));
+        m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell, owner));
     }
 
     #endregion

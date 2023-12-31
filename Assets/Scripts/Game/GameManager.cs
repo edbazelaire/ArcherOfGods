@@ -1,7 +1,8 @@
+using Enums;
 using Game.Managers;
 using System.Collections.Generic;
 using Tools;
-using Unity.VisualScripting;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace Game
@@ -20,33 +21,36 @@ namespace Game
         }
     }
 
-    public class GameManager: MonoBehaviour
+    public class GameManager: NetworkBehaviour
     {
         #region Members
 
-        const string c_PlateformPrefix  = "Plateform_";
-        const string c_SpawnerPrefix    = "SpawnPoint_";
-        const int c_NumTeams = 2;
-        const int c_PlayerTeam = 0;
+        const string            c_PlateformPrefix   = "Plateform_";
+        const string            c_SpawnerPrefix     = "SpawnPoint_";
+        const string            c_Arena             = "Arena";
+        const string            c_TargetHight       = "TargetHight";
+        const int               c_NumTeams          = 2;
+        const int               c_PlayerTeam        = 0;
 
         static GameManager      s_Instance;
         List<List<Transform>>   m_Spawns;
         List<PlayerData>        m_PlayerDatas;
 
+        public GameObject       m_Arena;
+        public Transform        m_TargetHight;
+
         public List<Controller> Players;
-        public Controller CurrentPlayer;
-        public GameObject Arena;
-        public Transform TargetHight;
+        public Controller       CurrentPlayer;
+
+        public GameObject               Arena               => m_Arena;
+        public List<List<Transform>>    Spawns              => m_Spawns;
+        public Transform                TargetHight         => m_TargetHight;
 
         #endregion
 
 
         #region Inherited Manipulators
 
-        private void Start()
-        {
-            s_Instance = Instance;
-        }
 
         #endregion
 
@@ -55,18 +59,15 @@ namespace Game
 
         void Initialize()
         {
-            /// ====================================================================
-            // TODO : elsewhere
-            m_PlayerDatas = new List<PlayerData>();
-            ReceivePlayerData( new PlayerData(ECharacter.GreenArcher, true, 0) );
-            ReceivePlayerData( new PlayerData(ECharacter.GreenArcher, false, 1) );
-            /// ====================================================================
+            ///// ====================================================================
+            //// TODO : elsewhere
+            //m_PlayerDatas = new List<PlayerData>();
+            //ReceivePlayerData( new PlayerData(ECharacter.Reaper, true, 0) );
+            //ReceivePlayerData( new PlayerData(ECharacter.Reaper, false, 1) );
+            ///// ====================================================================
             
             InitializeArena();
             InitializeSpawns();
-            CreatePlayers();
-
-            CurrentPlayer.SetupSpellUI();
         }
 
         public void ReceivePlayerData(PlayerData playerData)
@@ -80,14 +81,14 @@ namespace Game
         /// </summary>
         void InitializeArena()
         {
-            Arena = GameObject.Find("Arena");
+            m_Arena = GameObject.Find(c_Arena);
             if (!Checker.NotNull(Arena))
             {
                 ErrorHandler.FatalError("Arena not found");
                 return;
             }
 
-            TargetHight = Finder.Find(Arena, "TargetHight").GetComponent<Transform>();
+            m_TargetHight = Finder.FindComponent<Transform>(m_Arena, c_TargetHight);
         }   
 
         /// <summary>
@@ -119,7 +120,9 @@ namespace Game
         {
             Players = new List<Controller>();
 
-            for (int i = 0; i < m_PlayerDatas.Count; i++)
+            var players = Finder.FindComponents<Controller>(Arena);
+
+            for (int i = 0; i < players.Count; i++)
             {
                 int j = i % m_Spawns[m_PlayerDatas[i].Team].Count;
 
@@ -127,15 +130,20 @@ namespace Game
                 PlayerData playerData = m_PlayerDatas[i];
                 bool isCurrentPlayer = playerData.Team == 0;
                 Transform spawn = m_Spawns[playerData.Team][j];
-                GameObject character = CharacterLoader.GetCharacterData(playerData.Character).Instantiate(
-                    playerData.Team, 
-                    playerData.IsPlayer, 
-                    Arena.transform, 
-                    spawn.position, 
-                    spawn.rotation
-                );
-                
-                Players.Add(character.GetComponent<Controller>());
+
+                //GameObject character = CharacterLoader.GetCharacterData(playerData.Character).Instantiate(
+                //    i, 
+                //    playerData.Team, 
+                //    playerData.IsPlayer, 
+                //    Arena.transform, 
+                //    spawn.position, 
+                //    spawn.rotation
+                //);
+
+                var player = players[i];
+                player.Life.DiedEvent += OnPlayerDied;
+
+                Players.Add(player);
 
                 if (isCurrentPlayer)
                     CurrentPlayer = Players[i];
@@ -145,21 +153,48 @@ namespace Game
         #endregion
 
 
-        #region Public Manipulators
+        #region Private Manipulators
 
-        public Controller GetPlayer(int team)
+        void GameOver(int team)
         {
-            foreach (Controller controller in Players)
-                if (controller.Team == team)
-                    return controller;
-
-            return null;
+            Debug.Log($"Team {team} won");
         }
 
-        public Controller GetEnemy(int myTeam)
+        void OnPlayerDied()
+        {
+            CheckWin();
+        }
+
+        void CheckWin()
+        {
+            var teamCtr = new List<int>();
+            foreach (Controller controller in Players)
+            {
+                if (controller.Life.IsAlive && !teamCtr.Contains(controller.Team))
+                    teamCtr.Add(controller.Team);
+            }
+
+            if (teamCtr.Count == 1)
+            {
+                GameOver(teamCtr[0]);
+            }
+        }
+
+        #endregion
+
+
+        #region Public Manipulators
+
+        public void AddPlayer(Controller player)
+        {
+            player.Life.DiedEvent += OnPlayerDied;
+            Players.Add(player);
+        }
+
+        public Controller GetPlayer(ulong clientId)
         {
             foreach (Controller controller in Players)
-                if (controller.Team != myTeam)
+                if (controller.OwnerClientId == clientId)
                     return controller;
 
             return null;

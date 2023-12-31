@@ -1,4 +1,5 @@
 ﻿using Data;
+using Enums;
 using System;
 using System.Collections.Generic;
 using Tools;
@@ -6,18 +7,11 @@ using UnityEngine;
 
 namespace Game.Managers
 {
-    public enum ESpells
-    {
-        Arrow,
-
-        Count
-    }
-
     public class SpellLoader : MonoBehaviour
     {
         #region Members
 
-        public List<SpellData> SpellsList;
+        public SpellData[] SpellsList;
 
         static SpellLoader s_Instance;
 
@@ -30,16 +24,35 @@ namespace Game.Managers
 
         void Initialize()
         {
+            SpellsList = Resources.LoadAll<SpellData>("Data/Spells");
+
             Spells = new Dictionary<ESpells, SpellData>();  
 
-            if (SpellsList.Count != (int)ESpells.Count)
+            if (SpellsList.Length != (int)ESpells.Count)
             {
                 ErrorHandler.FatalError("SpellLoader : Spell list is not complete");
                 return;
             }
 
             foreach (SpellData spell in SpellsList)
+            {
+                if (spell.AnimationTimer <= 0)
+                    ErrorHandler.FatalError($"SpellLoader : AnimationTimer {spell.Name} <= 0");
+
+                if (spell.CastAt < 0)
+                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Name} has a negative CastAt");
+
+                if (spell.CastAt > 1)
+                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Name} has a CastAt > 1");
+
+                if (spell.Prefab == null)
+                    ErrorHandler.FatalError($"SpellLoader : Prefab {spell.Name} not provided");
+
+                if (spell.Cooldown <= 0)
+                    spell.Cooldown = 0.1f;
+
                 Spells.Add(spell.Name, spell);
+            }
 
             DontDestroyOnLoad(this);
         }
@@ -70,15 +83,15 @@ namespace Game.Managers
         /// </summary>
         /// <param name="spell"></param>
         /// <returns></returns>
-        public SpellData GetSpellData(ESpells spell)
+        public static SpellData GetSpellData(ESpells spell)
         {
-            if (!Spells.ContainsKey(spell))
+            if (!Instance.Spells.ContainsKey(spell))
             {
                 ErrorHandler.Error($"SpellLoader : Spell {spell} not found");
                 return null;
             }
 
-            return Spells[spell];
+            return Instance.Spells[spell];
         }
 
         #endregion

@@ -1,6 +1,8 @@
-﻿using Game;
+﻿using Enums;
+using Game;
 using Game.Managers;
 using System.Collections.Generic;
+using System.Xml.Linq;
 using Tools;
 using UnityEngine;
 
@@ -12,9 +14,9 @@ namespace Data
         public ECharacter       Name;
         public Sprite           Image;
         public GameObject       Prefab;
-        public List<SpellData>  SpellData;
+        public List<ESpells>    Spells;
 
-        public GameObject Instantiate(int team, bool isPlayer, Transform spawn, Vector3 position = default, Quaternion rotation = default)
+        public GameObject Instantiate(int id, int team, bool isPlayer, Transform spawn, Vector3 position = default, Quaternion rotation = default)
         {
             var character = GameObject.Instantiate(Prefab, position, default, spawn);
 
@@ -28,7 +30,7 @@ namespace Data
             if (!Checker.NotNull(healthBar))
                 return null;
 
-            controller.Initialize(Name, team, isPlayer, team == 0, healthBar);
+            controller.Initialize(id, Name, team, isPlayer, team == 0);
 
             return character;
         }
