@@ -23,7 +23,6 @@ public class GameUIManager : MonoBehaviour
     GameObject          m_SpellContainer;
     List<GameObject>    m_HealthBarContainers;
     List<SpellItemUI>   m_SpellItems;   
-    SpellItemUI         m_SelectedSpell;
 
     public GameObject SpellContainer => m_SpellContainer;
 
@@ -89,11 +88,7 @@ public class GameUIManager : MonoBehaviour
         if (!Checker.NotNull(m_SpellContainer))
             return;
 
-        // remove all potential content in container
-        foreach (Transform child in m_SpellContainer.transform)
-        {
-            Destroy(child.gameObject);
-        }
+        ClearSpells();
     }
 
     #endregion
@@ -119,9 +114,25 @@ public class GameUIManager : MonoBehaviour
         return healthBar.GetComponent<HealthBar>();
     }
 
-    public void CreateSpellTemplate(Controller owner, ESpells spell)
+    /// <summary>
+    /// add a SpellItemUI to the spell container
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="spell"></param>
+    public void CreateSpellTemplate(ESpells spell)
     {
-        m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell, owner));
+        m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell));
+    }
+
+    /// <summary>
+    /// remove all SpellItemUI from the spell container
+    /// </summary>
+    public void ClearSpells()
+    {
+        foreach (Transform child in m_SpellContainer.transform)
+        {
+            Destroy(child.gameObject);
+        }
     }
 
     #endregion

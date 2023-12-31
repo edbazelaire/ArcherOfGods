@@ -16,9 +16,9 @@ namespace Game.Spells
 
         #region Init & End
 
-        public override void Initialize(ulong clientId, Vector3 target, ESpells spellType)
+        public override void Initialize(Vector3 target, ESpells spellType)
         {
-            base.Initialize(clientId, target, spellType);
+            base.Initialize(target, spellType);
 
             // set target to be align with orginal position
             target.y = transform.position.y;

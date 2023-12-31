@@ -3,6 +3,7 @@ using Game.Managers;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game
@@ -25,12 +26,13 @@ namespace Game
     {
         #region Members
 
-        const string            c_PlateformPrefix   = "Plateform_";
-        const string            c_SpawnerPrefix     = "SpawnPoint_";
-        const string            c_Arena             = "Arena";
-        const string            c_TargetHight       = "TargetHight";
-        const int               c_NumTeams          = 2;
-        const int               c_PlayerTeam        = 0;
+        const string            c_PlateformPrefix           = "Plateform_";
+        const string            c_SpawnerPrefix             = "SpawnPoint_";
+        const string            c_TargettableAreaPrefix     = "TargettableArea_";
+        const string            c_Arena                     = "Arena";
+        const string            c_TargetHight               = "TargetHight";
+        const int               c_NumTeams                  = 2;
+        const int               c_PlayerTeam                = 0;
 
         static GameManager      s_Instance;
         List<List<Transform>>   m_Spawns;
@@ -38,6 +40,7 @@ namespace Game
 
         public GameObject       m_Arena;
         public Transform        m_TargetHight;
+        public List<Transform>  m_TargettableAreas;
 
         public List<Controller> Players;
         public Controller       CurrentPlayer;
@@ -45,6 +48,7 @@ namespace Game
         public GameObject               Arena               => m_Arena;
         public List<List<Transform>>    Spawns              => m_Spawns;
         public Transform                TargetHight         => m_TargetHight;
+        public List<Transform>          TargettableAreas    => m_TargettableAreas;
 
         #endregion
 
@@ -59,15 +63,9 @@ namespace Game
 
         void Initialize()
         {
-            ///// ====================================================================
-            //// TODO : elsewhere
-            //m_PlayerDatas = new List<PlayerData>();
-            //ReceivePlayerData( new PlayerData(ECharacter.Reaper, true, 0) );
-            //ReceivePlayerData( new PlayerData(ECharacter.Reaper, false, 1) );
-            ///// ====================================================================
-            
             InitializeArena();
             InitializeSpawns();
+            InitializeTargetabbleArea();
         }
 
         public void ReceivePlayerData(PlayerData playerData)
@@ -114,40 +112,36 @@ namespace Game
         }
 
         /// <summary>
-        /// Instantiate all players in the scene
+        /// Get all Targettable Areas ordered by id
         /// </summary>
-        void CreatePlayers()
+        void InitializeTargetabbleArea()
         {
-            Players = new List<Controller>();
+            m_TargettableAreas = new List<Transform>();
 
-            var players = Finder.FindComponents<Controller>(Arena);
-
-            for (int i = 0; i < players.Count; i++)
+            int i = 0;
+            bool end = false;
+            while (!end)
             {
-                int j = i % m_Spawns[m_PlayerDatas[i].Team].Count;
+                // set end to true by default
+                end = true;
 
-                // create requested character
-                PlayerData playerData = m_PlayerDatas[i];
-                bool isCurrentPlayer = playerData.Team == 0;
-                Transform spawn = m_Spawns[playerData.Team][j];
+                foreach (Transform area in Finder.FindComponents<Transform>(Arena, c_TargettableAreaPrefix))
+                {
+                    // if a targettable area with this id is found
+                    if (area.gameObject.name.EndsWith(i.ToString()))
+                    {
+                        // add it to the list
+                        m_TargettableAreas.Add(area);
+                        // continue to search
+                        end = false;
+                        break;
+                    }
+                }
 
-                //GameObject character = CharacterLoader.GetCharacterData(playerData.Character).Instantiate(
-                //    i, 
-                //    playerData.Team, 
-                //    playerData.IsPlayer, 
-                //    Arena.transform, 
-                //    spawn.position, 
-                //    spawn.rotation
-                //);
-
-                var player = players[i];
-                player.Life.DiedEvent += OnPlayerDied;
-
-                Players.Add(player);
-
-                if (isCurrentPlayer)
-                    CurrentPlayer = Players[i];
+                // increment id of target area to search
+                i++;
             }
+            
         }
 
         #endregion
@@ -163,6 +157,12 @@ namespace Game
         void OnPlayerDied()
         {
             CheckWin();
+        }
+
+        void CheckPlayerDeath(int oldValue, int newValue)
+        {
+            if (newValue <= 0)
+                OnPlayerDied();
         }
 
         void CheckWin()
@@ -185,9 +185,17 @@ namespace Game
 
         #region Public Manipulators
 
+        public Controller Owner
+        {
+            get
+            {
+                return GetPlayer(NetworkManager.Singleton.LocalClientId);
+            }
+        }
+
         public void AddPlayer(Controller player)
         {
-            player.Life.DiedEvent += OnPlayerDied;
+            player.Life.Hp.OnValueChanged += CheckPlayerDeath;
             Players.Add(player);
         }
 

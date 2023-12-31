@@ -61,17 +61,15 @@ namespace Data
         /// <returns></returns>
         public GameObject Cast(ulong clientId, Vector3 targetPosition, Vector3 position = default, Quaternion rotation = default)
         {
-            // instantiate the spell
-            var spellGO = GameObject.Instantiate(Prefab, position, rotation, GameManager.Instance.Arena.transform);
-
-            Debug.Log("-- Cast requested from " + clientId + " with targetPosition " + targetPosition);
+            // instantiate the spell 
+            var spellGO = GameObject.Instantiate(Prefab, position, rotation);
 
             // spawn in network
-            Finder.FindComponent<NetworkObject>(spellGO).Spawn();
+            Finder.FindComponent<NetworkObject>(spellGO).SpawnWithOwnership(clientId);
 
             // initialize the spell
             var spell = Finder.FindComponent<Spell>(spellGO);
-            spell.Initialize(clientId, targetPosition, Name);
+            spell.InitializeClientRPC(targetPosition, Name);
 
             return spellGO;
         }

@@ -3,6 +3,7 @@ using Enums;
 using Game.Managers;
 using TMPro;
 using Tools;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +19,6 @@ namespace Game.UI
         const string    c_CooldownCtr   = "CooldownCtr";
 
         GameObject      m_GameObject;
-        Controller      m_Owner;
         Image           m_IconImage;
         Image           m_Border;
         Button          m_Button;
@@ -32,16 +32,15 @@ namespace Game.UI
 
         #region Constructor
 
-        public SpellItemUI(GameObject gameObject, ESpells eSpells, Controller owner)
+        public SpellItemUI(GameObject gameObject, ESpells eSpells)
         {
             m_GameObject        = gameObject;
             m_Spell             = eSpells;
-            m_Owner             = owner;
 
             SetupIcon();
             SetupButton();
 
-            m_Owner.SpellHandler.SelectedSpellNet.OnValueChanged += OnSpellSelected;
+            GameManager.Instance.Owner.SpellHandler.SelectedSpellNet.OnValueChanged += OnSpellSelected;
         }
 
         #endregion
@@ -58,6 +57,7 @@ namespace Game.UI
 
             SpellData spellData = SpellLoader.GetSpellData(m_Spell);
             m_IconImage.sprite = spellData.Image;
+
             m_Cooldown.SetActive(false);
         }
 
@@ -74,7 +74,7 @@ namespace Game.UI
         
         void OnClick()
         {
-            m_Owner.SpellHandler.AskSpellSelection(m_Spell);
+            GameManager.Instance.Owner.SpellHandler.AskSpellSelection(m_Spell);
         }
 
         void OnSpellSelected(int oldValue, int newValue)
@@ -84,7 +84,7 @@ namespace Game.UI
 
         void UpdateCooldown()
         {
-            float cooldown = m_Owner.SpellHandler.GetCooldown(m_Spell);
+            float cooldown = GameManager.Instance.Owner.SpellHandler.GetCooldown(m_Spell);
             if (cooldown <= 0)
             {
                 if (!m_IsCooldownActivated)
@@ -105,7 +105,7 @@ namespace Game.UI
 
         void OnDestroy()
         {
-            m_Owner.SpellHandler.SelectedSpellNet.OnValueChanged -= OnSpellSelected;
+            GameManager.Instance.Owner.SpellHandler.SelectedSpellNet.OnValueChanged -= OnSpellSelected;
         }
 
         #endregion

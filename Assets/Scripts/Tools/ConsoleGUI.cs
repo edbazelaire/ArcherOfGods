@@ -5,7 +5,7 @@ public class ConsoleToGUI : MonoBehaviour
     string myLog = "*begin log";
     string filename = "";
     bool doShow = true;
-    int kChars = 1200;
+    int kChars = 700;
     void OnEnable() { Application.logMessageReceived += Log; }
     void OnDisable() { Application.logMessageReceived -= Log; }
     void Update() { if (Input.GetKeyDown(KeyCode.Space)) { doShow = !doShow; } }

@@ -11,22 +11,29 @@ namespace Game.Spells
     {
         #region Members
 
-        protected NetworkVariable<int> m_SpellTypeNet = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        protected NetworkVariable<int> m_ClientIdNet = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        protected NetworkVariable<Vector3> m_TargetNet = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        //protected NetworkVariable<int> m_SpellTypeNet = new NetworkVariable<int>((int)ESpells.Count, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        //protected NetworkVariable<int> m_ClientIdNet = new NetworkVariable<int>(-1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        //protected NetworkVariable<Vector3> m_TargetNet = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         //protected NetworkVariable<float> m_Speed = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         //protected NetworkVariable<int> m_Damage = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         //protected NetworkVariable<float> m_Distance = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         //protected NetworkVariable<Vector3> m_Direction = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-        protected float     m_Speed;
-        protected int       m_Damage;
-        protected float     m_Distance;
-        protected Vector3   m_Direction;
+        // ownership
+        protected Controller        m_Controller;
+        protected ulong             m_ClientId;
 
-        protected Controller                m_Controller;
-        protected Vector3                   m_OriginalPosition;
+        // spell data
+        protected ESpells           m_SpellType;
+        protected float             m_Speed;
+        protected int               m_Damage;
+        protected float             m_Distance;
+        protected Vector3           m_Direction;
+
+        // targetting
+        protected Vector3           m_Target;
+        protected Vector3           m_OriginalPosition;
 
         #endregion
 
@@ -37,23 +44,23 @@ namespace Game.Spells
         {
             SpellData spellData = SpellLoader.GetSpellData(m_SpellType);
 
+            m_ClientId = OwnerClientId;
             m_Speed = spellData.Speed;
             m_Damage = spellData.Damage;
             m_Distance = spellData.Distance;
+            m_OriginalPosition = transform.position;
 
             m_Controller = GameManager.Instance.GetPlayer(m_ClientId);
 
-            DebugMessage();
+            Debug.Log("OnNetworkSpawn position : " + transform.position);
         }
 
-        public virtual void Initialize(ulong clientID, Vector3 target, ESpells spellType)
+        public virtual void Initialize(Vector3 target, ESpells spellType)
         {
-            m_ClientId          = clientID;
-            m_OriginalPosition  = transform.position;
-            m_SpellType         = spellType;
-
-            // set target as first enemy
+            m_SpellType = spellType;
             SetTarget(target);
+
+            Debug.Log("Init position : " + transform.position);
         }
 
         protected virtual void End()
@@ -61,9 +68,15 @@ namespace Game.Spells
             Destroy(gameObject);
         }
 
-        public override void OnDestroy()
+        #endregion
+
+
+        #region Client RPCs
+
+        [ClientRpc]
+        public void InitializeClientRPC(Vector3 target, ESpells spellType)
         {
-            Debug.Log("Spell " + m_SpellType + " ended");
+            Initialize(target, spellType);
         }
 
         #endregion
@@ -95,7 +108,6 @@ namespace Game.Spells
                 controller.Life.Hit(m_Damage);
                 End();
             }
-
         }
 
         #endregion
@@ -130,6 +142,19 @@ namespace Game.Spells
         {
             m_Target = target;
             m_Direction = (m_Target - transform.position).normalized;
+            LookAt(m_Target);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="target"></param>
+        protected virtual void LookAt(Vector3 target)
+        {
+            Vector3 diff = target - transform.position;
+            diff.Normalize();
+            float rot_z = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0f, 0f, rot_z);
         }
 
         #endregion
@@ -137,23 +162,23 @@ namespace Game.Spells
 
         #region Network Variable Access
 
-        protected ESpells m_SpellType
-        {
-            get => (ESpells)m_SpellTypeNet.Value;
-            set => m_SpellTypeNet.Value = (int)value;
-        }
+        //protected ESpells m_SpellType
+        //{
+        //    get => (ESpells)m_SpellTypeNet.Value;
+        //    set => m_SpellTypeNet.Value = (int)value;
+        //}
 
-        protected ulong m_ClientId
-        {
-            get => (ulong)m_ClientIdNet.Value;
-            set => m_ClientIdNet.Value = (int)value;
-        }
+        //protected ulong m_ClientId
+        //{
+        //    get => (ulong)m_ClientIdNet.Value;
+        //    set => m_ClientIdNet.Value = (int)value;
+        //}
 
-        protected Vector3 m_Target
-        {
-            get => m_TargetNet.Value;
-            set => m_TargetNet.Value = value;
-        }
+        //protected Vector3 m_Target
+        //{
+        //    get => m_TargetNet.Value;
+        //    set => m_TargetNet.Value = value;
+        //}
 
         #endregion
 
@@ -165,9 +190,8 @@ namespace Game.Spells
             Debug.Log("Spell " + m_SpellType);
             Debug.Log("     + ClientId " + m_ClientId);
             Debug.Log("     + Target " + m_Target);
+            Debug.Log("     + Direction " + m_Direction);
             Debug.Log("     + Speed " + m_Speed);    
-            Debug.Log("     + Damage " + m_Damage);
-            Debug.Log("     + Distance " + m_Distance);
         }
 
         #endregion

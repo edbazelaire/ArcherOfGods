@@ -38,9 +38,10 @@ public class Controller : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         int team = GameManager.Instance.Players.Count;
-        Initialize(0, ECharacter.GreenArcher, team, true, true);
+        Initialize(0, ECharacter.Reaper, team, true, true);
 
         GameManager.Instance.AddPlayer(this);
+        SetupUI();
     }
  
     /// <summary>
@@ -61,15 +62,16 @@ public class Controller : NetworkBehaviour
         m_Movement      = Finder.FindComponent<Movement>(gameObject);
         m_SpellHandler  = Finder.FindComponent<SpellHandler>(gameObject);
 
-        Checker.NotNull(m_Life);
-        Checker.NotNull(m_Movement);    
-
         m_SpellHandler.Initialize(CharacterLoader.GetCharacterData(Character).Spells);
-        SetHealthBar(GameUIManager.Instance.CreateHealthBar(team));
-        SetupSpellUI();
-
+        
         transform.position = GameManager.Instance.Spawns[Team][0].position;
         ResetRotation();
+    }
+
+    public void SetupUI()
+    {
+        SetupSpellUI();
+        SetHealthBar(GameUIManager.Instance.CreateHealthBar(Team));
     }
 
     /// <summary>
@@ -81,7 +83,7 @@ public class Controller : NetworkBehaviour
         m_HealthBar = healthBar;
         m_HealthBar.SetMaxHealth(m_Life.InitialHp);
 
-        m_Life.HealthChangedEvent += m_HealthBar.SetHealth;
+        m_Life.Hp.OnValueChanged += m_HealthBar.SetHealth;
     }
 
     /// <summary>
@@ -92,9 +94,10 @@ public class Controller : NetworkBehaviour
         if (!IsOwner)
             return;
 
+        GameUIManager.Instance.ClearSpells();
         foreach (ESpells spell in CharacterLoader.GetCharacterData(Character).Spells)
         {
-            GameUIManager.Instance.CreateSpellTemplate(this, spell);
+            GameUIManager.Instance.CreateSpellTemplate(spell);
         }
     }
 

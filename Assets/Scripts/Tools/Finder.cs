@@ -133,14 +133,31 @@ namespace Tools
         /// <param name="name"></param>
         /// <param name="throwError"></param>
         /// <returns></returns>
-        public static List<T> FindComponents<T>(GameObject parent, bool throwError = true)
+        public static List<T> FindComponents<T>(GameObject parent, string name = "", bool throwError = true)
         {
-            var components = parent.transform.GetComponentsInChildren<T>();
+            if (name == "")
+            {
+                var childComponents = parent.transform.GetComponentsInChildren<T>();
 
-            if (throwError && !Checker.CheckSize<T>(components, 1, atLeast: true))
-                return new List<T>();
-            
-            return new List<T>(components);
+                if (throwError && !Checker.CheckSize<T>(childComponents, 1, atLeast: true))
+                    return new List<T>();
+
+                return new List<T>(childComponents);
+            }
+
+            List<T> components = new List<T>();
+            var childs = Finds(parent, name, throwError);       // already recusive
+            foreach (GameObject child in childs)
+            {
+                var component = child.GetComponent<T>();
+                if (component != null)
+                    components.Add(component);
+            }
+
+            if (throwError)
+                Checker.CheckEmpty(components);
+
+            return components;
         }
 
 

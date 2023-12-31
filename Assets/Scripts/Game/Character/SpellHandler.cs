@@ -19,7 +19,6 @@ namespace Game.Character
         #region Members
 
         const string                        c_SpellSpawn            = "SpellSpawn";
-        const string                        c_TargettableArea       = "TargettableArea";
 
         public Action<ESpells>              SelectedSpellEvent;
         public Action                       CastEndedEvent;
@@ -38,6 +37,8 @@ namespace Game.Character
         public NetworkVariable<int> SelectedSpellNet => m_SelectedSpellNet;
         public float AnimationTimer => m_AnimationTimer.Value;
 
+        public bool IsCasting => m_AnimationTimer.Value > 0f;
+
         #endregion
 
 
@@ -53,7 +54,7 @@ namespace Game.Character
         {
             m_Controller = Finder.FindComponent<Controller>(gameObject);
             m_SpellSpawn = Finder.FindComponent<Transform>(gameObject, c_SpellSpawn);
-            m_TargettableArea = Finder.FindComponent<Transform>(c_TargettableArea);
+            m_TargettableArea = GameManager.Instance.TargettableAreas[m_Controller.Team];   // get targettable area of the team
         }
 
         void Update()
@@ -157,6 +158,9 @@ namespace Game.Character
         /// </summary>
         void StartAnimation()
         {
+            // cancel current animation if any
+            EndAnimation();
+
             StartAnimator();
             StartAnimationParticles();
         }
@@ -167,7 +171,8 @@ namespace Game.Character
         void EndAnimation()
         {
             // cancel animation
-            EndAnimator();
+            if (IsCasting)
+                EndAnimator();
 
             // destroy animation particles
             EndAnimationParticles();
@@ -206,20 +211,8 @@ namespace Game.Character
         /// </summary>
         void EndAnimator()
         {
-            SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
+            // reset speed of animation
             m_Controller.Animator.SetTrigger("CancelCast");
-
-            switch (spellData.Trajectory)
-            {
-                case ESpellTrajectory.Curve:
-                case ESpellTrajectory.Straight:
-                case ESpellTrajectory.Hight:
-                    break;
-
-                default:
-                    Debug.LogError($"Trajectory {spellData.Trajectory} not implemented");
-                    break;
-            }
 
             // reset speed of animation
             m_Controller.Animator.SetFloat("CastSpeed", 1f);
@@ -246,6 +239,7 @@ namespace Game.Character
             if (m_AnimationParticles == null)
                 return;
             Destroy(m_AnimationParticles);
+            m_AnimationParticles = null;
         }
 
         #endregion
@@ -447,6 +441,7 @@ namespace Game.Character
 
             // SETUP : get spell data and set animation to motion
             SpellData spellData = SpellLoader.GetSpellData(spellType);
+            bool castDone = false;  
 
             // cancel current movement
             m_Controller.Movement.CancelMovement(true);
@@ -460,30 +455,17 @@ namespace Game.Character
             // set animation timer
             m_AnimationTimer.Value = SpellLoader.GetSpellData(m_SelectedSpell).AnimationTimer;
             
-            // wait for spell to be casted during the animation
-            while (m_AnimationTimer.Value >= spellData.AnimationTimer * (1 - spellData.CastAt))
+            // wait for animation to finish (if not already)
+            while (m_AnimationTimer.Value > 0f || ! castDone)
             {
-                m_AnimationTimer.Value -= Time.deltaTime;
-                
-                // if player is moving, cancel the spell
-                if (m_Controller.Movement.IsMoving)
+                // if the spell is launched before the end of the cast : cast it
+                if (m_AnimationTimer.Value <= spellData.AnimationTimer * (1 - spellData.CastAt) && ! castDone)
                 {
-                    // reset cancel current movement
-                    m_Controller.Movement.CancelMovement(false);
-                    // reset Animator
-                    EndAnimationServerRPC();
-                    yield break;
+                    // ask server to cast the spell
+                    CastServerRPC();
+                    castDone = true;
                 }
 
-                yield return null;
-            }
-
-            // ask server to cast the spell
-            CastServerRPC();
-
-            // wait for animation to finish (if not already)
-            while (m_AnimationTimer.Value > 0f)
-            {
                 m_AnimationTimer.Value -= Time.deltaTime;
                 // if player is moving, cancel the spell
                 if (m_Controller.Movement.IsMoving)

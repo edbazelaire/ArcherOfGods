@@ -1,35 +1,39 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Life : MonoBehaviour
+public class Life : NetworkBehaviour
 {
+    // DEBUG
+    float debugTimer;
+
     // initial health points
     public int InitialHp;
     // thrown when the character dies
     public Action DiedEvent;
-    // thrown when the character's health changes
-    public Action<int> HealthChangedEvent;
 
     Controller m_Controller;
 
-    int m_Hp;
-    public int Hp { get { return m_Hp; } }  
-    public bool IsAlive { get { return m_Hp > 0; } }
+    NetworkVariable<int> m_Hp = new (0);
 
-    // Start is called before the first frame update
-    void Start()
+    public NetworkVariable<int> Hp { get { return m_Hp; } }  
+    public bool IsAlive { get { return m_Hp.Value > 0; } }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public override void OnNetworkSpawn()
     {
-        m_Hp = InitialHp;
+        m_Hp.Value = InitialHp;
         m_Controller = GetComponent<Controller>();
     }
 
-    // Update is called once per frame
+    /// <summary>
+    /// 
+    /// </summary>
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-            Hit(10);
-        if (Input.GetKeyDown(KeyCode.Alpha2))
-            Heal(10);
+        //DisplayLife(2f);
     }
 
     #region Public Manipulators
@@ -40,18 +44,19 @@ public class Life : MonoBehaviour
     /// <param name="damage"> amount of damages </param>
     public void Hit(int damage)
     {
-        if ( damage < 0 )
+        if (!IsServer)
+            return;
+
+        if (damage < 0)
         {
             Debug.LogError($"Damages ({damage}) < 0");
             return;
         }
 
-        m_Hp -= damage;
+        Debug.LogWarning($"Client ({OwnerClientId})");
+        Debug.LogWarning($"     + Damages ({damage})");
 
-        HealthChangedEvent?.Invoke(m_Hp);
-
-        if (m_Hp <= 0)
-            m_Controller.Die();
+        m_Hp.Value -= damage;
     }
 
     /// <summary>
@@ -60,19 +65,39 @@ public class Life : MonoBehaviour
     /// <param name="heal"></param>
     public void Heal(int heal)
     {
+        if (!IsServer)
+            return;
+
         if (heal < 0)
         {
             Debug.LogError($"Healing ({heal}) < 0");
             return;
         }
 
-        if (m_Hp + heal > InitialHp)
-            m_Hp = InitialHp;
+        if (m_Hp.Value + heal > InitialHp)
+            m_Hp.Value = InitialHp;
         else
-            m_Hp += heal;
+            m_Hp.Value += heal;
+    }
 
-        HealthChangedEvent?.Invoke(m_Hp);
-    }   
+    #endregion
+
+
+    #region Debug
+
+    void DisplayLife(float timer = 2f)
+    {
+        if (debugTimer > 0f)
+        {
+            debugTimer -= Time.deltaTime;
+            return;
+        }
+
+        print("Client: " + OwnerClientId);
+        print("     + Life: " + m_Hp.Value);
+
+        debugTimer = timer;
+    }
 
     #endregion
 }
