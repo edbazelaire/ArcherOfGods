@@ -259,6 +259,7 @@ namespace Game.Character
         /// <returns></returns>
         public void SetCooldown(ESpells spellType, float cooldown)
         {
+            // only server can change a cooldown value
             if (! IsServer)
                 return;
 

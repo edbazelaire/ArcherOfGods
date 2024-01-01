@@ -62,6 +62,10 @@ public class Controller : NetworkBehaviour
 
         // display the player's ui 
         SetupUI();
+
+        // ask the Server to select first spell by default
+        if (IsOwner)
+            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
  
     /// <summary>
@@ -112,10 +116,6 @@ public class Controller : NetworkBehaviour
     {
         SetupSpellUI();
         SetHealthBar(GameUIManager.Instance.CreateHealthBar(Team));
-
-        // ask the Server to select first spell by default
-        if (IsOwner)
-            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ public class Controller : NetworkBehaviour
     public void SetHealthBar(HealthBar healthBar)
     {
         m_HealthBar = healthBar;
-        m_HealthBar.SetMaxHealth(m_Life.Hp.Value);
+        m_HealthBar.SetMaxHealth(m_Life.InitialHp);
 
         m_Life.Hp.OnValueChanged += m_HealthBar.SetHealth;
     }

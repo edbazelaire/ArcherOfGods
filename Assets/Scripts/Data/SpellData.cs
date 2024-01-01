@@ -69,7 +69,10 @@ namespace Data
 
             // initialize the spell
             var spell = Finder.FindComponent<Spell>(spellGO);
-            spell.InitializeClientRPC(targetPosition, Name);
+            spell.Initialize(targetPosition, Name);
+
+            // backpropagate the spell intialization to the client (for the preview)
+            spell.InitializeClientRpc(targetPosition, Name);
 
             return spellGO;
         }

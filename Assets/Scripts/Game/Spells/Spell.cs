@@ -75,7 +75,7 @@ namespace Game.Spells
         /// <param name="target"></param>
         /// <param name="spellType"></param>
         [ClientRpc]
-        public void InitializeClientRPC(Vector3 target, ESpells spellType)
+        public void InitializeClientRpc(Vector3 target, ESpells spellType)
         {
             Initialize(target, spellType);
         }

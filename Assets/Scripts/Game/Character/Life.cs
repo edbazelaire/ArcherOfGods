@@ -24,12 +24,15 @@ public class Life : NetworkBehaviour
     Controller                      m_Controller;
 
     /// <summary> initial health points </summary>
-    public int                      m_InitialHp = 50;
+    int                             m_InitialHp = 50;
 
     // ===================================================================================
     // PUBLIC ACCESSORS 
     /// <summary> Current health points </summary>
     public NetworkVariable<int> Hp { get { return m_Hp; } }  
+
+    /// <summary> Initial hp of the player </summary>
+    public int InitialHp { get { return m_InitialHp; } }
 
     /// <summary> Is the character alive </summary>
     public bool IsAlive { get { return m_Hp.Value > 0; } }
