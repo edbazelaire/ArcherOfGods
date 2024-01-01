@@ -19,7 +19,6 @@ public class GameUIManager : MonoBehaviour
     /// <summary> Health bar template to instantiate on Character Instantiation </summary>
     public GameObject   HealthBar;
 
-    bool                m_Initialized;
     GameObject          m_SpellContainer;
     List<GameObject>    m_HealthBarContainers;
     List<SpellItemUI>   m_SpellItems;   
@@ -31,13 +30,7 @@ public class GameUIManager : MonoBehaviour
 
     private void Update()
     {
-        if (!m_Initialized)
-            return;
 
-        foreach (var spellItemUI in m_SpellItems)
-        {
-            spellItemUI.Update();
-        }
     }
 
     #endregion
@@ -51,8 +44,6 @@ public class GameUIManager : MonoBehaviour
 
         FindHealthbarContainers();
         FindSpellsContainer();
-
-        m_Initialized = true;
     }
 
     /// <summary>

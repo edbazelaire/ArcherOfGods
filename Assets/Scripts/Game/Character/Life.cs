@@ -4,29 +4,54 @@ using UnityEngine;
 
 public class Life : NetworkBehaviour
 {
+    #region Members
+
     // DEBUG
     float debugTimer;
 
-    // initial health points
-    public int InitialHp;
-    // thrown when the character dies
-    public Action DiedEvent;
+    // ===================================================================================
+    // EVENTS
+    /// <summary> thrown when the character dies </summary>
+    public Action                   DiedEvent;
 
-    Controller m_Controller;
+    // ===================================================================================
+    // NETWORK VARIABLES
+    NetworkVariable<int>            m_Hp = new (0);
 
-    NetworkVariable<int> m_Hp = new (0);
+    // ===================================================================================
+    // PRIVATE VARIABLES
+    /// <summary> Controller of the Owner</summary>
+    Controller                      m_Controller;
 
+    /// <summary> initial health points </summary>
+    public int                      m_InitialHp = 50;
+
+    // ===================================================================================
+    // PUBLIC ACCESSORS 
+    /// <summary> Current health points </summary>
     public NetworkVariable<int> Hp { get { return m_Hp; } }  
+
+    /// <summary> Is the character alive </summary>
     public bool IsAlive { get { return m_Hp.Value > 0; } }
+
+    #endregion
+
+
+    #region Initialization
 
     /// <summary>
     /// 
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        m_Hp.Value = InitialHp;
+        m_Hp.Value = m_InitialHp;
         m_Controller = GetComponent<Controller>();
     }
+
+    #endregion
+
+
+    #region Inherited Manipulators
 
     /// <summary>
     /// 
@@ -36,6 +61,9 @@ public class Life : NetworkBehaviour
         //DisplayLife(2f);
     }
 
+    #endregion
+
+
     #region Public Manipulators
 
     /// <summary>
@@ -44,18 +72,18 @@ public class Life : NetworkBehaviour
     /// <param name="damage"> amount of damages </param>
     public void Hit(int damage)
     {
+        // only server can apply damages
         if (!IsServer)
             return;
 
+        // check provided value
         if (damage < 0)
         {
             Debug.LogError($"Damages ({damage}) < 0");
             return;
         }
 
-        Debug.LogWarning($"Client ({OwnerClientId})");
-        Debug.LogWarning($"     + Damages ({damage})");
-
+        // apply damages
         m_Hp.Value -= damage;
     }
 
@@ -65,17 +93,20 @@ public class Life : NetworkBehaviour
     /// <param name="heal"></param>
     public void Heal(int heal)
     {
+        // only server can apply heals
         if (!IsServer)
             return;
 
+        // check provided value
         if (heal < 0)
         {
             Debug.LogError($"Healing ({heal}) < 0");
             return;
         }
 
-        if (m_Hp.Value + heal > InitialHp)
-            m_Hp.Value = InitialHp;
+        // apply heals
+        if (m_Hp.Value + heal > m_InitialHp)
+            m_Hp.Value = m_InitialHp;
         else
             m_Hp.Value += heal;
     }

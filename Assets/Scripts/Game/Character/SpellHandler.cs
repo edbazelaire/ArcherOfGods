@@ -18,26 +18,45 @@ namespace Game.Character
     {
         #region Members
 
+        // ===================================================================================
+        // CONSTANTS
         const string                        c_SpellSpawn            = "SpellSpawn";
 
-        public Action<ESpells>              SelectedSpellEvent;
+        // ===================================================================================
+        // EVENTS
+        /// <summary> event fired when the spell is over </summary>
         public Action                       CastEndedEvent;
 
-        NetworkList<float>                  Cooldowns;
+        // ===================================================================================
+        // NETWORK VARIABLES    
+        /// <summary> list of cooldowns that links spellID to its cooldown <summary>
+        NetworkList<float>                  m_CooldownsNet;
+        /// <summary> list of spells that links spellID to spellValue <summary>
         NetworkList<int>                    m_SpellsNet;
-        NetworkVariable<int>                m_SelectedSpellNet      = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        /// <summary> currently selected spell </summary>
+        NetworkVariable<int>                m_SelectedSpellNet      = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        /// <summary> time before the animation ends </summary>
         NetworkVariable<float>              m_AnimationTimer        = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        /// <summary> position where the spell will land </summary>
         NetworkVariable<Vector3>            m_TargetPos             = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
-        Controller m_Controller;
+        // ===================================================================================
+        // PRIVATE VARIABLES    
+        /// <summary> owner's controller </summary>
+        Controller                          m_Controller;
+        /// <summary> zone where the player can cast a spell </summary>
         Transform                           m_TargettableArea;
+        /// <summary> base spawn position of the spell </summary>
         Transform                           m_SpellSpawn;
+        /// <summary> current animation particles displayed during animation </summary>
         GameObject                          m_AnimationParticles;
 
-        public NetworkVariable<int> SelectedSpellNet => m_SelectedSpellNet;
-        public float AnimationTimer => m_AnimationTimer.Value;
-
-        public bool IsCasting => m_AnimationTimer.Value > 0f;
+        // ===================================================================================
+        // PUBLIC ACCESSORS
+        public NetworkVariable<int>         SelectedSpellNet        => m_SelectedSpellNet;
+        public NetworkList<float>           CooldownsNet            => m_CooldownsNet;
+        public float                        AnimationTimer          => m_AnimationTimer.Value;
+        public bool                         IsCasting               => m_AnimationTimer.Value > 0f;
 
         #endregion
 
@@ -46,8 +65,8 @@ namespace Game.Character
 
         private void Awake()
         {
-            m_SpellsNet = new NetworkList<int>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-            Cooldowns   = new NetworkList<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+            m_SpellsNet = new NetworkList<int>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+            m_CooldownsNet   = new NetworkList<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         }
 
         public override void OnNetworkSpawn()
@@ -59,11 +78,14 @@ namespace Game.Character
 
         void Update()
         {
+            // only server can update cooldowns
+            if (IsServer)
+                UpdateCooldowns();
+
             if (! IsOwner)
                 return; 
 
             CheckActionExectution();
-            UpdateCooldownsServerRPC();
         }
 
         #endregion
@@ -77,13 +99,13 @@ namespace Game.Character
         /// <param name="spells"></param>
         public void Initialize(List<ESpells> spells)
         {
-            if (!IsOwner)
+            if (!IsServer)
                 return;
 
             foreach (ESpells spell in spells)
             {
                 m_SpellsNet.Add((int)spell);
-                Cooldowns.Add(0);
+                m_CooldownsNet.Add(0);
             }
         }
 
@@ -92,29 +114,40 @@ namespace Game.Character
 
         #region Server RPC
 
-        [ServerRpc]
         /// <summary>
-        /// Update cooldowns
+        /// Ask the server to select the given spell
         /// </summary>
-        void UpdateCooldownsServerRPC()
+        /// <param name="spell"></param>
+        [ServerRpc]
+        public void AskSpellSelectionServerRPC(ESpells spellType)
         {
-            foreach (ESpells spell in m_Spells)
-            {
-                SetCooldown(spell, GetCooldown(spell) - Time.deltaTime);
-            }
+            if (!CanCast(spellType))
+                return;
+
+            SelectSpell(spellType);
         }
 
+        /// <summary>
+        /// Ask the server to cast the selected spell
+        /// </summary>
         [ServerRpc]
         void CastServerRPC()
         {
             SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
             
-            // setup cooldown and cast the spell
-            SetCooldown(m_SelectedSpell, spellData.Cooldown);
+            // get spawn position and cast the spell
             var spawnPosition = m_SpellSpawn.position + GetSpawnOffset(spellData.Trajectory);
             spellData.Cast(m_Controller.OwnerClientId, m_TargetPos.Value, spawnPosition, m_SpellSpawn.rotation);
 
-            SelectSpell(m_Spells[0]);
+            // only server can handle cooldowns and selected spell
+            if (IsServer)
+            {
+                // setup cooldown
+                SetCooldown(m_SelectedSpell, spellData.Cooldown);
+
+                // reset spell selection
+                SelectSpell(Spells[0]);
+            }
         }
 
         [ServerRpc]
@@ -158,8 +191,8 @@ namespace Game.Character
         /// </summary>
         void StartAnimation()
         {
-            // cancel current animation if any
-            EndAnimation();
+            // TODO : cancel current animation if any
+            //EndAnimation();
 
             StartAnimator();
             StartAnimationParticles();
@@ -246,6 +279,16 @@ namespace Game.Character
 
 
         #region Private Manipulators
+        /// <summary>
+        /// Update cooldowns
+        /// </summary>
+        void UpdateCooldowns()
+        {
+            foreach (ESpells spell in Spells)
+            {
+                SetCooldown(spell, GetCooldown(spell) - Time.deltaTime);
+            }
+        }
 
         /// <summary>
         /// Check if movement inputs have beed pressed
@@ -279,6 +322,8 @@ namespace Game.Character
         /// <param name="spellType"></param>
         void SelectSpell(ESpells spellType)
         {
+            if (! IsServer)
+                return;
             m_SelectedSpell = spellType;
         }
 
@@ -342,12 +387,13 @@ namespace Game.Character
         /// <returns></returns>
         public void SetCooldown(ESpells spellType, float cooldown)
         {
-            if (! IsOwner)
+            if (! IsServer)
                 return;
 
             if (cooldown < 0f)
                 cooldown = 0f;
-            Cooldowns[GetSpellIndex(spellType)] = cooldown;
+
+            m_CooldownsNet[GetSpellIndex(spellType)] = cooldown;
         }
 
         /// <summary>
@@ -357,7 +403,7 @@ namespace Game.Character
         /// <returns></returns>
         public float GetCooldown(ESpells spellType)
         {
-            return Cooldowns[GetSpellIndex(spellType)];
+            return m_CooldownsNet[GetSpellIndex(spellType)];
         }
 
         /// <summary>
@@ -367,25 +413,13 @@ namespace Game.Character
         /// <returns></returns>
         public int GetSpellIndex(ESpells spellType)
         {
-            if (!m_Spells.Contains(spellType))
+            if (!Spells.Contains(spellType))
             {
                 ErrorHandler.FatalError($"SpellHandler : spell {spellType} was not found in list of spells");
                 return 0;
             }
 
-            return m_Spells.IndexOf(spellType);
-        }
-
-        /// <summary>
-        /// Cast the given spell
-        /// </summary>
-        /// <param name="spell"></param>
-        public void AskSpellSelection(ESpells spellType)
-        {
-            if (!CanCast(spellType))
-                return;
-
-            SelectSpell(spellType);
+            return Spells.IndexOf(spellType);
         }
 
         /// <summary>
@@ -436,6 +470,7 @@ namespace Game.Character
         /// <returns></returns>
         IEnumerator StartCast(ESpells spellType)
         {
+            // only owner can ask for cast
             if (!IsOwner)
                 yield break;
 
@@ -497,7 +532,7 @@ namespace Game.Character
             set => m_SelectedSpellNet.Value = (int)value;
         }
 
-        List<ESpells> m_Spells
+        public List<ESpells> Spells
         {
             get
             {

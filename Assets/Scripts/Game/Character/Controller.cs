@@ -10,50 +10,69 @@ using UnityEngine;
 
 public class Controller : NetworkBehaviour
 {
+    #region Members
+
+    // ===================================================================================
+    // CONSTANTS
     const string c_CharacterPreview = "CharacterPreview";
 
-    public int              Id              { get; set; }
-    public ECharacter       Character       { get; set; }
-    public int              Team            { get; set; }
-    public bool             IsCurrentPlayer { get; set; }
-    public bool             IsPlayer        { get; set; }
+    // ===================================================================================
+    // PRIVATE VARIABLES 
+    // -- Data
+    ECharacter              m_Character;
+    int                     m_Team;
+    bool                    m_IsPlayer;
 
-    GameObject              m_CharacterPreview;
-
+    // -- Components & GameObjects
     Animator                m_Animator;
     Movement                m_Movement;
     Life                    m_Life;
     SpellHandler            m_SpellHandler;
     HealthBar               m_HealthBar;
+    GameObject              m_CharacterPreview;
 
+    // ===================================================================================
+    // PUBLIC ACCESSORS
+    // -- Data
+    public ECharacter       Character           => m_Character;
+    public int              Team                => m_Team;
+    public bool             IsPlayer            => m_IsPlayer;
+
+    // -- Components & GameObjects
     public GameObject       CharacterPreview    => m_CharacterPreview;
     public Animator         Animator            => m_Animator;
     public Movement         Movement            => m_Movement;
     public Life             Life                => m_Life;
     public SpellHandler     SpellHandler        => m_SpellHandler;
 
+    #endregion
 
-    #region Setup 
 
+    #region Initialization 
+
+    /// <summary>
+    /// Called when the controller is spawned on the network
+    /// </summary>
     public override void OnNetworkSpawn()
     {
-        int team = GameManager.Instance.Players.Count;
-        Initialize(0, ECharacter.Reaper, team, true, true);
+        // init the controller
+        Initialize(ECharacter.Reaper, GameManager.Instance.Players.Count, true);
 
+        // add player to the game manager
         GameManager.Instance.AddPlayer(this);
+
+        // display the player's ui 
         SetupUI();
     }
  
     /// <summary>
     /// Initialize the controller
     /// </summary>
-    public void Initialize(int id, ECharacter character, int team, bool isPlayer, bool isCurrentPlayer)
+    public void Initialize(ECharacter character, int team, bool isPlayer)
     {
-        Id              = id;
-        Character       = character;
-        Team            = team;
-        IsPlayer        = isPlayer;
-        IsPlayer        = isCurrentPlayer;
+        m_Character     = character;
+        m_Team          = team;
+        m_IsPlayer      = isPlayer;
 
         m_CharacterPreview = Finder.Find(gameObject, c_CharacterPreview);
 
@@ -68,10 +87,19 @@ public class Controller : NetworkBehaviour
         ResetRotation();
     }
 
+    /// <summary>
+    /// Setup the UI for this controller
+    ///     + [Local] Create a SpellItemUI for each spell of the character
+    ///     + [Global] Add a health bar for this controller
+    /// </summary>
     public void SetupUI()
     {
         SetupSpellUI();
         SetHealthBar(GameUIManager.Instance.CreateHealthBar(Team));
+
+        // ask the Server to select first spell by default
+        if (IsOwner)
+            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
 
     /// <summary>
@@ -81,20 +109,23 @@ public class Controller : NetworkBehaviour
     public void SetHealthBar(HealthBar healthBar)
     {
         m_HealthBar = healthBar;
-        m_HealthBar.SetMaxHealth(m_Life.InitialHp);
+        m_HealthBar.SetMaxHealth(m_Life.Hp.Value);
 
         m_Life.Hp.OnValueChanged += m_HealthBar.SetHealth;
     }
 
     /// <summary>
-    /// 
+    /// Create the SpellItemUI for each spell of the character
     /// </summary>
     public void SetupSpellUI()
     {
         if (!IsOwner)
             return;
 
+        // clear the spell container (in case any spell was already there)
         GameUIManager.Instance.ClearSpells();
+
+        // create a SpellItemUI for each spell of the character
         foreach (ESpells spell in CharacterLoader.GetCharacterData(Character).Spells)
         {
             GameUIManager.Instance.CreateSpellTemplate(spell);
@@ -128,6 +159,7 @@ public class Controller : NetworkBehaviour
 
 
     #region Public Manipulators
+
     public void ResetRotation()
     {
         transform.rotation = Quaternion.Euler(0f, Team == 0 ? 0f : -180f, 0f);

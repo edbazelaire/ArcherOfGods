@@ -11,15 +11,6 @@ namespace Game.Spells
     {
         #region Members
 
-        //protected NetworkVariable<int> m_SpellTypeNet = new NetworkVariable<int>((int)ESpells.Count, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        //protected NetworkVariable<int> m_ClientIdNet = new NetworkVariable<int>(-1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        //protected NetworkVariable<Vector3> m_TargetNet = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
-        //protected NetworkVariable<float> m_Speed = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        //protected NetworkVariable<int> m_Damage = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        //protected NetworkVariable<float> m_Distance = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        //protected NetworkVariable<Vector3> m_Direction = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
         // ownership
         protected Controller        m_Controller;
         protected ulong             m_ClientId;
@@ -40,29 +31,35 @@ namespace Game.Spells
 
         #region Init & End
 
+        /// <summary>
+        /// Called when the spell is spawned on the network
+        /// </summary>
         public override void OnNetworkSpawn()
         {
             SpellData spellData = SpellLoader.GetSpellData(m_SpellType);
-
-            m_ClientId = OwnerClientId;
-            m_Speed = spellData.Speed;
-            m_Damage = spellData.Damage;
-            m_Distance = spellData.Distance;
-            m_OriginalPosition = transform.position;
-
-            m_Controller = GameManager.Instance.GetPlayer(m_ClientId);
-
-            Debug.Log("OnNetworkSpawn position : " + transform.position);
+            
+            m_Controller        = GameManager.Instance.GetPlayer(OwnerClientId);
+            m_ClientId          = OwnerClientId;
+            m_Speed             = spellData.Speed;
+            m_Damage            = spellData.Damage;
+            m_Distance          = spellData.Distance;
+            m_OriginalPosition  = transform.position;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="spellType"></param>
         public virtual void Initialize(Vector3 target, ESpells spellType)
         {
             m_SpellType = spellType;
             SetTarget(target);
-
-            Debug.Log("Init position : " + transform.position);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected virtual void End()
         {
             Destroy(gameObject);
@@ -73,6 +70,11 @@ namespace Game.Spells
 
         #region Client RPCs
 
+        /// <summary>
+        /// Client is initialized with same data as server to create a previsualisation of the spell
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="spellType"></param>
         [ClientRpc]
         public void InitializeClientRPC(Vector3 target, ESpells spellType)
         {
@@ -84,21 +86,31 @@ namespace Game.Spells
 
         #region Inherited Manipulators  
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected void Update()
         {
             UpdateMovement();
         }
 
+        /// <summary>
+        /// [SERVER] check for collision with wall or player
+        /// </summary>
+        /// <param name="collision"></param>
         protected void OnTriggerEnter2D(Collider2D collision)
         {
             // only server can check for collision
             if (! IsServer)
                 return;
 
+            // if spell hits a wall, end it
             if (collision.gameObject.layer == LayerMask.NameToLayer("Wall"))
             {
                 End();
             }
+
+            // if spell hits a player, hit it and end the spell
             else if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
                 Controller controller = collision.gameObject.GetComponent<Controller>();
@@ -113,20 +125,14 @@ namespace Game.Spells
         #endregion
 
 
-        #region Server RPC
-
-
-
-        #endregion
-
-
         #region Protected Manipulators
 
         /// <summary>
-        /// 
+        /// Update the position of the spell and [SERVER] check if the spell has reached its max distance
         /// </summary>
         protected virtual void UpdateMovement()
         {
+            // all clients update the position of the spell (previsualisation)
             transform.position += m_Direction * m_Speed * Time.deltaTime;
 
             // only server can check for distance
@@ -138,6 +144,10 @@ namespace Game.Spells
                 End();
         }
 
+        /// <summary>
+        /// Set the value of the target, update direction and rotation
+        /// </summary>
+        /// <param name="target"></param>
         protected virtual void SetTarget(Vector3 target)
         {
             m_Target = target;
@@ -146,7 +156,7 @@ namespace Game.Spells
         }
 
         /// <summary>
-        /// 
+        /// Set rotation of the spell to look at the target
         /// </summary>
         /// <param name="target"></param>
         protected virtual void LookAt(Vector3 target)
@@ -156,29 +166,6 @@ namespace Game.Spells
             float rot_z = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0f, 0f, rot_z);
         }
-
-        #endregion
-
-
-        #region Network Variable Access
-
-        //protected ESpells m_SpellType
-        //{
-        //    get => (ESpells)m_SpellTypeNet.Value;
-        //    set => m_SpellTypeNet.Value = (int)value;
-        //}
-
-        //protected ulong m_ClientId
-        //{
-        //    get => (ulong)m_ClientIdNet.Value;
-        //    set => m_ClientIdNet.Value = (int)value;
-        //}
-
-        //protected Vector3 m_Target
-        //{
-        //    get => m_TargetNet.Value;
-        //    set => m_TargetNet.Value = value;
-        //}
 
         #endregion
 
