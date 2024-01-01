@@ -1,6 +1,7 @@
 ﻿using Enums;
 using System;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game.Spells
@@ -9,9 +10,8 @@ namespace Game.Spells
     {
         #region Members
 
-        //NetworkVariable<Vector3>    m_TargetLookAt = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-
-        Vector3 m_TargetLookAt;
+        float m_MaxHeight;
+        float m_MaxDistance;
 
         #endregion
 
@@ -21,8 +21,14 @@ namespace Game.Spells
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
+        }
 
-            SetCurrentTarget(GameManager.Instance.TargetHight.transform.position);
+        public override void Initialize(Vector3 target, ESpells spellType)
+        {
+            base.Initialize(target, spellType);
+
+            m_MaxHeight = GameManager.Instance.TargetHight.transform.position.y;
+            m_MaxDistance = m_Target.x - m_OriginalPosition.x;
         }
 
         protected override void End()
@@ -40,27 +46,16 @@ namespace Game.Spells
         /// </summary>
         protected override void UpdateMovement()
         {
-            if (m_Target != m_TargetLookAt && Math.Abs(transform.position.y - m_TargetLookAt.y) < 0.1)
-                SetCurrentTarget(m_Target);
+            // calculate next position
+            var x       = Mathf.MoveTowards(transform.position.x, m_Target.x, m_Speed * Time.deltaTime);
+            var baseY   = Mathf.Lerp(m_OriginalPosition.y, m_Target.y, (x - m_OriginalPosition.x) / m_MaxDistance);
+            var height  = m_MaxHeight * Math.Abs(x - m_OriginalPosition.x) * Math.Abs(x - m_Target.x) / (0.25f * m_MaxDistance * m_MaxDistance);
 
-            LookAt(m_TargetLookAt);
-            m_Direction = (m_TargetLookAt - transform.position).normalized;
+            // update rotation to look at next position
+            LookAt(new Vector3(x, baseY + height, transform.position.z));
 
+            // update movement
             base.UpdateMovement();
-        }
-
-        #endregion
-
-
-        #region Private Manipulators
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="target"></param>
-        void SetCurrentTarget(Vector3 target)
-        {
-            m_TargetLookAt = target;
         }
 
         #endregion

@@ -45,7 +45,8 @@ namespace Game.Spells
             m_Graphics.color = m_Color;
             m_Graphics.size = new Vector2(m_Distance, m_Graphics.size.y);
 
-            spellHandler.CastEndedEvent += OnCastEnded;
+            // TODO : replace with AnimationTimer.OnValueChanged
+            //spellHandler.CastEndedEvent += OnCastEnded;
         }
 
         #endregion
@@ -65,7 +66,7 @@ namespace Game.Spells
 
         void UpdateColor()
         {
-            m_Color.a = c_ColorOpacity + (1 - c_ColorOpacity) * (1 - m_SpellHandler.AnimationTimer / m_AnimationTimer);
+            m_Color.a = c_ColorOpacity + (1 - c_ColorOpacity) * (1 - m_SpellHandler.AnimationTimer.Value / m_AnimationTimer);
             m_Graphics.color = m_Color;
         }
 

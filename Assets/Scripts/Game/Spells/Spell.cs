@@ -20,7 +20,6 @@ namespace Game.Spells
         protected float             m_Speed;
         protected int               m_Damage;
         protected float             m_Distance;
-        protected Vector3           m_Direction;
 
         // targetting
         protected Vector3           m_Target;
@@ -133,7 +132,7 @@ namespace Game.Spells
         protected virtual void UpdateMovement()
         {
             // all clients update the position of the spell (previsualisation)
-            transform.position += m_Direction * m_Speed * Time.deltaTime;
+            transform.Translate(m_Speed * Time.deltaTime, 0, 0);
 
             // only server can check for distance
             if (!IsServer)
@@ -151,7 +150,6 @@ namespace Game.Spells
         protected virtual void SetTarget(Vector3 target)
         {
             m_Target = target;
-            m_Direction = (m_Target - transform.position).normalized;
             LookAt(m_Target);
         }
 
@@ -177,7 +175,6 @@ namespace Game.Spells
             Debug.Log("Spell " + m_SpellType);
             Debug.Log("     + ClientId " + m_ClientId);
             Debug.Log("     + Target " + m_Target);
-            Debug.Log("     + Direction " + m_Direction);
             Debug.Log("     + Speed " + m_Speed);    
         }
 

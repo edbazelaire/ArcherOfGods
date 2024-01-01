@@ -4,6 +4,7 @@ using Game.Managers;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using Tools;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace Data
@@ -13,13 +14,13 @@ namespace Data
     {
         public ECharacter       Name;
         public Sprite           Image;
-        public GameObject       Prefab;
+        public GameObject       CharacterPreview;
         public List<ESpells>    Spells;
 
-        // TODO : remove if not used (= player instantiated by NetworkManager)
-        //public GameObject Instantiate(int id, int team, bool isPlayer, Transform spawn, Vector3 position = default, Quaternion rotation = default)
-        //{
-        //    return;
-        //}
+        public GameObject InstantiateCharacterPreview(GameObject parent)
+        {
+            var go = GameObject.Instantiate(CharacterPreview, parent.transform);
+            return go;
+        }
     }
 }

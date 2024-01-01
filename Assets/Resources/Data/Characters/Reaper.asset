@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: 1
   Image: {fileID: 470484783931029153, guid: 477669bcd87193c4e9a8cd1b7e03622f, type: 3}
-  Prefab: {fileID: 6669101552207868014, guid: 553f513d50bb97d4887fc67b4f28adcd, type: 3}
+  CharacterPreview: {fileID: 4031385725676864100, guid: 6864c7407460b544fac4b9600dce5dfb, type: 3}
   Spells: 0000000001000000

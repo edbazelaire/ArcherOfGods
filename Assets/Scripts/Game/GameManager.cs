@@ -26,29 +26,35 @@ namespace Game
     {
         #region Members
 
-        const string            c_PlateformPrefix           = "Plateform_";
-        const string            c_SpawnerPrefix             = "SpawnPoint_";
-        const string            c_TargettableAreaPrefix     = "TargettableArea_";
-        const string            c_Arena                     = "Arena";
-        const string            c_TargetHight               = "TargetHight";
-        const int               c_NumTeams                  = 2;
-        const int               c_PlayerTeam                = 0;
+        static GameManager s_Instance;
 
-        static GameManager      s_Instance;
-        List<List<Transform>>   m_Spawns;
-        List<PlayerData>        m_PlayerDatas;
+        const string                    c_PlateformPrefix           = "Plateform_";
+        const string                    c_SpawnerPrefix             = "SpawnPoint_";
+        const string                    c_TargettableAreaPrefix     = "TargettableArea_";
+        const string                    c_Arena                     = "Arena";
+        const string                    c_TargetHight               = "TargetHight";
+        const int                       c_NumTeams                  = 2;
+        const int                       c_PlayerTeam                = 0;
 
-        public GameObject       m_Arena;
-        public Transform        m_TargetHight;
-        public List<Transform>  m_TargettableAreas;
+        // ===================================================================================
+        // PRIVATE VARIABLES 
+        // -- Data
+        List<PlayerData>                m_PlayerDatas;
+        List<Controller>                m_Players;
 
-        public List<Controller> Players;
-        public Controller       CurrentPlayer;
+        // -- Components & GameObjects
+        GameObject m_Arena;
+        Transform                       m_TargetHight;
+        List<Transform>                 m_TargettableAreas;
+        List<List<Transform>>           m_Spawns;
 
-        public GameObject               Arena               => m_Arena;
-        public List<List<Transform>>    Spawns              => m_Spawns;
-        public Transform                TargetHight         => m_TargetHight;
-        public List<Transform>          TargettableAreas    => m_TargettableAreas;
+        // ===================================================================================
+        // PUBLIC ACCESSORS 
+        public List<Controller>         Players                     => m_Players;
+        public GameObject               Arena                       => m_Arena;
+        public List<List<Transform>>    Spawns                      => m_Spawns;
+        public Transform                TargetHight                 => m_TargetHight;
+        public List<Transform>          TargettableAreas            => m_TargettableAreas;
 
         #endregion
 
@@ -63,6 +69,8 @@ namespace Game
 
         void Initialize()
         {
+            m_Players = new List<Controller>();
+
             InitializeArena();
             InitializeSpawns();
             InitializeTargetabbleArea();
@@ -168,7 +176,7 @@ namespace Game
         void CheckWin()
         {
             var teamCtr = new List<int>();
-            foreach (Controller controller in Players)
+            foreach (Controller controller in m_Players)
             {
                 if (controller.Life.IsAlive && !teamCtr.Contains(controller.Team))
                     teamCtr.Add(controller.Team);
@@ -196,12 +204,12 @@ namespace Game
         public void AddPlayer(Controller player)
         {
             player.Life.Hp.OnValueChanged += CheckPlayerDeath;
-            Players.Add(player);
+            m_Players.Add(player);
         }
 
         public Controller GetPlayer(ulong clientId)
         {
-            foreach (Controller controller in Players)
+            foreach (Controller controller in m_Players)
                 if (controller.OwnerClientId == clientId)
                     return controller;
 

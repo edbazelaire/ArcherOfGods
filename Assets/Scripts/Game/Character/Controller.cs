@@ -3,7 +3,6 @@ using Enums;
 using Game;
 using Game.Character;
 using Game.Managers;
-using System;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
@@ -24,7 +23,7 @@ public class Controller : NetworkBehaviour
     bool                    m_IsPlayer;
 
     // -- Components & GameObjects
-    Animator                m_Animator;
+    AnimationHandler        m_AnimationHandler;
     Movement                m_Movement;
     Life                    m_Life;
     SpellHandler            m_SpellHandler;
@@ -40,7 +39,7 @@ public class Controller : NetworkBehaviour
 
     // -- Components & GameObjects
     public GameObject       CharacterPreview    => m_CharacterPreview;
-    public Animator         Animator            => m_Animator;
+    public AnimationHandler AnimationHandler    => m_AnimationHandler;
     public Movement         Movement            => m_Movement;
     public Life             Life                => m_Life;
     public SpellHandler     SpellHandler        => m_SpellHandler;
@@ -70,21 +69,38 @@ public class Controller : NetworkBehaviour
     /// </summary>
     public void Initialize(ECharacter character, int team, bool isPlayer)
     {
-        m_Character     = character;
-        m_Team          = team;
-        m_IsPlayer      = isPlayer;
+        m_Character         = character;
+        m_Team              = team;
+        m_IsPlayer          = isPlayer;
 
-        m_CharacterPreview = Finder.Find(gameObject, c_CharacterPreview);
-
-        m_Animator      = Finder.FindComponent<Animator>(m_CharacterPreview);
-        m_Life          = Finder.FindComponent<Life>(gameObject);
-        m_Movement      = Finder.FindComponent<Movement>(gameObject);
-        m_SpellHandler  = Finder.FindComponent<SpellHandler>(gameObject);
-
-        m_SpellHandler.Initialize(CharacterLoader.GetCharacterData(Character).Spells);
+        m_Life              = Finder.FindComponent<Life>(gameObject);
+        m_Movement          = Finder.FindComponent<Movement>(gameObject);
+        m_SpellHandler      = Finder.FindComponent<SpellHandler>(gameObject);
+        m_AnimationHandler  = Finder.FindComponent<AnimationHandler>(gameObject);
         
-        transform.position = GameManager.Instance.Spawns[Team][0].position;
+        // initialize with the character data
+        InitializeCharacterData();
+        
+        // setup postion and rotation
+        transform.position  = GameManager.Instance.Spawns[Team][0].position;
         ResetRotation();
+    }
+
+    /// <summary>
+    /// Implement all data related to the Character
+    /// </summary>
+    void InitializeCharacterData()
+    {
+        CharacterData characterData = CharacterLoader.GetCharacterData(Character);
+
+        // instantiate the character preview
+        m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
+
+        // get animator
+        m_AnimationHandler.Initialize(Finder.FindComponent<Animator>(m_CharacterPreview));
+
+        // initialize SpellHandler with character's spells
+        m_SpellHandler.Initialize(characterData.Spells);
     }
 
     /// <summary>

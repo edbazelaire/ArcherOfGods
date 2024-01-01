@@ -9,7 +9,6 @@ namespace Game.Character
 
         public float InitialSpeed;
 
-        Controller m_Controller;
         float m_SpeedFactor = 1f;
 
         NetworkVariable<int> m_MoveX = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
@@ -19,12 +18,6 @@ namespace Game.Character
 
 
         #region Inherited Manipulators
-
-        // Start is called before the first frame update
-        public override void OnNetworkSpawn()
-        {
-            m_Controller = GetComponent<Controller>();
-        }
 
         // Update is called once per frame
         void Update()
@@ -39,28 +32,6 @@ namespace Game.Character
         #endregion
 
 
-        #region Server RPCs
-
-        [ServerRpc]
-        void UpdateMovementAnimationServerRpc()
-        {
-            UpdateMovementAnimationClientRpc();
-        }
-
-        #endregion
-
-
-        #region Client RPCs
-
-        [ClientRpc]
-        void UpdateMovementAnimationClientRpc()
-        {
-            m_Controller.Animator.SetBool("IsMoving", IsMoving);
-        }
-
-        #endregion
-
-
         #region Private Manipulators
 
         /// <summary>
@@ -69,7 +40,7 @@ namespace Game.Character
         void UpdateMovement()
         {
             transform.position += new Vector3(m_MoveX.Value * Speed * Time.deltaTime, 0f, 0f);
-            UpdateMovementAnimationServerRpc();
+            //UpdateMovementAnimationServerRpc();
         }
 
         void SetRotation(float y)
@@ -119,7 +90,7 @@ namespace Game.Character
             if (cancel)
             {
                 m_MoveX.Value = 0;
-                UpdateMovementAnimationServerRpc();
+                //UpdateMovementAnimationServerRpc();
             }
         }
 
