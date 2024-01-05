@@ -216,6 +216,15 @@ namespace Game
             return null;
         }
 
+        public Controller GetFirstEnemy(int team)
+        {
+            foreach (Controller controller in m_Players)
+                if (controller.Team != team)
+                    return controller;
+
+            return null;
+        }
+
         #endregion
 
 

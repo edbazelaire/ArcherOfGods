@@ -15,7 +15,7 @@ namespace Data
         public ECharacter       Name;
         public Sprite           Image;
         public GameObject       CharacterPreview;
-        public List<ESpells>    Spells;
+        public List<ESpell>     Spells;
 
         public GameObject InstantiateCharacterPreview(GameObject parent)
         {

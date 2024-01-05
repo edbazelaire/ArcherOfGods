@@ -12,17 +12,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f7d0115edefaac40a924c0b246d24f9, type: 3}
   m_Name: StraightArrow
   m_EditorClassIdentifier: 
-  Name: 1
-  Image: {fileID: 21300000, guid: de9c1063c567dde44a5217af21d218ed, type: 3}
+  Spell: 1
+  SpellType: 0
+  Image: {fileID: 85321049289429126, guid: 2869cc109de97fa4e989c71b6a0f5e66, type: 3}
   Border: {fileID: 0}
-  Prefab: {fileID: 115900251996298079, guid: af6dec02b5b96bc46a04069c6d3aa2c7, type: 3}
+  Graphics: {fileID: 8200804901049491529, guid: 01e19afaf1bee274a975c8cb333fc101, type: 3}
   Preview: {fileID: 6517212069642031790, guid: 64a76d94e9e6fa543b62228381e536e2, type: 3}
-  AnimationParticles: {fileID: 458114271446715719, guid: a0691b7d658df354ea6923fa145aede0, type: 3}
-  Type: 0
+  AnimationPrefabs:
+  - {fileID: 458114271446715719, guid: a0691b7d658df354ea6923fa145aede0, type: 3}
+  OnCastPrefabs: []
+  OnHitPrefab: {fileID: 0}
   Trajectory: 2
+  MaxHit: 0
+  EnergyGain: 10
+  EnergyCost: 0
   Damage: 20
+  Heal: 0
   Speed: 20
   Distance: 7
+  EnemyStateEffects:
+  - Type: 0
+    Duration: 3
+    SpeedBonus: 0
+    Damages: 0
+    Shield: 0
+    Heal: 0
+    Tick: 0
+  AllyStateEffects: []
+  Radius: 0
+  Duration: 0
+  OnCounterProc: 0
+  CounterDuration: 0
+  Animation: 0
   AnimationTimer: 2
   CastAt: 1
   Cooldown: 3

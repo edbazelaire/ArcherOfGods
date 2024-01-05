@@ -15,7 +15,7 @@ namespace Game.Spells
 
         #region Inherited Manipulators
 
-        public override void Initialize(Transform targettableArea, float distance)
+        public override void Initialize(Transform targettableArea, float distance, float radius = 0)
         {
             base.Initialize(targettableArea, distance);
 

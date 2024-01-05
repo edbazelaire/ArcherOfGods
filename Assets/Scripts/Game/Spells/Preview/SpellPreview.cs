@@ -18,6 +18,17 @@ namespace Game.Spells
 
         #endregion
 
+        #region Initialization
+
+        public virtual void Initialize(Transform targettableArea, float distance, float radius = 0)
+        {
+            m_TargettableArea = targettableArea;
+            m_Distance = distance;
+            m_Graphics = Finder.FindComponent<SpriteRenderer>(gameObject, c_Graphics);
+        }
+
+        #endregion
+
 
         #region Inherited Manipulators
 
@@ -32,17 +43,6 @@ namespace Game.Spells
 
             // hide/display preview if is in targettable area
             m_Graphics.gameObject.SetActive(SpellHandler.IsTargettable(m_TargettableArea));
-        }
-
-        #endregion
-
-        #region Initialization
-
-        public virtual void Initialize(Transform targettableArea, float distance)
-        {
-            m_TargettableArea = targettableArea;
-            m_Distance = distance;
-            m_Graphics = Finder.FindComponent<SpriteRenderer>(gameObject, c_Graphics);
         }
 
         #endregion

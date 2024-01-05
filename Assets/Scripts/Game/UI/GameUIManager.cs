@@ -1,4 +1,5 @@
 using Enums;
+using Game.Character;
 using Game.Managers;
 using Game.UI;
 using System.Collections.Generic;
@@ -10,30 +11,20 @@ public class GameUIManager : MonoBehaviour
 {
     static GameUIManager s_Instance;
 
-    const string        c_HealthBarContainerPrefix  = "HealthBarContainer_";
+    const string        c_PlayerUIContainerPrefix   = "PlayerUIContainer_";
     const string        c_SpellsContainer           = "SpellsContainer";
     const int           NUM_TEAMS                   = 2;
 
+    /// <summary> Template of a PlayerUI to create on Character Instantiation </summary>
+    public GameObject   m_PlayerUITemplate;
     /// <summary> Spell item template to instantiate on Character Instantiation </summary>
     public GameObject   SpellTemplate;
-    /// <summary> Health bar template to instantiate on Character Instantiation </summary>
-    public GameObject   HealthBar;
 
     GameObject          m_SpellContainer;
-    List<GameObject>    m_HealthBarContainers;
+    List<GameObject>    m_PlayerUIContainers;
     List<SpellItemUI>   m_SpellItems;   
 
     public GameObject SpellContainer => m_SpellContainer;
-
-
-    #region Inherited Manipulators
-
-    private void Update()
-    {
-
-    }
-
-    #endregion
 
 
     #region Initialization
@@ -42,20 +33,20 @@ public class GameUIManager : MonoBehaviour
     {
         m_SpellItems = new List<SpellItemUI>();
 
-        FindHealthbarContainers();
+        FindPlayerUIContainers();
         FindSpellsContainer();
     }
 
     /// <summary>
     /// 
     /// </summary>
-    void FindHealthbarContainers()
+    void FindPlayerUIContainers()
     {
-        m_HealthBarContainers = new List<GameObject>();
+        m_PlayerUIContainers = new List<GameObject>();
         for (int i = 0; i < NUM_TEAMS; i++)
         {
             // get container game object
-            GameObject container = GameObject.Find(GetHealthBarContainerName(i));
+            GameObject container = GameObject.Find(GetPlayerUIContainerName(i));
             if (!Checker.NotNull(container))
                 continue;
 
@@ -66,7 +57,7 @@ public class GameUIManager : MonoBehaviour
             }
 
             // add container as container for team "i"
-            m_HealthBarContainers.Add(container);
+            m_PlayerUIContainers.Add(container);
         }
     }
 
@@ -88,21 +79,13 @@ public class GameUIManager : MonoBehaviour
     #region Public Manipulators
 
     /// <summary>
-    /// Instantiate a health bar in the scene
+    /// Set the health bar for this controller
     /// </summary>
-    /// <param name="team"></param>
-    /// <returns></returns>
-    public HealthBar CreateHealthBar(int team)
+    /// <param name="healthBar"></param>
+    public void SetPlayersUI(ulong ClientId, int team)
     {
-        // check team number inf to number of healthbar containers
-        if (team > m_HealthBarContainers.Count)
-        {
-            ErrorHandler.Error($"number of containers ({m_HealthBarContainers.Count}) is less than provided team number ({team})");
-            return null;
-        }
-
-        GameObject healthBar = Instantiate(HealthBar, m_HealthBarContainers[team].transform);
-        return healthBar.GetComponent<HealthBar>();
+        PlayerUI playerUI = Finder.FindComponent<PlayerUI>(Instantiate(m_PlayerUITemplate, m_PlayerUIContainers[team].transform));
+        playerUI.Initialize(ClientId);
     }
 
     /// <summary>
@@ -110,7 +93,7 @@ public class GameUIManager : MonoBehaviour
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="spell"></param>
-    public void CreateSpellTemplate(ESpells spell)
+    public void CreateSpellTemplate(ESpell spell)
     {
         m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell));
     }
@@ -152,9 +135,9 @@ public class GameUIManager : MonoBehaviour
         }
     }
 
-    public static string GetHealthBarContainerName(int team)
+    public static string GetPlayerUIContainerName(int team)
     {
-        return c_HealthBarContainerPrefix + team;
+        return c_PlayerUIContainerPrefix + team;
     }
 
     #endregion

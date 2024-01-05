@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f7d0115edefaac40a924c0b246d24f9, type: 3}
+  m_Name: Fireball
+  m_EditorClassIdentifier: 
+  Spell: 2
+  SpellType: 0
+  Image: {fileID: -3650026749840899270, guid: c19b79fa7e4b92c44b911b36a9d5a093, type: 3}
+  Border: {fileID: 0}
+  Graphics: {fileID: 2272309172655654138, guid: c4782b2327f2a8c44a2df9360868c7db, type: 3}
+  Preview: {fileID: 7274605584167926077, guid: 0961e062c4a6d3b40b81e8e5e6da0eae, type: 3}
+  AnimationPrefabs: []
+  OnCastPrefabs:
+  - {fileID: 610942752557020422, guid: 1639f7a8bf38ab249a32a62eefa8e12c, type: 3}
+  OnHitPrefab: {fileID: 3903842169140113438, guid: ff0a76846b4ace54a99a33b5b70bb0fc, type: 3}
+  Trajectory: 1
+  MaxHit: 1
+  EnergyGain: 10
+  EnergyCost: 0
+  Damage: 8
+  Heal: 0
+  Speed: 10
+  Distance: -1
+  EnemyStateEffects:
+  - Type: 7
+    Duration: 3
+    SpeedBonus: 0
+    Damages: 2
+    Shield: 0
+    Heal: 0
+    Tick: 1
+  AllyStateEffects: []
+  Radius: 0
+  Duration: 0
+  OnCounterProc: 0
+  CounterDuration: 0
+  Animation: 0
+  AnimationTimer: 0.5
+  CastAt: 1
+  Cooldown: 0.5

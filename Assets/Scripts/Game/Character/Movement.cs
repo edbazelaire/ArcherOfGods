@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -9,17 +10,21 @@ namespace Game.Character
 
         public float InitialSpeed;
 
-        float m_SpeedFactor = 1f;
+        Controller              m_Controller;
 
-        NetworkVariable<int> m_MoveX = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        private NetworkVariable<bool> m_MovementCancelled = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        NetworkVariable<int>    m_MoveX                 = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        NetworkVariable<bool>   m_MovementCancelled     = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
         #endregion
 
 
         #region Inherited Manipulators
 
-        // Update is called once per frame
+        void Awake()
+        {
+            m_Controller = GetComponent<Controller>();
+        }   
+
         void Update()
         {
             if (!IsOwner)
@@ -40,7 +45,6 @@ namespace Game.Character
         void UpdateMovement()
         {
             transform.position += new Vector3(m_MoveX.Value * Speed * Time.deltaTime, 0f, 0f);
-            //UpdateMovementAnimationServerRpc();
         }
 
         void SetRotation(float y)
@@ -54,6 +58,9 @@ namespace Game.Character
         void CheckInputs()
         {
             m_MoveX.Value = 0;
+
+            if (! CanMove)
+                return;
 
             // if movement has been cancelled, wait for all inputs to be released
             if (m_MovementCancelled.Value)
@@ -90,7 +97,6 @@ namespace Game.Character
             if (cancel)
             {
                 m_MoveX.Value = 0;
-                //UpdateMovementAnimationServerRpc();
             }
         }
 
@@ -101,12 +107,20 @@ namespace Game.Character
 
         public float Speed
         {
-            get { return InitialSpeed * m_SpeedFactor; }
+            get { return Math.Max(0, InitialSpeed + m_Controller.StateHandler.SpeedBonus); }
         }
 
         public bool IsMoving
         {
             get { return m_MoveX.Value != 0; }
+        }
+
+        public bool CanMove
+        {
+            get
+            {
+                return ! m_Controller.StateHandler.IsStunned && ! m_Controller.CounterHandler.HasCounter;
+            }
         }
 
         #endregion

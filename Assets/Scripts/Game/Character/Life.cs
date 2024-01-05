@@ -1,3 +1,4 @@
+using Enums;
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -16,7 +17,8 @@ public class Life : NetworkBehaviour
 
     // ===================================================================================
     // NETWORK VARIABLES
-    NetworkVariable<int>            m_Hp = new (0);
+    NetworkVariable<int>            m_MaxHp = new (0);
+    NetworkVariable<int>            m_Hp    = new (0);
 
     // ===================================================================================
     // PRIVATE VARIABLES
@@ -29,10 +31,8 @@ public class Life : NetworkBehaviour
     // ===================================================================================
     // PUBLIC ACCESSORS 
     /// <summary> Current health points </summary>
+    public NetworkVariable<int> MaxHp { get { return m_MaxHp; } }  
     public NetworkVariable<int> Hp { get { return m_Hp; } }  
-
-    /// <summary> Initial hp of the player </summary>
-    public int InitialHp { get { return m_InitialHp; } }
 
     /// <summary> Is the character alive </summary>
     public bool IsAlive { get { return m_Hp.Value > 0; } }
@@ -47,8 +47,16 @@ public class Life : NetworkBehaviour
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        m_Hp.Value = m_InitialHp;
         m_Controller = GetComponent<Controller>();
+    }
+
+    public void Initialize(int hp)
+    {
+        if (!IsServer)
+            return;
+
+        m_MaxHp.Value = hp;
+        m_Hp.Value = hp;
     }
 
     #endregion
@@ -85,6 +93,12 @@ public class Life : NetworkBehaviour
             Debug.LogError($"Damages ({damage}) < 0");
             return;
         }
+
+        if (m_Controller.StateHandler.HasState(EStateEffect.Invulnerable))
+            return;
+
+        if (m_Controller.StateHandler.Shield > 0)
+            damage = m_Controller.StateHandler.HitShield(damage);
 
         // apply damages
         m_Hp.Value -= damage;

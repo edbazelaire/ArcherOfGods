@@ -62,6 +62,8 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -297,6 +299,10 @@ PrefabInstance:
     - target: {fileID: 2096663750472604501, guid: 86be7cfc00908824eb5fb0b00f399a64, type: 3}
       propertyPath: m_SortingLayer
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2096663750472604501, guid: 86be7cfc00908824eb5fb0b00f399a64, type: 3}
+      propertyPath: m_SortingOrder
+      value: -50
       objectReference: {fileID: 0}
     - target: {fileID: 3313618984980525670, guid: 86be7cfc00908824eb5fb0b00f399a64, type: 3}
       propertyPath: m_Name

@@ -35,7 +35,7 @@ namespace Game.UI
         /// <summary> TextMeshPro of the cooldown counter </summary>
         TMP_Text        m_CooldownCtr;
         /// <summary> Spell to which the SpellItemUI is linked </summary>
-        ESpells         m_Spell;
+        ESpell         m_Spell;
         /// <summary> Is the cooldown activated ? </summary>
         bool            m_IsCooldownActivated;
 
@@ -44,7 +44,7 @@ namespace Game.UI
 
         #region Constructor
 
-        public SpellItemUI(GameObject gameObject, ESpells spell)
+        public SpellItemUI(GameObject gameObject, ESpell spell)
         {
             m_GameObject        = gameObject;
             m_Spell             = spell;
@@ -109,7 +109,7 @@ namespace Game.UI
         /// <param name="newValue"></param>
         void OnSpellSelected(int oldValue, int newValue)
         {
-            m_Border.color = (ESpells)newValue == m_Spell ? Color.red : Color.black;
+            m_Border.color = (ESpell)newValue == m_Spell ? Color.red : Color.black;
         }
 
         /// <summary>

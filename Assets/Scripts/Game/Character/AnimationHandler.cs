@@ -1,9 +1,11 @@
 ﻿using Data;
 using Enums;
 using Game.Managers;
+using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 using static UnityEngine.AdaptivePerformance.Provider.AdaptivePerformanceSubsystemDescriptor;
 
 namespace Game.Character
@@ -16,12 +18,15 @@ namespace Game.Character
 
         /// <summary> controller of this AnimationHandler </summary>
         Controller m_Controller;
-        
-        /// <summary> animator of this AnimationHandler </summary>
+
+        /// <summary> sprite renderer of the Character</summary>
+        SpriteRenderer m_SpriteRenderer;
+
+        /// <summary> animator of the Character </summary>
         Animator m_Animator;
 
         /// <summary> particles displayed with the animation </summary>
-        GameObject m_AnimationParticles;
+        List<GameObject> m_AnimationPrefabs;
 
         #endregion
 
@@ -31,9 +36,13 @@ namespace Game.Character
         public void Initialize(Animator animator)
         {
             m_Controller = GetComponent<Controller>();
+            m_SpriteRenderer = Finder.FindComponent<SpriteRenderer>(m_Controller.CharacterPreview);
             m_Animator = animator;
+            m_AnimationPrefabs = new List<GameObject>();
 
             m_Controller.SpellHandler.AnimationTimer.OnValueChanged += OnAnimationTimerChanged;
+            m_Controller.CounterHandler.CounterProc.OnValueChanged += OnCounterProcChanged;
+            m_Controller.StateHandler.StateEffectList.OnListChanged += OnStateEffectListChanged;
 
             m_Initialized = true;
         }
@@ -72,7 +81,6 @@ namespace Game.Character
 
             // destroy particles displayed during the animation
             EndAnimationParticles();
-
         }
 
         #endregion
@@ -90,29 +98,14 @@ namespace Game.Character
             m_Animator.SetBool("IsMoving", isMoving);
         }
 
-        #endregion
-
-
-        #region Animation Partiles
-
         void CastAnimation()
         {
             SpellData spellData = SpellLoader.GetSpellData(m_Controller.SpellHandler.SelectedSpell);
 
-            switch (spellData.Trajectory)
-            {
-                case ESpellTrajectory.Straight:
-                    m_Animator.SetTrigger("CastShootStraight");
-                    break;
+            if (spellData.Animation == EAnimation.Count)
+                return;
 
-                case ESpellTrajectory.Curve:
-                    m_Animator.SetTrigger("CastShoot");
-                    break;
-
-                default:
-                    Debug.LogError($"Trajectory {spellData.Trajectory} not implemented for spell {spellData.Name}");
-                    break;
-            }
+            m_Animator.SetTrigger(spellData.Animation.ToString());
 
             // not working anymore ????
             //m_Animator.SetFloat("CastSpeed", 1f / speed);
@@ -120,18 +113,24 @@ namespace Game.Character
 
         void CancelCastAnimation()
         {
-            m_Animator.SetTrigger("CancelCast");
+            m_Animator.SetTrigger(EAnimation.CancelCast.ToString());
             m_Animator.SetFloat("CastSpeed", 1f);
         }
+
+        #endregion
+
+
+        #region Animation Spawns
 
         void StartAnimationParticles()
         {
             SpellData spellData = SpellLoader.GetSpellData(m_Controller.SpellHandler.SelectedSpell);
 
-            if (spellData.AnimationParticles == null)
+            if (spellData.AnimationPrefabs.Count == 0)
                 return;
 
-            m_AnimationParticles = GameObject.Instantiate(spellData.AnimationParticles, m_Controller.SpellHandler.SpellSpawn);
+            foreach (var prefab in spellData.AnimationPrefabs)
+                m_AnimationPrefabs.Add(GameObject.Instantiate(prefab, m_Controller.SpellHandler.SpellSpawn));
         }
 
         /// <summary>
@@ -139,10 +138,13 @@ namespace Game.Character
         /// </summary>
         void EndAnimationParticles()
         {
-            if (m_AnimationParticles == null)
+            if (m_AnimationPrefabs.Count == 0)
                 return;
-            Destroy(m_AnimationParticles);
-            m_AnimationParticles = null;
+
+            foreach (var prefab in m_AnimationPrefabs)
+                Destroy(prefab);
+
+            m_AnimationPrefabs = new List<GameObject>();
         }
 
         #endregion
@@ -168,6 +170,48 @@ namespace Game.Character
             }
         }
 
+        /// <summary>
+        /// Change counter of the character on proc
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        void OnCounterProcChanged(int oldValue, int newValue)
+        {
+            m_SpriteRenderer.color = newValue != (int)ESpell.Count ? Color.black : Color.white;
+        }
+
+        /// <summary>
+        /// Change counter of the character on proc
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        void OnStateEffectListChanged(NetworkListEvent<int> changeEvent)
+        {
+            Debug.Log($"OnStateEffectListChanged : {changeEvent.Type} {changeEvent.Value}");
+            Debug.Log($"    + LocalClient : {NetworkManager.Singleton.LocalClient.ClientId}");
+            Debug.Log($"    + Owner : {OwnerClientId}");
+
+            switch ((EStateEffect)changeEvent.Value)
+            {
+                case EStateEffect.Invisible:
+                    var baseColor = m_SpriteRenderer.color;
+
+                    // if the character is visible, set the alpha to 1f
+                    if (changeEvent.Type != NetworkListEvent<int>.EventType.Add) 
+                        baseColor.a = 1f;
+
+                    // invisible : set the alpha to 0.5f for owner and 0f for others
+                    else
+                        baseColor.a  = NetworkManager.Singleton.LocalClient.ClientId == OwnerClientId ? 0.5f : 0f;
+
+                    m_SpriteRenderer.color = baseColor;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+               
         #endregion
     }
 }

@@ -11,11 +11,14 @@ namespace Game.Managers
     {
         #region Members
 
-        public SpellData[] SpellsList;
-
         static SpellLoader s_Instance;
 
-        public Dictionary<ESpells, SpellData> Spells { get; set; }
+        public GameObject SpellPrefab;
+        public GameObject ProjectilePrefab;
+        public GameObject InstantSpellPrefab;
+
+        private SpellData[] m_SpellsList;
+        public Dictionary<ESpell, SpellData> Spells { get; set; }
 
         #endregion
 
@@ -24,37 +27,39 @@ namespace Game.Managers
 
         void Initialize()
         {
-            SpellsList = Resources.LoadAll<SpellData>("Data/Spells");
+            InitializeSpells();
 
-            Spells = new Dictionary<ESpells, SpellData>();  
+            DontDestroyOnLoad(this);
+        }
 
-            if (SpellsList.Length != (int)ESpells.Count)
+        void InitializeSpells()
+        {
+            m_SpellsList = Resources.LoadAll<SpellData>("Data/Spells");
+
+            Spells = new Dictionary<ESpell, SpellData>();
+
+            if (m_SpellsList.Length != (int)ESpell.Count)
             {
                 ErrorHandler.FatalError("SpellLoader : Spell list is not complete");
                 return;
             }
 
-            foreach (SpellData spell in SpellsList)
+            foreach (SpellData spell in m_SpellsList)
             {
-                if (spell.AnimationTimer <= 0)
-                    ErrorHandler.FatalError($"SpellLoader : AnimationTimer {spell.Name} <= 0");
+                if (spell.AnimationTimer < 0)
+                    ErrorHandler.FatalError($"SpellLoader : AnimationTimer {spell.Spell} < 0");
 
                 if (spell.CastAt < 0)
-                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Name} has a negative CastAt");
+                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Spell} has a negative CastAt");
 
                 if (spell.CastAt > 1)
-                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Name} has a CastAt > 1");
-
-                if (spell.Prefab == null)
-                    ErrorHandler.FatalError($"SpellLoader : Prefab {spell.Name} not provided");
+                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Spell} has a CastAt > 1");
 
                 if (spell.Cooldown <= 0)
                     spell.Cooldown = 0.1f;
 
-                Spells.Add(spell.Name, spell);
+                Spells.Add(spell.Spell, spell);
             }
-
-            DontDestroyOnLoad(this);
         }
 
         #endregion
@@ -83,7 +88,7 @@ namespace Game.Managers
         /// </summary>
         /// <param name="spell"></param>
         /// <returns></returns>
-        public static SpellData GetSpellData(ESpells spell)
+        public static SpellData GetSpellData(ESpell spell)
         {
             if (!Instance.Spells.ContainsKey(spell))
             {

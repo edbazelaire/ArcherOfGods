@@ -1,7 +1,10 @@
 ﻿using Data;
 using Enums;
+using Game.Character;
 using Game.Managers;
 using System;
+using System.Collections.Generic;
+using Tools;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -11,19 +14,17 @@ namespace Game.Spells
     {
         #region Members
 
-        // ownership
+        const string c_GraphicsContainer = "GraphicsContainer";
+
         protected Controller        m_Controller;
-        protected ulong             m_ClientId;
-
-        // spell data
-        protected ESpells           m_SpellType;
-        protected float             m_Speed;
-        protected int               m_Damage;
-        protected float             m_Distance;
-
-        // targetting
+        protected SpellData         m_SpellData;
         protected Vector3           m_Target;
-        protected Vector3           m_OriginalPosition;
+        protected GameObject        m_GraphicsContainer;
+
+        /// <summary> counter of remaining number of target that this spell can hit </summary>
+        protected int               m_SpellHitCount;
+        /// <summary> on cast prefabs (spawn on cast) </summary>
+        protected List<GameObject>  m_OnCastPrefabs;
 
         #endregion
 
@@ -31,29 +32,29 @@ namespace Game.Spells
         #region Init & End
 
         /// <summary>
-        /// Called when the spell is spawned on the network
-        /// </summary>
-        public override void OnNetworkSpawn()
-        {
-            SpellData spellData = SpellLoader.GetSpellData(m_SpellType);
-            
-            m_Controller        = GameManager.Instance.GetPlayer(OwnerClientId);
-            m_ClientId          = OwnerClientId;
-            m_Speed             = spellData.Speed;
-            m_Damage            = spellData.Damage;
-            m_Distance          = spellData.Distance;
-            m_OriginalPosition  = transform.position;
-        }
-
-        /// <summary>
         /// 
         /// </summary>
         /// <param name="target"></param>
-        /// <param name="spellType"></param>
-        public virtual void Initialize(Vector3 target, ESpells spellType)
+        /// <param name="spell"></param>
+        public virtual void Initialize(Vector3 target, ESpell spell)
         {
-            m_SpellType = spellType;
+            m_Controller    =  GameManager.Instance.GetPlayer(OwnerClientId);
+            m_SpellData     =  SpellLoader.GetSpellData(spell);
             SetTarget(target);
+
+            m_SpellHitCount = m_SpellData.MaxHit;
+            InitGraphics();
+        }
+
+        /// <summary>
+        /// Instantiate the graphics of the spell
+        /// </summary>
+        protected virtual void InitGraphics()
+        {
+            m_GraphicsContainer = Finder.Find(gameObject, c_GraphicsContainer);
+
+            if (m_SpellData.Graphics != null)
+                GameObject.Instantiate(m_SpellData.Graphics, m_GraphicsContainer.transform);
         }
 
         /// <summary>
@@ -61,6 +62,13 @@ namespace Game.Spells
         /// </summary>
         protected virtual void End()
         {
+            // visual ending effect
+            SpawnOnHitPrefab();
+
+            // call an end on client side
+            EndClientRpc();
+
+            // destroy the spell
             Destroy(gameObject);
         }
 
@@ -75,9 +83,18 @@ namespace Game.Spells
         /// <param name="target"></param>
         /// <param name="spellType"></param>
         [ClientRpc]
-        public void InitializeClientRpc(Vector3 target, ESpells spellType)
+        public void InitializeClientRpc(Vector3 target, ESpell spellType)
         {
             Initialize(target, spellType);
+            
+            m_OnCastPrefabs = m_SpellData.SpawnOnCastPrefabs(m_Controller.gameObject.transform, m_Target);
+        }
+
+        [ClientRpc]
+        public void EndClientRpc()
+        {
+            foreach (var prefab in m_OnCastPrefabs)
+                Destroy(prefab);
         }
 
         #endregion
@@ -88,37 +105,9 @@ namespace Game.Spells
         /// <summary>
         /// 
         /// </summary>
-        protected void Update()
+        protected virtual void Update()
         {
             UpdateMovement();
-        }
-
-        /// <summary>
-        /// [SERVER] check for collision with wall or player
-        /// </summary>
-        /// <param name="collision"></param>
-        protected void OnTriggerEnter2D(Collider2D collision)
-        {
-            // only server can check for collision
-            if (! IsServer)
-                return;
-
-            // if spell hits a wall, end it
-            if (collision.gameObject.layer == LayerMask.NameToLayer("Wall"))
-            {
-                End();
-            }
-
-            // if spell hits a player, hit it and end the spell
-            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
-            {
-                Controller controller = collision.gameObject.GetComponent<Controller>();
-                if (controller.Team == m_Controller.Team)
-                    return;
-
-                controller.Life.Hit(m_Damage);
-                End();
-            }
         }
 
         #endregion
@@ -131,16 +120,70 @@ namespace Game.Spells
         /// </summary>
         protected virtual void UpdateMovement()
         {
-            // all clients update the position of the spell (previsualisation)
-            transform.Translate(m_Speed * Time.deltaTime, 0, 0);
+            return;
+        }
 
-            // only server can check for distance
-            if (!IsServer)
+        protected virtual void OnHitPlayer(Controller controller)
+        {
+            // not alive : skip
+            if (!controller.Life.IsAlive)
                 return;
 
-            // check if the spell has reached its max distance
-            if (m_Distance > 0 && Math.Abs(transform.position.x - m_OriginalPosition.x) > m_Distance)
+            // apply effects on ally or enemy : if none, skip
+            if (! CheckHitEnemy(controller) && ! CheckHitAlly(controller))
+                return;
+
+            // energy gain
+            m_Controller.EnergyHandler.AddEnergy(m_SpellData.EnergyGain);
+
+            // update hit count
+            if (--m_SpellHitCount <= 0 && m_SpellData.MaxHit > 0)
                 End();
+        }
+
+        /// <summary>
+        /// Check if ability hit an enemy
+        /// </summary>
+        /// <param name="controller"> controller of hit target </param>
+        /// <returns></returns>
+        protected virtual bool CheckHitEnemy(Controller controller)
+        {
+            if (controller.Team == m_Controller.Team)
+                return false;
+
+            if (m_SpellData.Damage <= 0 && m_SpellData.EnemyStateEffects.Count == 0)
+                return false;
+
+            if (controller.CounterHandler.HasCounter)
+            {
+                controller.CounterHandler.ProcCounter(m_Controller);
+                End();
+            }
+            else
+                controller.Life.Hit(m_SpellData.Damage);
+
+            ApplyEnemyOnHitEffects(controller);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Check if ability hit an ally
+        /// </summary>
+        /// <param name="controller"> controller of hit target </param>
+        /// <returns></returns>
+        protected virtual bool CheckHitAlly(Controller controller)
+        {
+            if (controller.Team != m_Controller.Team)
+                return false;
+
+            if (m_SpellData.Heal <= 0 && m_SpellData.AllyStateEffects.Count == 0)
+                return false;
+                        
+            controller.Life.Heal(m_SpellData.Heal);
+            ApplyAllyOnHitEffects(controller);
+
+            return true;
         }
 
         /// <summary>
@@ -150,32 +193,62 @@ namespace Game.Spells
         protected virtual void SetTarget(Vector3 target)
         {
             m_Target = target;
-            LookAt(m_Target);
         }
 
-        /// <summary>
-        /// Set rotation of the spell to look at the target
-        /// </summary>
-        /// <param name="target"></param>
-        protected virtual void LookAt(Vector3 target)
+        #endregion
+
+
+        #region Spell Effects
+
+        protected virtual void SpawnOnHitPrefab()
         {
-            Vector3 diff = target - transform.position;
-            diff.Normalize();
-            float rot_z = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
-            transform.rotation = Quaternion.Euler(0f, 0f, rot_z);
+            if (! IsServer)
+                return;
+
+            var position = transform.position;
+            position.y = 0;
+            m_SpellData.SpawnOnHitPrefab(OwnerClientId, position);
         }
+
+        protected virtual void ApplyEnemyOnHitEffects(Controller targetController)
+        {
+            if (! IsServer)
+                return;
+
+            if (!targetController.Life.IsAlive)
+                return;
+
+            foreach (var effect in m_SpellData.EnemyStateEffects)
+            {
+                targetController.StateHandler.AddStateEffect(effect);
+            }
+        }
+
+        protected virtual void ApplyAllyOnHitEffects(Controller targetController)
+        {
+            if (! IsServer)
+                return;
+
+            if (!targetController.Life.IsAlive)
+                return;
+
+            foreach (var effect in m_SpellData.AllyStateEffects)
+            {
+                targetController.StateHandler.AddStateEffect(effect);
+            }
+        }
+
 
         #endregion
 
 
         #region Debug
 
-        public void DebugMessage()
+        public virtual void DebugMessage()
         {
-            Debug.Log("Spell " + m_SpellType);
-            Debug.Log("     + ClientId " + m_ClientId);
+            Debug.Log("Spell " + m_SpellData.Spell);
+            Debug.Log("     + ClientId " + OwnerClientId);
             Debug.Log("     + Target " + m_Target);
-            Debug.Log("     + Speed " + m_Speed);    
         }
 
         #endregion

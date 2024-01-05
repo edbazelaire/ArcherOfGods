@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -160,7 +161,9 @@ namespace Tools
             return components;
         }
 
-
-        
+        internal static T FindComponent<T>(GameObject gameObject, object c_HealthBar)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -8,10 +8,14 @@
         Count
     }
 
-    public enum ESpells
+    public enum ESpell
     {
         Arrow,
         StraightArrow,
+        Fireball,
+        FireBomb,
+        Heal,
+        Counter,
 
         Count
     }
@@ -19,7 +23,9 @@
     public enum ESpellType
     {
         Projectile,
+        InstantSpell,
         Aoe,
+        Counter,
 
         Count
     }
@@ -33,4 +39,35 @@
         Count
     }
 
+    public enum EStateEffect
+    {
+        // default effect
+        Stun,
+        Frozen,
+        Invulnerable,
+        Invisible,
+
+        // knockback effects
+        Knockback,
+
+        // slow effects
+        Frost,
+        Slow,
+
+        // tick effects
+        Burn,
+        Poison,
+
+        Count
+    }
+
+    public enum EAnimation
+    {
+        CastShootStraight,
+        CastShoot,
+        CancelCast,
+        Counter,
+
+        Count
+    }
 }

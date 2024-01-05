@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Reaper_0: 470484783931029153
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
