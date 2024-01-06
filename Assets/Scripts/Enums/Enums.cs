@@ -16,6 +16,7 @@
         FireBomb,
         Heal,
         Counter,
+        Invisibility,
 
         Count
     }
@@ -57,6 +58,8 @@
         // tick effects
         Burn,
         Poison,
+
+        Uncontrollable,
 
         Count
     }
