@@ -197,12 +197,12 @@ namespace Game.Character
                     var baseColor = m_SpriteRenderer.color;
 
                     // if the character is visible, set the alpha to 1f
-                    if (changeEvent.Type != NetworkListEvent<int>.EventType.Add) 
+                    if (changeEvent.Type == NetworkListEvent<int>.EventType.RemoveAt) 
                         baseColor.a = 1f;
 
                     // invisible : set the alpha to 0.5f for owner and 0f for others
                     else
-                        baseColor.a  = NetworkManager.Singleton.LocalClient.ClientId == OwnerClientId ? 0.5f : 0f;
+                        baseColor.a  = IsOwner ? 0.5f : 0f;
 
                     m_SpriteRenderer.color = baseColor;
                     break;
