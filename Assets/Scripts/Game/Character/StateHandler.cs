@@ -69,7 +69,7 @@ namespace Game.Character
             {
                 bool removeState = false;
 
-                if (!m_StateEffects[i].Update(Time.deltaTime))
+                if (! m_StateEffects[i].Update(Time.deltaTime))
                     removeState = true;
 
                 if (!removeState)
@@ -185,6 +185,9 @@ namespace Game.Character
         /// <param name="stateEffectData"></param>
         public void AddStateEffect(SStateEffectData stateEffectData)
         {
+            if (! IsServer)
+                return;
+
             // if already in the list of state effects, refresh it
             if (HasState(stateEffectData.Type))
             {
