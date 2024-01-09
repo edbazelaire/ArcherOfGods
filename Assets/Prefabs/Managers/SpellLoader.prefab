@@ -45,3 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   SpellPrefab: {fileID: 8240067815722378921, guid: 3f1062e095e763f448855cd3f0b195e4, type: 3}
+  ProjectilePrefab: {fileID: 9131044772512300594, guid: 51fb2a147f665e940a00a8c7994c4cd3, type: 3}
+  InstantSpellPrefab: {fileID: 1085014267822151781, guid: 0c8493968d2f78f44adc8abdcdab5e4f, type: 3}

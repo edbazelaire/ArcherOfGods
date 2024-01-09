@@ -27,9 +27,10 @@ namespace Game.Managers
 
         void Initialize()
         {
+            Debug.LogWarning("Initializing SpellLoader      ==================================================");
             InitializeSpells();
 
-            DontDestroyOnLoad(this);
+            DontDestroyOnLoad(s_Instance.gameObject);
         }
 
         void InitializeSpells()
@@ -77,8 +78,11 @@ namespace Game.Managers
                 if (s_Instance == null)
                 {
                     s_Instance = FindFirstObjectByType<SpellLoader>();
+                    if (s_Instance == null)
+                        return null;
                     s_Instance.Initialize();
                 }
+
                 return s_Instance;
             }
         }

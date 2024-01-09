@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 namespace Tools
@@ -101,11 +102,19 @@ namespace Tools
             if (name == "")
             {
                 var component = parent.GetComponent<T>();
-                if (component != null)
+                if (component != null && component.ToString() != "null")
                     return component;
 
-                component = parent.transform.GetComponentInChildren<T>();
+                foreach  (Transform child in parent.transform)
+                {
+                    component = child.GetComponent<T>();
+                    if (component != null && component.ToString() != "null")
+                        return component;
 
+                    if (child.childCount > 0)
+                        component = FindComponent<T>(child.gameObject, "", false);        // deactivate error durring recursivity
+                }
+                
                 if (throwError && !Checker.NotNull(component))
                     return default(T);
 

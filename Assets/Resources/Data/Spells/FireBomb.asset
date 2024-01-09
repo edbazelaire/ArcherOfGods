@@ -32,7 +32,7 @@ MonoBehaviour:
   Distance: -1
   EnemyStateEffects:
   - Type: 0
-    Duration: 4
+    Duration: 3
     SpeedBonus: 0
     Damages: 0
     Shield: 0

@@ -18,8 +18,11 @@ public class Controller : NetworkBehaviour
 
     // ===================================================================================
     // PRIVATE VARIABLES 
+    // -- Network Variables
+    NetworkVariable<int>    m_CharacterNet = new NetworkVariable<int>((int)ECharacter.Count);
+
     // -- Data
-    ECharacter              m_Character;
+    ECharacter m_Character;
     int                     m_Team;
     bool                    m_IsPlayer;
 
@@ -35,6 +38,7 @@ public class Controller : NetworkBehaviour
 
     // ===================================================================================
     // PUBLIC ACCESSORS
+
     // -- Data
     public ECharacter       Character           => m_Character;
     public int              Team                => m_Team;
@@ -60,20 +64,30 @@ public class Controller : NetworkBehaviour
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        // init the controller
-        Initialize(ECharacter.Reaper, GameManager.Instance.Players.Count, true);
+        Debug.Log("Controller.OnNetworkSpawn()");   
 
-        // ask the Server to select first spell by default
-        if (IsOwner)
-            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
+        // setup components
+        m_Life = Finder.FindComponent<Life>(gameObject);
+        m_EnergyHandler = Finder.FindComponent<EnergyHandler>(gameObject);
+        m_Movement = Finder.FindComponent<Movement>(gameObject);
+        m_SpellHandler = Finder.FindComponent<SpellHandler>(gameObject);
+        m_AnimationHandler = Finder.FindComponent<AnimationHandler>(gameObject);
+        m_StateHandler = Finder.FindComponent<StateHandler>(gameObject);
+        m_CounterHandler = Finder.FindComponent<CounterHandler>(gameObject);
 
-        // setup postion and rotation
-        transform.position = GameManager.Instance.Spawns[Team][0].position;
+        m_CharacterNet.OnValueChanged += (int a, int b) => { Debug.Log(" m_CharacterNet.OnValueChanged : " + b); };
 
-        ResetRotation();
-        Life.Hp.OnValueChanged += OnHpChanged;
+        //// ask the Server to select first spell by default
+        //if (IsOwner)
+        //    m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
 
-        SetupSpellUI();
+        //// setup postion and rotation
+        //transform.position = GameManager.Instance.Spawns[Team][0].position;
+
+        //ResetRotation();
+        //Life.Hp.OnValueChanged += OnHpChanged;
+
+        //SetupSpellUI();
     }
  
     /// <summary>
@@ -81,27 +95,37 @@ public class Controller : NetworkBehaviour
     /// </summary>
     public void Initialize(ECharacter character, int team, bool isPlayer)
     {
-        m_Character         = character;
-        m_Team              = team;
-        m_IsPlayer          = isPlayer;
+        Debug.Log("Controller.Initialize()");
 
-        // setup components
-        m_Life              = Finder.FindComponent<Life>(gameObject);
-        m_EnergyHandler     = Finder.FindComponent<EnergyHandler>(gameObject);
-        m_Movement          = Finder.FindComponent<Movement>(gameObject);
-        m_SpellHandler      = Finder.FindComponent<SpellHandler>(gameObject);
-        m_AnimationHandler  = Finder.FindComponent<AnimationHandler>(gameObject);
-        m_StateHandler      = Finder.FindComponent<StateHandler>(gameObject);
-        m_CounterHandler    = Finder.FindComponent<CounterHandler>(gameObject);
+        m_CharacterNet.Value    = (int)character;
+        m_Character             = character;
+        m_Team                  = team;
+        m_IsPlayer              = isPlayer;
 
         // add player to the game manager
-        GameManager.Instance.AddPlayer(this);
+        //GameManager.Instance.AddPlayerServerRPC(this);
 
         // initialize with the character data
         InitializeCharacterData();
 
+        // setup postion and rotation
+        transform.position = GameManager.Instance.Spawns[Team][0].position;
+        ResetRotation();
+
+        Life.Hp.OnValueChanged += OnHpChanged;
+    }
+
+    public void InitializeUI()
+    {
         // display the player's ui 
         GameUIManager.Instance.SetPlayersUI(OwnerClientId, Team);
+
+        // setup the seplls icons buttons
+        SetupSpellUI();
+
+        // ask the Server to select first spell by default
+        if (IsOwner)
+            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
 
     /// <summary>
@@ -115,7 +139,8 @@ public class Controller : NetworkBehaviour
         m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
 
         // get animator
-        m_AnimationHandler.Initialize(Finder.FindComponent<Animator>(m_CharacterPreview));
+        Animator animator = Finder.FindComponent<Animator>(m_CharacterPreview);
+        m_AnimationHandler.Initialize(animator);
 
         // initialize SpellHandler with character's spells
         m_SpellHandler.Initialize(characterData.Spells);
@@ -124,20 +149,6 @@ public class Controller : NetworkBehaviour
         m_Life.Initialize(50);
         m_EnergyHandler.Initialize(10, 100);
     }
-
-    /// <summary>
-    /// Setup the UI for this controller
-    ///     + [Local] Create a SpellItemUI for each spell of the character
-    ///     + [Global] Add a health bar for this controller
-    /// </summary>
-    public void SetupUI()
-    {
-        
-        
-
-    }
-
-
 
     /// <summary>
     /// Create the SpellItemUI for each spell of the character

@@ -35,6 +35,11 @@ namespace Game.Character
 
         public void Initialize(Animator animator)
         {
+            if (animator == null)
+            {
+                ErrorHandler.Error("animator not found");
+            }
+
             m_Controller = GetComponent<Controller>();
             m_SpriteRenderer = Finder.FindComponent<SpriteRenderer>(m_Controller.CharacterPreview);
             m_Animator = animator;

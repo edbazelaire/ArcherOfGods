@@ -75,7 +75,7 @@ public class Life : NetworkBehaviour
     #endregion
 
 
-    #region Public Manipulators
+    #region Public Manipulator
 
     /// <summary>
     /// Apply damage to the character

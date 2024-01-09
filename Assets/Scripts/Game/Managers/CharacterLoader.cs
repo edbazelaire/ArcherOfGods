@@ -12,26 +12,45 @@ namespace Game.Managers
     {
         #region Members
 
-        public List<CharacterData> CharactersList;
+        static CharacterLoader s_Instance;
+
+        public GameObject PlayerPrefab;
+
+
+        [HideInInspector]
         public Dictionary<ECharacter, CharacterData> Characters;
 
-        static CharacterLoader s_Instance;
+        CharacterData[] m_CharactersList;
 
         #endregion
 
 
         #region Initialization
 
+        private void Start()
+        {
+            DontDestroyOnLoad(gameObject);
+        }
+
         void Initialize()
         {
-            Characters = new Dictionary<ECharacter, CharacterData>();
-            if (CharactersList.Count != (int)ECharacter.Count)
+            Debug.LogWarning("Initializing CharacterLoader      ==================================================");
+
+            LoadCharacterData();
+        }
+
+        void LoadCharacterData()
+        {
+            m_CharactersList = Resources.LoadAll<CharacterData>("Data/Characters");
+
+            if (m_CharactersList.Length != (int)ECharacter.Count)
             {
-                ErrorHandler.FatalError("CharacterLoader : Characters list is not complete");
+                ErrorHandler.FatalError("CharacterLoader : number of characters is not equal to number of characters in enum");
                 return;
             }
 
-            foreach (CharacterData character in CharactersList)
+            Characters = new Dictionary<ECharacter, CharacterData>();
+            foreach (CharacterData character in m_CharactersList)
             {
                 if (Characters.ContainsKey(character.Name))
                 {
@@ -39,14 +58,12 @@ namespace Game.Managers
                     return;
                 }
                 Characters.Add(character.Name, character);
-            }   
-
-            DontDestroyOnLoad(this);
+            }
         }
 
         #endregion
 
-        
+
         #region Public Static Manipulators
 
         public static CharacterData GetCharacterData(ECharacter character)
@@ -72,6 +89,9 @@ namespace Game.Managers
                 if (s_Instance == null)
                 {
                     s_Instance = FindFirstObjectByType<CharacterLoader>();
+                    if (s_Instance == null)
+                        return null;
+
                     s_Instance.Initialize();
                 }
                 return s_Instance;

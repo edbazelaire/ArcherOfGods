@@ -2,8 +2,8 @@
 {
     public enum ECharacter
     {
-        GreenArcher,
         Reaper,
+        Kahnan,
 
         Count
     }

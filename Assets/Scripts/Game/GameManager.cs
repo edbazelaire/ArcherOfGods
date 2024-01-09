@@ -1,27 +1,16 @@
 using Enums;
 using Game.Managers;
+using Network;
+using System;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
+using Unity.Services.Lobbies.Models;
 using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game
 {
-    public class PlayerData
-    {
-        public ECharacter   Character;
-        public bool         IsPlayer;
-        public int          Team;
-
-        public PlayerData(ECharacter character, bool isPlayer, int team)
-        {
-            Character = character;
-            IsPlayer = isPlayer;
-            Team = team;
-        }
-    }
-
     public class GameManager: NetworkBehaviour
     {
         #region Members
@@ -39,7 +28,7 @@ namespace Game
         // ===================================================================================
         // PRIVATE VARIABLES 
         // -- Data
-        List<PlayerData>                m_PlayerDatas;
+        //List<PlayerData>                m_PlayerDatas;
         List<Controller>                m_Players;
 
         // -- Components & GameObjects
@@ -61,6 +50,12 @@ namespace Game
 
         #region Inherited Manipulators
 
+        public override void OnNetworkSpawn()
+        {
+            base.OnNetworkSpawn();
+
+            Debug.Log("GameManager spawned");
+        }
 
         #endregion
 
@@ -76,9 +71,9 @@ namespace Game
             InitializeTargetabbleArea();
         }
 
-        public void ReceivePlayerData(PlayerData playerData)
+        public void ReceivePlayerData(Dictionary<string, PlayerDataObject> playerData)
         {
-            m_PlayerDatas.Add(playerData);
+            //m_PlayerDatas.Add(playerData);
         }
 
 
@@ -201,10 +196,59 @@ namespace Game
             }
         }
 
-        public void AddPlayer(Controller player)
+        public void AddPlayer(ulong clientId, int character, bool isHost)
         {
+            Debug.LogWarning($"{NetworkManager.Singleton.LocalClientId} : Adding player {clientId} with character {character}");
+
+            if (!isHost)
+                SpawnPlayerServerRPC(clientId, character);
+            else
+                SpawnPlayer(clientId, character);
+
+            Debug.Log("     + IsHost : " + isHost);
+            Debug.Log("     + IsServer : " + IsServer);
+            Debug.Log("     + IsOwner : " + IsOwner);
+            Debug.Log("     + IsClient : " + IsClient);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void SpawnPlayerServerRPC(ulong clientId, int character)
+        {
+            Debug.Log("SpawnPlayerServerRPC");
+            SpawnPlayer(clientId, character);
+        }
+
+        void SpawnPlayer(ulong clientId, int character)
+        {
+            Debug.Log("SpawnPlayer");
+
+            ClientMessageClientRPC("Spawning player (" + clientId + ") with character : " + character);
+
+            // create player prefab and spawn it
+            GameObject playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab, m_Arena.transform);
+            playerPrefab.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+
+            // initialize player data
+            Controller player = Finder.FindComponent<Controller>(playerPrefab);
+            player.Initialize(
+                character: (ECharacter)character,
+                isPlayer: true,
+                team: m_Players.Count
+            );
+
+            // add event listener to the player's hp
             player.Life.Hp.OnValueChanged += CheckPlayerDeath;
+
+            // add player to list of player controllers
             m_Players.Add(player);
+
+            player.InitializeUI();
+        }
+
+        [ClientRpc]
+        public void ClientMessageClientRPC(string message)
+        {
+            Debug.Log(message);
         }
 
         public Controller GetPlayer(ulong clientId)
@@ -223,6 +267,11 @@ namespace Game
                     return controller;
 
             return null;
+        }
+        
+        public bool HasPlayer(ulong clientId)
+        {
+            return GetPlayer(clientId) != null;
         }
 
         #endregion
