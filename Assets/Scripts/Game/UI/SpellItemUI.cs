@@ -4,12 +4,13 @@ using Game.Managers;
 using TMPro;
 using Tools;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Game.UI
 {
-    public class SpellItemUI 
+    public class SpellItemUI : MonoBehaviour
     {
         #region Members
 
@@ -22,8 +23,8 @@ namespace Game.UI
         /// <summary> name of the GameObject containing the cooldown counter </summary>
         const string    c_CooldownCtr   = "CooldownCtr";
 
-        /// <summary> GameObject of the SpellItemUI created by the GameManagerUI </summary>
-        GameObject      m_GameObject;
+        Controller m_Owner;
+
         /// <summary> Image of the spell icon </summary>
         Image           m_IconImage;
         /// <summary> Image of the border </summary>
@@ -37,40 +38,52 @@ namespace Game.UI
         /// <summary> Spell to which the SpellItemUI is linked </summary>
         ESpell         m_Spell;
         /// <summary> Is the cooldown activated ? </summary>
-        bool            m_IsCooldownActivated;
+        bool           m_IsCooldownActivated;
+
+        float m_BaseCooldown;
+        float m_CooldownValue;
+
+        public ESpell Spell => m_Spell;
 
         #endregion
 
 
-        #region Constructor
+        #region Inherited Manipulators
 
-        public SpellItemUI(GameObject gameObject, ESpell spell)
+        private void Update()
         {
-            m_GameObject        = gameObject;
-            m_Spell             = spell;
-
-            SetupIcon();
-            SetupButton();
-
-            // register to spell selection changes to update the border if needed
-            GameManager.Instance.Owner.SpellHandler.SelectedSpellNet.OnValueChanged += OnSpellSelected;
-            // register to cooldown changes to update the cooldown if needed
-            GameManager.Instance.Owner.SpellHandler.CooldownsNet.OnListChanged += OnCooldownChanged;
+            UpdateCooldown();            
         }
 
         #endregion
 
 
         #region Initialization
+        public void Initialize(ESpell spell)
+        {
+            m_Owner = GameManager.Instance.Owner;
+            m_Spell = spell;
+
+            SpellData spellData = SpellLoader.GetSpellData(m_Spell);
+            m_BaseCooldown = spellData.Cooldown;
+            m_CooldownValue = 0;
+
+            SetupIcon();
+            SetupButton();
+
+            // register to spell selection changes to update the border if needed
+            m_Owner.SpellHandler.SelectedSpellNet.OnValueChanged += OnSpellSelected;
+            m_Owner.SpellHandler.OnSpellCasted += OnSpellCasted;
+        }
 
         /// <summary>
         /// Setup the icon of the spell in the SpellItemContainer
         /// </summary>
         public void SetupIcon()
         {
-            m_IconImage     = Finder.FindComponent<Image>(m_GameObject, c_IconImage);
-            m_Border        = Finder.FindComponent<Image>(m_GameObject, c_Border);
-            m_Cooldown      = Finder.Find(m_GameObject, c_Cooldown);
+            m_IconImage     = Finder.FindComponent<Image>(gameObject, c_IconImage);
+            m_Border        = Finder.FindComponent<Image>(gameObject, c_Border);
+            m_Cooldown      = Finder.Find(gameObject, c_Cooldown);
             m_CooldownCtr   = Finder.FindComponent<TMP_Text>(m_Cooldown, c_CooldownCtr);
 
             SpellData spellData = SpellLoader.GetSpellData(m_Spell);
@@ -85,7 +98,7 @@ namespace Game.UI
         /// </summary>
         public void SetupButton()
         {
-            m_Button = Finder.FindComponent<Button>(m_GameObject);
+            m_Button = Finder.FindComponent<Button>(gameObject);
             m_Button.onClick.AddListener(OnClick);
         }
 
@@ -109,45 +122,62 @@ namespace Game.UI
         /// <param name="newValue"></param>
         void OnSpellSelected(int oldValue, int newValue)
         {
-            m_Border.color = (ESpell)newValue == m_Spell ? Color.red : Color.black;
+            SetSpellSelected((ESpell)newValue == m_Spell);
+        }
+
+        /// <summary>
+        /// When the spell selection changes, update the border if needed
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        void OnSpellCasted(ESpell spell)
+        {
+            if (spell != m_Spell)
+                return;
+
+            m_CooldownValue = m_BaseCooldown;
+        }
+
+        /// <summary>
+        /// When the spell selection changes, update the border if needed
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        public void SetSpellSelected(bool selected)
+        {
+            m_Border.color = selected ? Color.red : Color.black;
         }
 
         /// <summary>
         /// When the cooldown changes, update the cooldown if needed
         /// </summary>
         /// <param name="changeEvent"></param>
-        void OnCooldownChanged(NetworkListEvent<float> changeEvent)
+        void UpdateCooldown()
         {
-            // only check for the spell we are interested in
-            if (changeEvent.Index != GameManager.Instance.Owner.SpellHandler.GetSpellIndex(m_Spell))
+            if (m_CooldownValue <= 0)
                 return;
 
-            float cooldown = changeEvent.Value;
-            if (cooldown <= 0)
+            m_CooldownValue -= Time.deltaTime; 
+            if (m_CooldownValue <= 0)
             {
                 if (!m_IsCooldownActivated)
                     return;
 
+                m_CooldownValue = 0;
+
                 // todo : play end cooldown animation
                 m_IsCooldownActivated = false;
                 m_Cooldown.SetActive(false);
-                return;
             }
 
-            // play cooldown animation (?)
-            m_IsCooldownActivated = true;
-
-            m_Cooldown.SetActive(true);
-            m_CooldownCtr.text = cooldown.ToString("0");
-        }
-
-        /// <summary>
-        /// When the object is destroyed, unregister from events
-        /// </summary>
-        void OnDestroy()
-        {
-            GameManager.Instance.Owner.SpellHandler.SelectedSpellNet.OnValueChanged -= OnSpellSelected;
-            GameManager.Instance.Owner.SpellHandler.CooldownsNet.OnListChanged -= OnCooldownChanged;
+            else if (!m_IsCooldownActivated)
+            {
+                // play cooldown animation (?)
+                m_IsCooldownActivated = true;
+                m_Cooldown.SetActive(true);
+            }
+            
+            m_CooldownCtr.text = m_CooldownValue.ToString("0");
         }
 
         #endregion

@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
-using Unity.Services.Lobbies.Models;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game
@@ -17,38 +15,44 @@ namespace Game
 
         static GameManager s_Instance;
 
-        const string                    c_PlateformPrefix           = "Plateform_";
-        const string                    c_SpawnerPrefix             = "SpawnPoint_";
-        const string                    c_TargettableAreaPrefix     = "TargettableArea_";
-        const string                    c_Arena                     = "Arena";
-        const string                    c_TargetHight               = "TargetHight";
-        const int                       c_NumTeams                  = 2;
-        const int                       c_PlayerTeam                = 0;
-
         // ===================================================================================
         // PRIVATE VARIABLES 
-        // -- Data
-        //List<PlayerData>                m_PlayerDatas;
-        List<Controller>                m_Players;
+        // -- Network Variables
+        NetworkVariable<EGameState>     m_State = new NetworkVariable<EGameState>(EGameState.LoadingScreen);
+        NetworkList<int>                m_Players;
 
-        // -- Components & GameObjects
-        GameObject m_Arena;
-        Transform                       m_TargetHight;
-        List<Transform>                 m_TargettableAreas;
-        List<List<Transform>>           m_Spawns;
+        // -- Data
+        Dictionary<ulong, bool>         m_PlayersReady = new();
+        Dictionary<ulong, ECharacter>   m_PlayersData = new();
+        List<Controller>                m_Controllers;
 
         // ===================================================================================
         // PUBLIC ACCESSORS 
-        public List<Controller>         Players                     => m_Players;
-        public GameObject               Arena                       => m_Arena;
-        public List<List<Transform>>    Spawns                      => m_Spawns;
-        public Transform                TargetHight                 => m_TargetHight;
-        public List<Transform>          TargettableAreas            => m_TargettableAreas;
+        public List<Controller>         Controllers                 => m_Controllers;
 
         #endregion
 
 
+
         #region Inherited Manipulators
+
+        private void Awake()
+        {
+            m_Players = new ();
+            m_Controllers = new List<Controller>();
+        }
+
+        private void Start()
+        {
+            s_Instance = this;
+
+            m_State.OnValueChanged                              += OnStateValueChanged;
+            m_Players.OnListChanged                             += OnPlayerListChanged;
+            NetworkManager.Singleton.OnClientConnectedCallback  += OnClientConnected;
+            LobbyHandler.Instance.OnRelayJoined                 += OnLobbyRelayJoind;
+
+            DontDestroyOnLoad(gameObject);
+        }
 
         public override void OnNetworkSpawn()
         {
@@ -64,87 +68,7 @@ namespace Game
 
         void Initialize()
         {
-            m_Players = new List<Controller>();
-
-            InitializeArena();
-            InitializeSpawns();
-            InitializeTargetabbleArea();
-        }
-
-        public void ReceivePlayerData(Dictionary<string, PlayerDataObject> playerData)
-        {
-            //m_PlayerDatas.Add(playerData);
-        }
-
-
-        /// <summary>
-        /// 
-        /// </summary>
-        void InitializeArena()
-        {
-            m_Arena = GameObject.Find(c_Arena);
-            if (!Checker.NotNull(Arena))
-            {
-                ErrorHandler.FatalError("Arena not found");
-                return;
-            }
-
-            m_TargetHight = Finder.FindComponent<Transform>(m_Arena, c_TargetHight);
-        }   
-
-        /// <summary>
-        /// Initialize all spawns in the scene
-        /// </summary>
-        void InitializeSpawns()
-        {
-            m_Spawns = new List<List<Transform>>();
-
-            List<GameObject> plateforms = Finder.Finds(Arena, c_PlateformPrefix);
-            int team = 0;
-            foreach (GameObject plateform in plateforms)
-            {
-                List<Transform> spawns = new List<Transform>();
-                foreach (GameObject spawner in Finder.Finds(plateform, c_SpawnerPrefix))
-                    spawns.Add(spawner.transform);
-
-                m_Spawns.Add(spawns);
-                team++;
-            }
-
-            Checker.CheckEmpty(m_Spawns);
-        }
-
-        /// <summary>
-        /// Get all Targettable Areas ordered by id
-        /// </summary>
-        void InitializeTargetabbleArea()
-        {
-            m_TargettableAreas = new List<Transform>();
-
-            int i = 0;
-            bool end = false;
-            while (!end)
-            {
-                // set end to true by default
-                end = true;
-
-                foreach (Transform area in Finder.FindComponents<Transform>(Arena, c_TargettableAreaPrefix))
-                {
-                    // if a targettable area with this id is found
-                    if (area.gameObject.name.EndsWith(i.ToString()))
-                    {
-                        // add it to the list
-                        m_TargettableAreas.Add(area);
-                        // continue to search
-                        end = false;
-                        break;
-                    }
-                }
-
-                // increment id of target area to search
-                i++;
-            }
-            
+            return;
         }
 
         #endregion
@@ -171,7 +95,7 @@ namespace Game
         void CheckWin()
         {
             var teamCtr = new List<int>();
-            foreach (Controller controller in m_Players)
+            foreach (Controller controller in m_Controllers)
             {
                 if (controller.Life.IsAlive && !teamCtr.Contains(controller.Team))
                     teamCtr.Add(controller.Team);
@@ -196,53 +120,58 @@ namespace Game
             }
         }
 
-        public void AddPlayer(ulong clientId, int character, bool isHost)
+        void SpawnPlayers()
         {
-            Debug.LogWarning($"{NetworkManager.Singleton.LocalClientId} : Adding player {clientId} with character {character}");
+            if (!IsServer)
+                return;
 
-            if (!isHost)
-                SpawnPlayerServerRPC(clientId, character);
-            else
+            foreach (var player in m_Players)
+            {
+                ulong clientId = (ulong)player;
+                var character = m_PlayersData[clientId];
                 SpawnPlayer(clientId, character);
-
-            Debug.Log("     + IsHost : " + isHost);
-            Debug.Log("     + IsServer : " + IsServer);
-            Debug.Log("     + IsOwner : " + IsOwner);
-            Debug.Log("     + IsClient : " + IsClient);
+            }
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void SpawnPlayerServerRPC(ulong clientId, int character)
-        {
-            Debug.Log("SpawnPlayerServerRPC");
-            SpawnPlayer(clientId, character);
-        }
-
-        void SpawnPlayer(ulong clientId, int character)
+        void SpawnPlayer(ulong clientId, ECharacter character)
         {
             Debug.Log("SpawnPlayer");
 
-            ClientMessageClientRPC("Spawning player (" + clientId + ") with character : " + character);
+            int team = m_Controllers.Count;
 
             // create player prefab and spawn it
-            GameObject playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab, m_Arena.transform);
-            playerPrefab.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+            GameObject playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab);
+            
+            playerPrefab.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+
+            // add player to list of player controllers
+            Controller player = Finder.FindComponent<Controller>(playerPrefab);
+            AddControllerClientRPC(clientId);
 
             // initialize player data
-            Controller player = Finder.FindComponent<Controller>(playerPrefab);
             player.Initialize(
-                character: (ECharacter)character,
-                isPlayer: true,
-                team: m_Players.Count
+                character: character,
+                team: team
             );
+
+            player.InitializeUIClientRPC((ECharacter)character, team);
 
             // add event listener to the player's hp
             player.Life.Hp.OnValueChanged += CheckPlayerDeath;
+        }
 
-            // add player to list of player controllers
-            m_Players.Add(player);
-
-            player.InitializeUI();
+        [ClientRpc]
+        void AddControllerClientRPC(ulong clientId)
+        {
+            foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
+            {
+                var controller = Finder.FindComponent<Controller>(player);
+                if (controller.OwnerClientId == clientId)
+                {
+                    m_Controllers.Add(controller);
+                    return;
+                }
+            }
         }
 
         [ClientRpc]
@@ -250,10 +179,10 @@ namespace Game
         {
             Debug.Log(message);
         }
-
+        
         public Controller GetPlayer(ulong clientId)
         {
-            foreach (Controller controller in m_Players)
+            foreach (Controller controller in m_Controllers)
                 if (controller.OwnerClientId == clientId)
                     return controller;
 
@@ -262,7 +191,7 @@ namespace Game
 
         public Controller GetFirstEnemy(int team)
         {
-            foreach (Controller controller in m_Players)
+            foreach (Controller controller in m_Controllers)
                 if (controller.Team != team)
                     return controller;
 
@@ -272,6 +201,25 @@ namespace Game
         public bool HasPlayer(ulong clientId)
         {
             return GetPlayer(clientId) != null;
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void AddPlayerDataServerRPC(ulong clientId, ECharacter character)
+        {
+            Debug.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + character.ToString());
+            m_PlayersData.Add(clientId, character);
+
+            // check if all players are there
+            if (CheckGameStarted())
+                m_State.Value = EGameState.InGame;
+        }
+
+        bool CheckGameStarted()
+        {
+            bool gameStarted =  m_Players.Count == LobbyHandler.Instance.MaxPlayers 
+                && m_PlayersData.Count == m_Players.Count;
+
+            return gameStarted;
         }
 
         #endregion
@@ -291,6 +239,54 @@ namespace Game
                 return s_Instance;
             }
         }
+
+        #endregion
+
+        #region Listeners
+
+        void OnClientConnected(ulong clientId)
+        {
+            Debug.LogWarning("Client connected : " + clientId + " ==========================================================");
+
+            if (!IsServer)
+                return;
+
+            m_Players.Add((int)clientId);
+        }
+
+        void OnPlayerListChanged(NetworkListEvent<int> changeEvent)
+        {
+            if (!IsServer)
+                return;
+
+            // check if all players are there
+            if (CheckGameStarted())
+                m_State.Value = EGameState.InGame;
+        }
+
+        void OnLobbyRelayJoind(ulong clientId, ECharacter character)
+        {
+            Debug.Log("OnLobbyRelayJoind");
+            if (IsOwner)
+                AddPlayerDataServerRPC(clientId, character);
+        }
+
+        void OnStateValueChanged(EGameState oldValue, EGameState newState)
+        {
+            Debug.Log("New state : " + newState);
+            switch (newState) 
+            {
+                case EGameState.MainMenu:
+                case EGameState.LoadingScreen:
+                    break;
+
+                case EGameState.InGame:
+                    SpawnPlayers();
+                    break;
+
+            }
+        }
+
 
         #endregion
     }

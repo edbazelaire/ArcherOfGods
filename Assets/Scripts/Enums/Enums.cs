@@ -21,6 +21,17 @@
         Count
     }
 
+    public enum EGameState
+    {
+        MainMenu,
+        Lobby,
+        LoadingScreen,
+        InGame,
+        GameOver,
+
+        Count
+    }
+
     public enum ESpellType
     {
         Projectile,

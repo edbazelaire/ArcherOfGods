@@ -1,4 +1,5 @@
-﻿using Data;
+﻿using Assets.Scripts.Game;
+using Data;
 using Enums;
 using Game.Managers;
 using Game.Spells;
@@ -24,7 +25,7 @@ namespace Game.Character
         const float                         c_GlobalCooldown        = 0.3f; 
 
         // ===================================================================================
-        // NETWORK VARIABLES    
+        // NETWORK VARIABLES
         /// <summary> list of cooldowns that links spellID to its cooldown <summary>
         NetworkList<float>                  m_CooldownsNet;
         /// <summary> list of spells that links spellID to spellValue <summary>
@@ -42,12 +43,8 @@ namespace Game.Character
         // PRIVATE VARIABLES    
         /// <summary> owner's controller </summary>
         Controller                          m_Controller;
-        /// <summary> zone where the player can cast a spell </summary>
-        Transform                           m_TargettableArea;
         /// <summary> base spawn position of the spell </summary>
         Transform                           m_SpellSpawn;
-        /// <summary> current animation particles displayed during animation </summary>
-        GameObject                          m_AnimationParticles;
 
         // ===================================================================================
         // PUBLIC ACCESSORS
@@ -57,6 +54,10 @@ namespace Game.Character
         public bool                         IsCasting               => m_AnimationTimer.Value > 0f;
         public ESpell                       SelectedSpell           => m_SelectedSpell;
         public Transform                    SpellSpawn              => m_SpellSpawn;
+
+        // ===================================================================================
+        // EVENTS
+        public Action<ESpell> OnSpellCasted;
 
         #endregion
 
@@ -73,7 +74,6 @@ namespace Game.Character
         {
             m_Controller = Finder.FindComponent<Controller>(gameObject);
             m_SpellSpawn = Finder.FindComponent<Transform>(gameObject, c_SpellSpawn);
-            m_TargettableArea = GameManager.Instance.TargettableAreas[m_Controller.Team];   // get targettable area of the team
         }
 
         void Update()
@@ -139,6 +139,8 @@ namespace Game.Character
             var spawnPosition = m_SpellSpawn.position + GetSpawnOffset(spellData.Trajectory);
             spellData.Cast(m_Controller.OwnerClientId, m_TargetPos.Value, spawnPosition, m_SpellSpawn.rotation);
 
+            SpellCastedClientRPC(m_SelectedSpell);
+
             // only server can handle cooldowns and selected spell
             if (IsServer)
             {
@@ -156,6 +158,17 @@ namespace Game.Character
         #endregion
 
 
+        #region Client RPC
+
+        [ClientRpc]
+        void SpellCastedClientRPC(ESpell spell)
+        {
+            OnSpellCasted?.Invoke(spell);
+        }
+
+        #endregion
+
+
         #region Private Manipulators
 
         /// <summary>
@@ -168,6 +181,8 @@ namespace Game.Character
 
             foreach (ESpell spell in Spells)
             {
+                if (GetCooldown(spell) <= 0f)
+                    continue;
                 SetCooldown(spell, GetCooldown(spell) - Time.deltaTime);
             }
         }
@@ -177,10 +192,6 @@ namespace Game.Character
         /// </summary>
         void CheckActionExectution()
         {
-            // only player can execute actions
-            if (! m_Controller.IsPlayer)
-                return;
-
             // if no spell is selected : return
             if (m_SelectedSpell == ESpell.Count)
                 return;
@@ -215,6 +226,7 @@ namespace Game.Character
         {
             if (! IsServer)
                 return;
+
             m_SelectedSpell = spellType;
         }
 
@@ -227,8 +239,11 @@ namespace Game.Character
             if (m_SelectedSpell == ESpell.Count)
                 return;
 
+            Debug.Log("Spell preview of " + m_SelectedSpell);
+            Debug.Log("     + m_SpellSpawn " + m_SpellSpawn);
+
             SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
-            spellData.SpellPreview(m_TargettableArea, m_SpellSpawn, GetSpawnOffset(spellData.Trajectory));
+            spellData.SpellPreview(TargettableArea, m_SpellSpawn, GetSpawnOffset(spellData.Trajectory));
         }
 
         /// <summary>
@@ -253,7 +268,7 @@ namespace Game.Character
         /// <returns></returns>
         public bool IsTargettable()
         {
-            return SpellHandler.IsTargettable(m_TargettableArea);
+            return SpellHandler.IsTargettable(TargettableArea);
         }
 
         /// <summary>
@@ -307,7 +322,7 @@ namespace Game.Character
         {
             if (!Spells.Contains(spellType))
             {
-                ErrorHandler.FatalError($"SpellHandler : spell {spellType} was not found in list of spells");
+                ErrorHandler.Warning($"SpellHandler : spell {spellType} was not found in list of spells");
                 return 0;
             }
 
@@ -467,6 +482,13 @@ namespace Game.Character
             }
         }
 
+        public Transform TargettableArea
+        {
+            get
+            {
+                return ArenaManager.Instance.TargettableAreas[m_Controller.Team];
+            }
+        }
 
         #endregion
     }

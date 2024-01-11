@@ -1,22 +1,26 @@
-﻿using UnityEngine;
+﻿using System.Text.RegularExpressions;
+using UnityEngine;
+using UnityEngine.Windows;
 
 public class ConsoleToGUI : MonoBehaviour
 {
     string myLog = "*begin log";
     string filename = "";
     bool doShow = true;
-    int kChars = 700;
-    void OnEnable() { Application.logMessageReceived += Log; }
+    int nLines = 12;
+    void OnEnable() { Application.logMessageReceived += Log; DontDestroyOnLoad(this); }
     void OnDisable() { Application.logMessageReceived -= Log; }
-    void Update() { if (Input.GetKeyDown(KeyCode.Space)) { doShow = !doShow; } }
+    void Update() { if (UnityEngine.Input.GetKeyDown(KeyCode.Space)) { doShow = !doShow; } }
     public void Log(string logString, string stackTrace, LogType type)
     {
         // for onscreen...
         myLog += "\n" + logString;
 
-        if (myLog.Length > kChars) {
-            myLog = myLog.Substring(myLog.Length - kChars); 
-        }
+        int nLinesToRemove = Regex.Matches(myLog, "\n").Count - nLines;
+        //if (nLinesToRemove > 0)
+        //{
+        //    myLog = myLog.Substring(myLog.Length - Mathf.Min(myLog.Length, myLog.IndexOf("\n", 0, nLinesToRemove)));
+        //}
 
         // for the file ...
         if (filename != "")

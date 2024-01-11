@@ -1,16 +1,19 @@
+using Assets.Scripts.Game;
 using Assets.Scripts.Game.Character;
 using Data;
 using Enums;
-using Game;
 using Game.Character;
 using Game.Managers;
+using System;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class Controller : NetworkBehaviour
 {
-    #region Members
+    #region Members        //// ask the Server to select first spell by default
+
 
     // ===================================================================================
     // CONSTANTS
@@ -22,9 +25,10 @@ public class Controller : NetworkBehaviour
     NetworkVariable<int>    m_CharacterNet = new NetworkVariable<int>((int)ECharacter.Count);
 
     // -- Data
-    ECharacter m_Character;
-    int                     m_Team;
-    bool                    m_IsPlayer;
+    NetworkVariable<ECharacter>     m_Character = new (ECharacter.Count);
+    NetworkVariable<int>            m_Team = new(0);
+    bool                            m_IsPlayer;
+    ECharacter m_CharacterValue     = ECharacter.Count;
 
     // -- Components & GameObjects
     GameObject              m_CharacterPreview;
@@ -40,8 +44,8 @@ public class Controller : NetworkBehaviour
     // PUBLIC ACCESSORS
 
     // -- Data
-    public ECharacter       Character           => m_Character;
-    public int              Team                => m_Team;
+    public ECharacter       Character           => m_Character.Value;
+    public int              Team                => m_Team.Value;
     public bool             IsPlayer            => m_IsPlayer;
 
     // -- Components & GameObjects
@@ -53,6 +57,9 @@ public class Controller : NetworkBehaviour
     public StateHandler     StateHandler        => m_StateHandler;
     public CounterHandler   CounterHandler      => m_CounterHandler;
     public EnergyHandler    EnergyHandler       => m_EnergyHandler;
+
+
+    public int test = 0;
 
     #endregion
 
@@ -74,73 +81,67 @@ public class Controller : NetworkBehaviour
         m_AnimationHandler = Finder.FindComponent<AnimationHandler>(gameObject);
         m_StateHandler = Finder.FindComponent<StateHandler>(gameObject);
         m_CounterHandler = Finder.FindComponent<CounterHandler>(gameObject);
-
-        m_CharacterNet.OnValueChanged += (int a, int b) => { Debug.Log(" m_CharacterNet.OnValueChanged : " + b); };
-
-        //// ask the Server to select first spell by default
-        //if (IsOwner)
-        //    m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
-
-        //// setup postion and rotation
-        //transform.position = GameManager.Instance.Spawns[Team][0].position;
-
-        //ResetRotation();
-        //Life.Hp.OnValueChanged += OnHpChanged;
-
-        //SetupSpellUI();
     }
  
     /// <summary>
     /// Initialize the controller
     /// </summary>
-    public void Initialize(ECharacter character, int team, bool isPlayer)
+    public void Initialize(ECharacter character, int team, bool isPlayer = true)
     {
-        Debug.Log("Controller.Initialize()");
+        if (IsServer)
+        {
+            Debug.Log("Controller.Initialize()");
+            Debug.Log("     + id " + OwnerClientId);
+            Debug.Log("     + character " + character);
+            Debug.Log("     + team " + team);
 
-        m_CharacterNet.Value    = (int)character;
-        m_Character             = character;
-        m_Team                  = team;
-        m_IsPlayer              = isPlayer;
+            m_CharacterNet.Value = (int)character;
+            m_Character.Value = character;
+            m_Team.Value = team;
+            m_IsPlayer = isPlayer;
 
-        // add player to the game manager
-        //GameManager.Instance.AddPlayerServerRPC(this);
+            Life.Hp.OnValueChanged += OnHpChanged;
 
-        // initialize with the character data
-        InitializeCharacterData();
+            transform.position = ArenaManager.Instance.Spawns[team][0].position;
+            transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
 
-        // setup postion and rotation
-        transform.position = GameManager.Instance.Spawns[Team][0].position;
-        ResetRotation();
-
-        Life.Hp.OnValueChanged += OnHpChanged;
+            InitializeCharacterData(character);
+        }
     }
 
-    public void InitializeUI()
+    [ClientRpc]
+    public void InitializeUIClientRPC(ECharacter character, int team)
     {
         // display the player's ui 
-        GameUIManager.Instance.SetPlayersUI(OwnerClientId, Team);
+        GameUIManager.Instance.SetPlayersUI(OwnerClientId, team);
+
+        CharacterData characterData = CharacterLoader.GetCharacterData(character);
+        m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
+
+        transform.position = ArenaManager.Instance.Spawns[team][0].position;
+        transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
+
+        // get animator
+        Animator animator = Finder.FindComponent<Animator>(m_CharacterPreview);
+        m_AnimationHandler.Initialize(animator);
+
+        if (!IsOwner)
+            return;
 
         // setup the seplls icons buttons
-        SetupSpellUI();
-
-        // ask the Server to select first spell by default
-        if (IsOwner)
-            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
+        SetupSpellUI(character);
+        //m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
 
     /// <summary>
     /// Implement all data related to the Character
     /// </summary>
-    void InitializeCharacterData()
+    void InitializeCharacterData(ECharacter character)
     {
-        CharacterData characterData = CharacterLoader.GetCharacterData(Character);
+        if (! IsServer)
+            return;
 
-        // instantiate the character preview
-        m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
-
-        // get animator
-        Animator animator = Finder.FindComponent<Animator>(m_CharacterPreview);
-        m_AnimationHandler.Initialize(animator);
+        CharacterData characterData = CharacterLoader.GetCharacterData(character);
 
         // initialize SpellHandler with character's spells
         m_SpellHandler.Initialize(characterData.Spells);
@@ -153,16 +154,18 @@ public class Controller : NetworkBehaviour
     /// <summary>
     /// Create the SpellItemUI for each spell of the character
     /// </summary>
-    public void SetupSpellUI()
+    public void SetupSpellUI(ECharacter character)
     {
         if (!IsOwner)
             return;
+
+        CharacterData characterData = CharacterLoader.GetCharacterData(character);
 
         // clear the spell container (in case any spell was already there)
         GameUIManager.Instance.ClearSpells();
 
         // create a SpellItemUI for each spell of the character
-        foreach (ESpell spell in CharacterLoader.GetCharacterData(Character).Spells)
+        foreach (ESpell spell in characterData.Spells)
         {
             GameUIManager.Instance.CreateSpellTemplate(spell);
         }
@@ -172,7 +175,7 @@ public class Controller : NetworkBehaviour
 
 
     #region Server RPC
-    
+
 
     #endregion
 
@@ -186,7 +189,10 @@ public class Controller : NetworkBehaviour
 
         if (Input.GetKeyDown(KeyCode.C))
         {
-            m_Movement.DebugMessage();
+            Debug.Log("Client : " + NetworkManager.Singleton.LocalClientId);
+            Debug.Log("     + Character " + m_Character.Value);
+            Debug.Log("     + Team " + m_Team.Value);
+            Debug.Log("     + Spells " + m_SpellHandler.Spells);
         }
     }
 
@@ -205,6 +211,21 @@ public class Controller : NetworkBehaviour
 
 
     #region Private Manipulators
+
+    //void OnSpellSelected(int oldVale, int spell)
+    //{
+    //    Debug.Log("SpellSelected");
+    //    GameUIManager.Instance.SelectSpell((ESpell)spell);
+    //}
+
+    //void OnCooldownChanged(NetworkListEvent<float> changeEvent)
+    //{
+    //    ESpell spell = m_SpellHandler.Spells[changeEvent.Index];
+
+    //    float cooldown = changeEvent.Value;
+
+    //    GameUIManager.Instance.ChangeCooldown(spell, cooldown);
+    //}
 
     void OnHpChanged(int oldValue, int newValue)
     {

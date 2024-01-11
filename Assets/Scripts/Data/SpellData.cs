@@ -10,6 +10,7 @@ using Assets.Scripts.Data;
 using Unity.VisualScripting;
 using Game.Managers;
 using MyBox;
+using Assets.Scripts.Game;
 
 namespace Data
 {
@@ -179,7 +180,7 @@ namespace Data
             {
                 case ESpellTrajectory.Curve:
                 case ESpellTrajectory.Hight:
-                    parent = GameManager.Instance.Arena.transform;
+                    parent = ArenaManager.Instance.Arena.transform;
                     break;
 
                 case ESpellTrajectory.Straight:

@@ -9,8 +9,6 @@ public class SceneLoader
 
     private void Initialize()
     {
-        Debug.Log("Initializing SceneLoader      ==================================================");
-
         while(! m_Initialized)
         {
             m_Initialized = true;

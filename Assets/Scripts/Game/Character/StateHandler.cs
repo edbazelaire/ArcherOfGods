@@ -100,6 +100,9 @@ namespace Game.Character
 
         void RemoveState(EStateEffect state, bool skipRecalculation = false)
         {
+            if (!IsServer)
+                return;
+
             // remove effect type from list of active effects
             int index = m_StateEffectList.IndexOf((int)state);
             if (index == -1)

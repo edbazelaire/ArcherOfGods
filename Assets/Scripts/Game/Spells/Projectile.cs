@@ -28,7 +28,7 @@ namespace Game.Spells
             switch (m_SpellData.Trajectory)
             {
                 case ESpellTrajectory.Curve:
-                    m_MaxHeight = GameManager.Instance.TargetHight.transform.position.y;
+                    m_MaxHeight = 3f;
                     m_MaxDistance = m_Target.x - m_OriginalPosition.x;
                     break;
 

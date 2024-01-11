@@ -17,9 +17,21 @@ namespace Network
     public class LobbyHandler : MonoBehaviour
     {
         static LobbyHandler s_Instance;
-        public static LobbyHandler Instance => s_Instance;
+        public static LobbyHandler Instance { 
+            get { 
+                if (s_Instance != null) 
+                    return s_Instance;
+                var gameObject = new GameObject("LobbyHandler");
+                gameObject.AddComponent<LobbyHandler>();
+                s_Instance = gameObject.GetComponent<LobbyHandler>();
+                s_Instance.Initialize();
+                return s_Instance;
+            } 
+        }
 
         const string KEY_RELAY_CODE = "RelayCode";
+
+        public Action<ulong, ECharacter> OnRelayJoined;
 
         private Lobby m_HostLobby;
         private Lobby m_JoinedLobby;
@@ -30,21 +42,22 @@ namespace Network
         private float updateLobbyTimer  = 0.0f;
 
         bool m_ServerStarted = false;
+        bool m_SceneLoaded = false;
         bool m_ClientConnected = false;
         bool m_LobbyGetLobbyRequestInProgress = false;
 
         bool IsHost => m_HostLobby != null && m_JoinedLobby != null && m_HostLobby.Id == m_JoinedLobby.Id;
         int m_MaxPlayers => m_GameMode == "1v1" ? 1 : 2;
+        public int MaxPlayers => m_MaxPlayers;
 
 
         public string GameMode { get => m_GameMode; set => m_GameMode = value; }
 
-        private void Start()
+        private void Initialize()
         {
-            if (s_Instance == null)
-                s_Instance = this;
-
             SceneManager.sceneLoaded += OnSceneChanged;
+            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+
             DontDestroyOnLoad(gameObject);
         }
 
@@ -209,36 +222,39 @@ namespace Network
 
             m_LobbyGetLobbyRequestInProgress = false;
 
-            if (m_JoinedLobby.Data[KEY_RELAY_CODE].Value != "" && !m_ServerStarted)
+            if (( m_JoinedLobby.Data[KEY_RELAY_CODE].Value != "") && !m_ServerStarted)
             {
+                m_ServerStarted = true;
+
                 if (!IsHost)
                     await RelayHandler.Instance.JoinRelay(m_JoinedLobby.Data[KEY_RELAY_CODE].Value);
 
-                Debug.Log("ServerStarted");
-                m_ServerStarted = true;
+                m_ClientConnected = true;
+                Debug.Log("Joining done");
             }
+        }
 
-            if (!m_ServerStarted || m_ClientConnected)
+        void OnClientConnected(ulong clientId)
+        {
+            Debug.Log("LobbyManager : Client connected : " + clientId);
+
+            if (NetworkManager.Singleton.LocalClientId != clientId)
                 return;
 
             var playerData = m_PlayerData;
-            GameManager.Instance.AddPlayer(
-                NetworkManager.Singleton.LocalClientId, 
-                Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value),
-                IsHost
-            );
-
-            m_ClientConnected = true;
+            GameManager.Instance.AddPlayerDataServerRPC(clientId, (ECharacter)Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value));
         }
 
         void CheckLobbyFull()
         {
-            if (m_JoinedLobby == null || m_ServerStarted)
+            if (m_JoinedLobby == null || m_SceneLoaded)
                 return;
 
             if (m_JoinedLobby.Players.Count != m_JoinedLobby.MaxPlayers)
                 return;
 
+            Debug.Log("Lobby full : game can start");
+            m_SceneLoaded = true;
             SceneLoader.Instance.LoadScene("Arena");
         }
 

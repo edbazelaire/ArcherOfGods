@@ -147,6 +147,7 @@ GameObject:
   - component: {fileID: 1179333049307264087}
   - component: {fileID: 4083801783670027848}
   - component: {fileID: 4227978836896501042}
+  - component: {fileID: 3479466548214011105}
   m_Layer: 5
   m_Name: SpellItemUI
   m_TagString: Untagged
@@ -228,6 +229,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3479466548214011105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2020699474528383843}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27e4795e3726e9b42a5ad8aae831db8e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3188623589924397128
 GameObject:
   m_ObjectHideFlags: 0

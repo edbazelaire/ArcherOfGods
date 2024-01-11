@@ -17,8 +17,8 @@ public class Life : NetworkBehaviour
 
     // ===================================================================================
     // NETWORK VARIABLES
-    NetworkVariable<int>            m_MaxHp = new (0);
-    NetworkVariable<int>            m_Hp    = new (0);
+    NetworkVariable<int>            m_MaxHp = new (10);
+    NetworkVariable<int>            m_Hp    = new (10);
 
     // ===================================================================================
     // PRIVATE VARIABLES

@@ -34,8 +34,6 @@ namespace Game.Managers
 
         void Initialize()
         {
-            Debug.LogWarning("Initializing CharacterLoader      ==================================================");
-
             LoadCharacterData();
         }
 

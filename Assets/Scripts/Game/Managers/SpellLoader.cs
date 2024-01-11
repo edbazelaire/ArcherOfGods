@@ -27,7 +27,6 @@ namespace Game.Managers
 
         void Initialize()
         {
-            Debug.LogWarning("Initializing SpellLoader      ==================================================");
             InitializeSpells();
 
             DontDestroyOnLoad(s_Instance.gameObject);

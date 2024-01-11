@@ -37,6 +37,7 @@ namespace Game.Character
         #endregion
 
 
+
         #region Private Manipulators
 
         /// <summary>

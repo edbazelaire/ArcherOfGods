@@ -1,10 +1,13 @@
 using Enums;
 using Game.Character;
 using Game.Managers;
+using Game.Spells;
 using Game.UI;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Tools;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameUIManager : MonoBehaviour
@@ -95,7 +98,9 @@ public class GameUIManager : MonoBehaviour
     /// <param name="spell"></param>
     public void CreateSpellTemplate(ESpell spell)
     {
-        m_SpellItems.Add(new SpellItemUI(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform), spell));
+        SpellItemUI spellItem = Finder.FindComponent<SpellItemUI>(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform));
+        spellItem.Initialize(spell);
+        m_SpellItems.Add(spellItem);
     }
 
     /// <summary>
@@ -107,6 +112,16 @@ public class GameUIManager : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
+    }
+
+    public SpellItemUI GetSpellUIItem(ESpell spell) 
+    {
+        foreach (SpellItemUI spellItem in m_SpellItems)
+        {
+            if (spellItem.Spell == spell)
+                return spellItem;
+        }
+        return null;
     }
 
     #endregion

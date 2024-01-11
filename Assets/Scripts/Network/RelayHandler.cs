@@ -30,6 +30,8 @@ namespace Assets.Scripts.Network
 
                 string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
+                Debug.Log("Created relay with code " + joinCode);
+
                 RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
 
                 NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
@@ -58,6 +60,8 @@ namespace Assets.Scripts.Network
                 NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
 
                 NetworkManager.Singleton.StartClient();
+
+                Debug.Log("Client started with local id : " + NetworkManager.Singleton.LocalClientId);
 
             } catch (RelayServiceException e)
             {
