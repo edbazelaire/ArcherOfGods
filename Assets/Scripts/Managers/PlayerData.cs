@@ -26,7 +26,7 @@ namespace Managers
         }
 
         public static string PlayerName;
-        public static ECharacter Character;
+        public static ECharacter Character = ECharacter.Alexander;
 
         public static Dictionary<string, PlayerDataObject> GetPlayerData()
         {

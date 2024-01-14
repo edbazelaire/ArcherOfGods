@@ -130,9 +130,10 @@ public class MainMenu : MonoBehaviour
     {
         PlayerData.Character = (ECharacter)character;
         CleanPreview();
-        var characterPreview = CharacterLoader.GetCharacterData(PlayerData.Character).InstantiateCharacterPreview(m_CharacterPreviewContainer);
+        var characterData = CharacterLoader.GetCharacterData(PlayerData.Character);
+        var characterPreview = characterData.InstantiateCharacterPreview(m_CharacterPreviewContainer);
 
-        var baseScale = characterPreview.transform.localScale;
+        var baseScale = characterPreview.transform.localScale * characterData.Size;
         characterPreview.transform.localScale = new Vector3(baseScale.x * 200f, baseScale.y * 200f, 1f);
     }
 

@@ -11,6 +11,7 @@ using Unity.VisualScripting;
 using Game.Managers;
 using MyBox;
 using Assets.Scripts.Game;
+using System;
 
 namespace Data
 {
@@ -18,75 +19,85 @@ namespace Data
     public class SpellData : ScriptableObject
     {
         [Header("Identity")]
-        [Description("Id of the Spell")]
-        public      ESpell              Spell;
         [Description("Type of spell")]
-        public      ESpellType          SpellType;
+        public ESpellType SpellType;
 
         [Header("UI")]
         [Description("Icon of the Spell")]
-        public      Sprite              Image;
+        public Sprite Image;
         [Description("Border of the Spell Card")]
-        public      Sprite              Border;
+        public Sprite Border;
 
         [Header("Prefabs")]
         [Description("Prefab of the spell that will be instantiated when the spell is cast")]
-        public      GameObject          Graphics;
+        public GameObject Graphics;
         [Description("Preview of the spell target on the ground displayed before the cast of the spell")]
-        public      GameObject          Preview;
+        public GameObject Preview;
         [Description("Particles displayed during the animation")]
-        public      List<GameObject>    AnimationPrefabs;
+        public List<GameObject> AnimationPrefabs;
         [Description("Particles displayed when the cast is done")]
-        public      List<GameObject>    OnCastPrefabs;
+        public List<GameObject> OnCastPrefabs;
         [Description("Prefab of the spell when it hits a target")]
-        public      GameObject          OnHitPrefab;
+        public List<SpellData> OnHit;
 
         [Header("Stats")]
         [Description("Type of path that the spell is taking")]
-        [ConditionalField("SpellType", false, ESpellType.Projectile)]
-        public      ESpellTrajectory    Trajectory;
+        public ESpellTrajectory Trajectory;
         [Description("Maximum number of target that this spell can hit")]
-        public      int                 MaxHit = 1;
+        public int MaxHit = 1;
         [Description("Energy gained when this spell hits his target")]
-        public      int                 EnergyGain = 10;
+        public int EnergyGain = 10;
         [Description("Request amount on energy to be able to cast this spell")]
-        public      int                 EnergyCost = 0;
+        public int EnergyCost = 0;
         [Description("Damage of the spell")]
-        public      int                 Damage;
+        public int Damage;
         [Description("Heals provided to the target")]
-        public      int                 Heal;
+        public int Heal;
         [Description("Speed of the spell")]
-        public      float               Speed;
+        public float Speed;
         [Description("Max distance of the spell")]
-        public      float               Distance = -1f;
-        [Description("List of effects that proc on hitting an enemy")]
-        public      List<SStateEffectData>  EnemyStateEffects;
-        [Description("List of effects that proc on hitting an ally")]
-        public      List<SStateEffectData>  AllyStateEffects;
-
-        [Header("Aoe")]
-        [Description("Radius of the aoe")]
-        public float Radius;
+        public float Distance = -1f;
         [Description("Duration of the aoe")]
         public float Duration;
 
+        [Header("Collision")]
+        [Description("Size of the spell (and hitbox)")]
+        public float Size = 0.3f;
+        [Description("Does the spell get trigger on touching a player")]
+        public bool TriggerPlayer = true;
+
+        [Header("State Effects")]
+        [Description("List of effects that proc on hitting an enemy")]
+        public List<SStateEffectData> EnemyStateEffects;
+        [Description("List of effects that proc on hitting an ally")]
+        public List<SStateEffectData> AllyStateEffects;
+
+        //[ConditionalField("SpellType", false, ESpellType.Counter)]
         [Header("Counter")]
-        [Description("Spell Caster when the counter procs")]
-        [ConditionalField("SpellType", false, ESpellType.Counter)]
-        public ESpell OnCounterProc;
-        [Description("Duration of the counter")]
-        [ConditionalField("SpellType", false, ESpellType.Counter)]
-        public float CounterDuration;
+        public SCounterData CounterData;
 
         [Header("Animation & Cooldowns")]
         [Description("Name of the animation to use")]
-        public      EAnimation          Animation;
+        public EAnimation Animation;
         [Description("Time for the animation to take from start to begin (in seconds)")]
-        public      float               AnimationTimer;
+        public float AnimationTimer;
         [Description("Percentage of time during the animation when the spell will be casted")]
-        public      float               CastAt = 1f;
+        public float CastAt = 1f;
         [Description("Cooldown to be able to re-use that ability")]
-        public      float               Cooldown;
+        public float Cooldown;
+
+        public ESpell Spell 
+        { 
+            get
+            {
+                if (Enum.TryParse(name, out ESpell spell))
+                    return spell;
+                else
+                    ErrorHandler.FatalError($"Spell {name} not found");
+
+                return ESpell.Count;
+            }
+        }
 
 
         #region Public Manipualtors
@@ -101,6 +112,7 @@ namespace Data
         /// <returns></returns>
         public GameObject Cast(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default)
         {
+            Debug.Log("Casting spell : " + name);
             GameObject spellGO;
 
             switch (SpellType)
@@ -109,25 +121,33 @@ namespace Data
                     spellGO = GameObject.Instantiate(SpellLoader.Instance.ProjectilePrefab, position, rotation);
                     break;
 
+                case ESpellType.Aoe:
+                    spellGO = GameObject.Instantiate(SpellLoader.Instance.AoePrefab, position, rotation);
+                    break;
+
                 case ESpellType.Counter:
                 case ESpellType.InstantSpell:
                     spellGO = GameObject.Instantiate(SpellLoader.Instance.InstantSpellPrefab, position, rotation);
+                    break;
+                
+                case ESpellType.Jump:
+                    spellGO = GameObject.Instantiate(SpellLoader.Instance.JumpPrefab, position, rotation);
                     break;
 
                 default:
                     ErrorHandler.FatalError($"SpellType {SpellType} not implemented");
                     return null;
             }
-
+            
             // spawn in network
             Finder.FindComponent<NetworkObject>(spellGO).SpawnWithOwnership(clientId);
 
             // initialize the spell
             var spell = Finder.FindComponent<Spell>(spellGO);
-            spell.Initialize(target, Spell);
+            spell.Initialize(target, name);
 
             // backpropagate the spell intialization to the client (for the preview)
-            spell.InitializeClientRpc(target, Spell);
+            spell.InitializeClientRpc(target, name);
 
             return spellGO;
         }
@@ -143,7 +163,7 @@ namespace Data
             foreach (var prefab in OnCastPrefabs)
             {
                 GameObject go = GameObject.Instantiate(prefab);
-                Finder.FindComponent<OnCastAoe>(go).Initialize(Radius);
+                Finder.FindComponent<OnCastAoe>(go).Initialize(Size);
                 go.transform.position = target;
                 gameObjects.Add(go);
             }
@@ -157,15 +177,15 @@ namespace Data
         /// <param name="clientId"></param>
         /// <param name="position"></param>
         /// <param name="rotation"></param>
-        public void SpawnOnHitPrefab(ulong clientId, Vector3 position = default, Quaternion rotation = default)
+        public void SpawnOnHitPrefab(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default)
         {
-            if (OnHitPrefab == null)
+            if (OnHit == null)
                 return;
 
-            GameObject go = GameObject.Instantiate(OnHitPrefab, position, rotation);
-            Finder.FindComponent<NetworkObject>(go).SpawnWithOwnership(clientId);
-
-            Finder.FindComponent<Aoe>(go).Initialize(Radius, Damage, Duration, EnemyStateEffects);
+            foreach(SpellData spellData in OnHit)
+            {
+                spellData.Cast(clientId, target, position, rotation);
+            }   
         }
 
         /// <summary>
@@ -198,7 +218,7 @@ namespace Data
 
             // get the component of the preview and initialize it
             var component = Finder.FindComponent<SpellPreview>(preview);
-            component.Initialize(targettableArea, Distance, Radius);
+            component.Initialize(targettableArea, Distance, Size);
         }
 
         #endregion

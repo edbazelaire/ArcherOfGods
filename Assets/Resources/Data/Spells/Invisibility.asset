@@ -35,7 +35,7 @@ MonoBehaviour:
   Duration: 0
   OnCounterProc: 0
   CounterDuration: 0
-  Animation: 0
+  Animation: 5
   AnimationTimer: 0
   CastAt: 1
-  Cooldown: 0
+  Cooldown: 0.1

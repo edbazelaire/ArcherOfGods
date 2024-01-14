@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Data;
+using Enums;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
@@ -6,15 +7,13 @@ using UnityEngine;
 
 namespace Game.Spells
 {
-    public class Aoe : NetworkBehaviour
+    public class Aoe : Spell
     {
         #region Members
 
         NetworkVariable<float>  m_Radius    = new NetworkVariable<float>(0);
-        NetworkVariable<int>    m_Damage    = new NetworkVariable<int>(0);
-        NetworkVariable<float>  m_Duration  = new NetworkVariable<float>(0);
 
-        private List<SStateEffectData> m_OnHitEffects;
+        float m_DurationTimer;
 
         #endregion
 
@@ -27,8 +26,6 @@ namespace Game.Spells
         public override void OnNetworkSpawn()
         {
             m_Radius.OnValueChanged += OnRadiusChanged;
-
-            m_OnHitEffects = new List<SStateEffectData>();
         }
 
         /// <summary>
@@ -37,18 +34,15 @@ namespace Game.Spells
         /// <param name="radius"></param>
         /// <param name="damage"></param>
         /// <param name="duration"></param>
-        public void Initialize(float radius, int damage, float duration, List<SStateEffectData> onHitEffects)
+        public override void Initialize(Vector3 target, string spellName)
         {
+            base.Initialize(target, spellName);
+
             if (!IsServer)
                 return;
 
-            m_Radius.Value      = radius;
-            m_Damage.Value      = damage;
-            m_Duration.Value    = duration;
-
-            m_OnHitEffects = onHitEffects;
-
-            transform.localScale = new Vector3(m_Radius.Value, m_Radius.Value, 1f);
+            m_Radius.Value = m_SpellData.Size;
+            m_DurationTimer = m_SpellData.Duration;
         }
 
         /// <summary>
@@ -68,14 +62,14 @@ namespace Game.Spells
         /// <summary>
         /// 
         /// </summary>
-        protected void Update()
+        protected override void Update()
         {
             if (!IsServer)
                 return;
 
-            m_Duration.Value -= Time.deltaTime;
-            if (m_Duration.Value <= 0f)
-                Destroy(gameObject);
+            m_DurationTimer -= Time.deltaTime;
+            if (m_DurationTimer <= 0f)
+                End();
         }
 
         /// <summary>
@@ -89,10 +83,7 @@ namespace Game.Spells
 
             if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
-                var life = collision.gameObject.GetComponent<Life>();
-                life.Hit(m_Damage.Value);
-
-                ApplyOnHitEffects(Finder.FindComponent<Controller>(collision.gameObject));
+                OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
             }
         }
 
@@ -106,19 +97,7 @@ namespace Game.Spells
             transform.localScale = new Vector3(newRadius, newRadius, 1f);
         }
 
-        protected virtual void ApplyOnHitEffects(Controller targetController)
-        {
-            if (!IsServer)
-                return;
-
-            if (!targetController.Life.IsAlive)
-                return;
-
-            foreach (var effect in m_OnHitEffects)
-            {
-                targetController.StateHandler.AddStateEffect(effect);
-            }
-        }
+       
 
         #endregion
     }

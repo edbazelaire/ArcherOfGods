@@ -42,6 +42,9 @@ namespace Game.Spells
 
         public virtual bool Update(float deltaTime)
         {
+            if (m_StateEffectData.IsInfinite)
+                return true;
+
             m_Timer -= deltaTime;
 
             if (m_Timer < 0)

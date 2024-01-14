@@ -13,6 +13,7 @@ namespace Assets.Scripts.Data
         public EStateEffect         Type;
         public float                Duration;
         public float                SpeedBonus;
+        public bool                 IsInfinite;    
 
         [ConditionalField("Type", true, EStateEffect.Stun)]
         public int      Damages;
@@ -23,5 +24,17 @@ namespace Assets.Scripts.Data
 
         [ConditionalField("Type", true, EStateEffect.Stun)]
         public float    Tick;
+
+        public SStateEffectData(EStateEffect type, float duration = 0, float speedBonus = 0, bool isInfinite = false, int damages = 0, int shield = 0, int heal = 0, float tick = 0)
+        {
+            Type = type;
+            Duration = duration;
+            SpeedBonus = speedBonus;
+            IsInfinite = isInfinite;
+            Damages = damages;
+            Shield = shield;
+            Heal = heal;
+            Tick = tick;
+        }
     }
 }

@@ -93,6 +93,19 @@ namespace Game.Character
             return m_StateEffectList.Contains((int)state);
         }
 
+        public void SetStateJump(bool on)
+        {
+            if (!IsServer)
+                return;
+
+            m_Controller.Collider.enabled = !on;
+
+            if (on)
+                AddStateEffect(new SStateEffectData(EStateEffect.Jump, isInfinite: true));
+            else
+                RemoveState(EStateEffect.Jump, skipRecalculation: true);
+        }
+
         #endregion
 
 

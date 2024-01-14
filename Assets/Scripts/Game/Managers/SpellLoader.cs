@@ -15,10 +15,14 @@ namespace Game.Managers
 
         public GameObject SpellPrefab;
         public GameObject ProjectilePrefab;
+        public GameObject AoePrefab;
         public GameObject InstantSpellPrefab;
+        public GameObject JumpPrefab;
 
         private SpellData[] m_SpellsList;
-        public Dictionary<ESpell, SpellData> Spells { get; set; }
+        private SpellData[] m_OnHitList;
+        Dictionary<ESpell, SpellData> m_Spells { get; set; }
+        Dictionary<string, SpellData> m_OnHitSpellData { get; set; }
 
         #endregion
 
@@ -34,18 +38,19 @@ namespace Game.Managers
 
         void InitializeSpells()
         {
-            m_SpellsList = Resources.LoadAll<SpellData>("Data/Spells");
+            LoadSpells();
 
-            Spells = new Dictionary<ESpell, SpellData>();
-
-            if (m_SpellsList.Length != (int)ESpell.Count)
-            {
-                ErrorHandler.FatalError("SpellLoader : Spell list is not complete");
-                return;
-            }
+            m_Spells = new Dictionary<ESpell, SpellData>();
+            m_OnHitSpellData = new Dictionary<string, SpellData>();
 
             foreach (SpellData spell in m_SpellsList)
             {
+                if (spell.name.StartsWith("_"))
+                {
+                    m_OnHitSpellData.Add(spell.name, spell);
+                    continue;
+                }
+
                 if (spell.AnimationTimer < 0)
                     ErrorHandler.FatalError($"SpellLoader : AnimationTimer {spell.Spell} < 0");
 
@@ -58,7 +63,24 @@ namespace Game.Managers
                 if (spell.Cooldown <= 0)
                     spell.Cooldown = 0.1f;
 
-                Spells.Add(spell.Spell, spell);
+                m_Spells.Add(spell.Spell, spell);
+            }
+
+
+            if (m_Spells.Count != (int)ESpell.Count)
+            {
+                ErrorHandler.FatalError("SpellLoader : Spell list is not complete");
+                return;
+            }
+        }
+
+        void LoadSpells()
+        {
+            m_SpellsList = Resources.LoadAll<SpellData>("Data/Spells");
+            if (m_SpellsList == null)
+            {
+                ErrorHandler.FatalError("SpellLoader : No spells found");
+                return;
             }
         }
 
@@ -93,13 +115,34 @@ namespace Game.Managers
         /// <returns></returns>
         public static SpellData GetSpellData(ESpell spell)
         {
-            if (!Instance.Spells.ContainsKey(spell))
+            if (!Instance.m_Spells.ContainsKey(spell))
             {
                 ErrorHandler.Error($"SpellLoader : Spell {spell} not found");
                 return null;
             }
 
-            return Instance.Spells[spell];
+            return Instance.m_Spells[spell];
+        }
+
+        /// <summary>
+        /// Get the spell data of the given spell
+        /// </summary>
+        /// <param name="spell"></param>
+        /// <returns></returns>
+        public static SpellData GetSpellData(string spellName)
+        {
+            if (Enum.TryParse(spellName, out ESpell spell))
+            {
+                return GetSpellData(spell);
+            }
+
+            if (!Instance.m_OnHitSpellData.ContainsKey(spellName))
+            {
+                ErrorHandler.Error($"SpellLoader : Spell {spellName} not found");
+                return null;
+            }
+
+            return Instance.m_OnHitSpellData[spellName];
         }
 
         #endregion

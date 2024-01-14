@@ -20,7 +20,7 @@ namespace Game.Character
         Controller m_Controller;
 
         /// <summary> sprite renderer of the Character</summary>
-        SpriteRenderer m_SpriteRenderer;
+        List<SpriteRenderer> m_SpriteRenderers;
 
         /// <summary> animator of the Character </summary>
         Animator m_Animator;
@@ -41,13 +41,13 @@ namespace Game.Character
             }
 
             m_Controller = GetComponent<Controller>();
-            m_SpriteRenderer = Finder.FindComponent<SpriteRenderer>(m_Controller.CharacterPreview);
+            m_SpriteRenderers = Finder.FindComponents<SpriteRenderer>(m_Controller.CharacterPreview);
             m_Animator = animator;
             m_AnimationPrefabs = new List<GameObject>();
 
-            m_Controller.SpellHandler.AnimationTimer.OnValueChanged += OnAnimationTimerChanged;
-            m_Controller.CounterHandler.CounterProc.OnValueChanged += OnCounterProcChanged;
-            m_Controller.StateHandler.StateEffectList.OnListChanged += OnStateEffectListChanged;
+            m_Controller.SpellHandler.AnimationTimer.OnValueChanged         += OnAnimationTimerChanged;
+            m_Controller.CounterHandler.CounterActivated.OnValueChanged     += OnCounterActivatedValueChanged;
+            m_Controller.StateHandler.StateEffectList.OnListChanged         += OnStateEffectListChanged;
 
             m_Initialized = true;
         }
@@ -64,6 +64,18 @@ namespace Game.Character
 
             MoveAnimation(m_Controller.Movement.IsMoving);
         }
+
+        #endregion
+
+
+        #region Client RPC
+
+        [ClientRpc]
+        public void ChangeColorClientRPC(Color color)
+        {
+            foreach (var spriteRenderer in m_SpriteRenderers)
+                spriteRenderer.color = color;
+        }   
 
         #endregion
 
@@ -113,7 +125,7 @@ namespace Game.Character
             m_Animator.SetTrigger(spellData.Animation.ToString());
 
             // not working anymore ????
-            //m_Animator.SetFloat("CastSpeed", 1f / speed);
+            m_Animator.SetFloat("CastSpeed", 1f / spellData.Speed);
         }
 
         void CancelCastAnimation()
@@ -180,9 +192,15 @@ namespace Game.Character
         /// </summary>
         /// <param name="oldValue"></param>
         /// <param name="newValue"></param>
-        void OnCounterProcChanged(int oldValue, int newValue)
+        void OnCounterActivatedValueChanged(bool oldValue, bool newValue)
         {
-            m_SpriteRenderer.color = newValue != (int)ESpell.Count ? Color.black : Color.white;
+            if (newValue == true)
+            {
+                m_Animator.SetTrigger(EAnimation.Counter.ToString());
+            } else
+            {
+                m_Animator.SetTrigger(EAnimation.CancelCast.ToString());
+            }
         }
 
         /// <summary>
@@ -192,24 +210,35 @@ namespace Game.Character
         /// <param name="newValue"></param>
         void OnStateEffectListChanged(NetworkListEvent<int> changeEvent)
         {
-            Debug.Log($"OnStateEffectListChanged : {changeEvent.Type} {changeEvent.Value}");
-            Debug.Log($"    + LocalClient : {NetworkManager.Singleton.LocalClient.ClientId}");
-            Debug.Log($"    + Owner : {OwnerClientId}");
-
             switch ((EStateEffect)changeEvent.Value)
             {
                 case EStateEffect.Invisible:
-                    var baseColor = m_SpriteRenderer.color;
+                    float opacity = 1f;
 
-                    // if the character is visible, set the alpha to 1f
-                    if (changeEvent.Type == NetworkListEvent<int>.EventType.RemoveAt) 
-                        baseColor.a = 1f;
+                    if (changeEvent.Type != NetworkListEvent<int>.EventType.RemoveAt)
+                        opacity = IsOwner ? 0.5f : 0f;
 
-                    // invisible : set the alpha to 0.5f for owner and 0f for others
-                    else
-                        baseColor.a  = IsOwner ? 0.5f : 0f;
+                    foreach (var spriteRenderer in m_SpriteRenderers)
+                    {
+                        var baseColor = spriteRenderer.color;
+                        baseColor.a = opacity;
+                        spriteRenderer.color = baseColor;
+                    }
+                        
+                    break;
 
-                    m_SpriteRenderer.color = baseColor;
+                case (EStateEffect.Jump):
+                    if (changeEvent.Type == NetworkListEvent<int>.EventType.Add)
+                    {
+                        m_Controller.Collider.enabled = false;
+                        m_Animator.SetTrigger(EAnimation.Jump.ToString());
+                        
+                    } else
+                    {
+                        m_Controller.Collider.enabled = true;
+                        m_Animator.SetTrigger(EAnimation.CancelCast.ToString());
+                    }
+                    
                     break;
 
                 default:

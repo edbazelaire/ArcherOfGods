@@ -22,7 +22,6 @@ namespace Game
         NetworkList<int>                m_Players;
 
         // -- Data
-        Dictionary<ulong, bool>         m_PlayersReady = new();
         Dictionary<ulong, ECharacter>   m_PlayersData = new();
         List<Controller>                m_Controllers;
 

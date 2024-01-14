@@ -14679,8 +14679,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9066324968492672120}
-  - component: {fileID: 2731939285853939539}
-  - component: {fileID: 8768440447148948736}
   - component: {fileID: 6084020952498465169}
   m_Layer: 0
   m_Name: Explosion
@@ -14705,38 +14703,6 @@ Transform:
   - {fileID: 2714832300804345040}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2731939285853939539
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3903842169140113438}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 3814910949
-  AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 1
-  ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
-  SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
-  AutoObjectParentSync: 1
---- !u!114 &8768440447148948736
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3903842169140113438}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 49b84c96c7dda6f4e987067b5abdf08b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!58 &6084020952498465169
 CircleCollider2D:
   m_ObjectHideFlags: 0

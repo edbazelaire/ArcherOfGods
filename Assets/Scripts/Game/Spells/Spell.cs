@@ -22,9 +22,12 @@ namespace Game.Spells
         protected GameObject        m_GraphicsContainer;
 
         /// <summary> counter of remaining number of target that this spell can hit </summary>
-        protected int               m_SpellHitCount;
+        protected List<ulong>       m_HittedPlayerId;
         /// <summary> on cast prefabs (spawn on cast) </summary>
         protected List<GameObject>  m_OnCastPrefabs;
+
+        public SpellData SpellData => m_SpellData;
+        public Controller Controller => m_Controller;
 
         #endregion
 
@@ -36,13 +39,16 @@ namespace Game.Spells
         /// </summary>
         /// <param name="target"></param>
         /// <param name="spell"></param>
-        public virtual void Initialize(Vector3 target, ESpell spell)
+        public virtual void Initialize(Vector3 target, string spellName)
         {
             m_Controller    =  GameManager.Instance.GetPlayer(OwnerClientId);
-            m_SpellData     =  SpellLoader.GetSpellData(spell);
+            m_SpellData     =  SpellLoader.GetSpellData(spellName);
+            m_HittedPlayerId = new List<ulong>();
+
+            // set the target
             SetTarget(target);
 
-            m_SpellHitCount = m_SpellData.MaxHit;
+            // initialize graphics of the spell
             InitGraphics();
         }
 
@@ -51,10 +57,14 @@ namespace Game.Spells
         /// </summary>
         protected virtual void InitGraphics()
         {
-            m_GraphicsContainer = Finder.Find(gameObject, c_GraphicsContainer);
+            m_GraphicsContainer = Finder.Find(gameObject, c_GraphicsContainer, throwError: false);
+            if (m_GraphicsContainer == null)
+                m_GraphicsContainer = new GameObject(c_GraphicsContainer);
 
             if (m_SpellData.Graphics != null)
                 GameObject.Instantiate(m_SpellData.Graphics, m_GraphicsContainer.transform);
+
+            transform.localScale = new Vector3(m_SpellData.Size, m_SpellData.Size, 1f);
         }
 
         /// <summary>
@@ -65,6 +75,12 @@ namespace Game.Spells
             // visual ending effect
             SpawnOnHitPrefab();
 
+            // destroy the spell game object
+            DestroySpell();
+        }
+
+        public virtual void DestroySpell()
+        {
             // call an end on client side
             EndClientRpc();
 
@@ -83,9 +99,9 @@ namespace Game.Spells
         /// <param name="target"></param>
         /// <param name="spellType"></param>
         [ClientRpc]
-        public void InitializeClientRpc(Vector3 target, ESpell spellType)
+        public void InitializeClientRpc(Vector3 target, string spellName)
         {
-            Initialize(target, spellType);
+            Initialize(target, spellName);
             
             m_OnCastPrefabs = m_SpellData.SpawnOnCastPrefabs(m_Controller.gameObject.transform, m_Target);
         }
@@ -129,15 +145,22 @@ namespace Game.Spells
             if (!controller.Life.IsAlive)
                 return;
 
+            // already hit
+            if (m_HittedPlayerId.Contains(controller.OwnerClientId))
+                return;
+
             // apply effects on ally or enemy : if none, skip
             if (! CheckHitEnemy(controller) && ! CheckHitAlly(controller))
                 return;
+
+            // add plyer id to list of hitted players
+            m_HittedPlayerId.Add(controller.OwnerClientId);
 
             // energy gain
             m_Controller.EnergyHandler.AddEnergy(m_SpellData.EnergyGain);
 
             // update hit count
-            if (--m_SpellHitCount <= 0 && m_SpellData.MaxHit > 0)
+            if (m_HittedPlayerId.Count <= m_SpellData.MaxHit && m_SpellData.MaxHit > 0)
                 End();
         }
 
@@ -156,8 +179,8 @@ namespace Game.Spells
 
             if (controller.CounterHandler.HasCounter)
             {
-                controller.CounterHandler.ProcCounter(m_Controller);
-                End();
+                controller.CounterHandler.ProcCounter(this);
+                return false;
             }
             else
                 controller.Life.Hit(m_SpellData.Damage);
@@ -207,7 +230,7 @@ namespace Game.Spells
 
             var position = transform.position;
             position.y = 0;
-            m_SpellData.SpawnOnHitPrefab(OwnerClientId, position);
+            m_SpellData.SpawnOnHitPrefab(OwnerClientId, position, position);
         }
 
         protected virtual void ApplyEnemyOnHitEffects(Controller targetController)
@@ -246,7 +269,7 @@ namespace Game.Spells
 
         public virtual void DebugMessage()
         {
-            Debug.Log("Spell " + m_SpellData.Spell);
+            Debug.Log("Spell " + m_SpellData.name);
             Debug.Log("     + ClientId " + OwnerClientId);
             Debug.Log("     + Target " + m_Target);
         }

@@ -4,6 +4,7 @@
     {
         Reaper,
         Kahnan,
+        Alexander,
 
         Count
     }
@@ -17,6 +18,20 @@
         Heal,
         Counter,
         Invisibility,
+        AxeThrow,
+        Erasement,
+        Rempart,
+
+        Count
+    }
+
+    public enum ESpellType
+    {
+        Projectile,
+        InstantSpell,
+        Aoe,
+        Counter,
+        Jump,
 
         Count
     }
@@ -28,16 +43,6 @@
         LoadingScreen,
         InGame,
         GameOver,
-
-        Count
-    }
-
-    public enum ESpellType
-    {
-        Projectile,
-        InstantSpell,
-        Aoe,
-        Counter,
 
         Count
     }
@@ -71,6 +76,7 @@
         Poison,
 
         Uncontrollable,
+        Jump,
 
         Count
     }
@@ -81,7 +87,18 @@
         CastShoot,
         CancelCast,
         Counter,
+        Jump,
 
         Count
+    }
+
+    public enum ECounterType
+    {
+        None,
+
+        Proc,
+        Block,
+        Reflect,
+        ApplyStateEffect
     }
 }

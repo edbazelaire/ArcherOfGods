@@ -37,7 +37,7 @@ namespace Game.Character
         /// <summary> time before the animation ends </summary>
         NetworkVariable<float>              m_AnimationTimer        = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         /// <summary> position where the spell will land </summary>
-        NetworkVariable<Vector3>            m_TargetPos             = new NetworkVariable<Vector3>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        NetworkVariable<Vector3>            m_TargetPos             = new NetworkVariable<Vector3>(default);
 
         // ===================================================================================
         // PRIVATE VARIABLES    
@@ -128,6 +128,16 @@ namespace Game.Character
         }
 
         /// <summary>
+        /// Ask the server to select the given spell
+        /// </summary>
+        /// <param name="spell"></param>
+        [ServerRpc]
+        public void SetTargetPosServerRPC(Vector3 targetPos)
+        {
+            m_TargetPos.Value = targetPos;
+        }
+
+        /// <summary>
         /// Ask the server to cast the selected spell
         /// </summary>
         [ServerRpc]
@@ -211,7 +221,7 @@ namespace Game.Character
                     return;
 
                 // get shoot position
-                m_TargetPos.Value = new Vector3(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, 0, 0);
+                SetTargetPosServerRPC(new Vector3(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, 0, 0));
                 CastSelectedSpell();
             }
 
@@ -238,9 +248,6 @@ namespace Game.Character
         {
             if (m_SelectedSpell == ESpell.Count)
                 return;
-
-            Debug.Log("Spell preview of " + m_SelectedSpell);
-            Debug.Log("     + m_SpellSpawn " + m_SpellSpawn);
 
             SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
             spellData.SpellPreview(TargettableArea, m_SpellSpawn, GetSpawnOffset(spellData.Trajectory));

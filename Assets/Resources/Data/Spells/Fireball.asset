@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f7d0115edefaac40a924c0b246d24f9, type: 3}
   m_Name: Fireball
   m_EditorClassIdentifier: 
-  Spell: 2
   SpellType: 0
   Image: {fileID: -3650026749840899270, guid: c19b79fa7e4b92c44b911b36a9d5a093, type: 3}
   Border: {fileID: 0}
@@ -21,7 +20,7 @@ MonoBehaviour:
   AnimationPrefabs: []
   OnCastPrefabs:
   - {fileID: 610942752557020422, guid: 1639f7a8bf38ab249a32a62eefa8e12c, type: 3}
-  OnHitPrefab: {fileID: 3903842169140113438, guid: ff0a76846b4ace54a99a33b5b70bb0fc, type: 3}
+  OnHit: []
   Trajectory: 1
   MaxHit: 1
   EnergyGain: 10
@@ -34,16 +33,23 @@ MonoBehaviour:
   - Type: 7
     Duration: 3
     SpeedBonus: 0
+    IsInfinite: 0
     Damages: 2
     Shield: 0
     Heal: 0
     Tick: 1
   AllyStateEffects: []
-  Radius: 0
+  Size: 0.3
   Duration: 0
-  OnCounterProc: 0
-  CounterDuration: 0
-  Animation: 0
+  CounterData:
+    Type: 0
+    Duration: 0
+    SpeedBonus: 0
+    MaxHit: 0
+    OnCounterProc: 0
+    ColorSwap: {r: 0, g: 0, b: 0, a: 0}
+    CounterGraphics: {fileID: 0}
+  Animation: 1
   AnimationTimer: 0.5
   CastAt: 1
   Cooldown: 0.5

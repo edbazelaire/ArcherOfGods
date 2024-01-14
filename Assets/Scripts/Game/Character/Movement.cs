@@ -27,11 +27,15 @@ namespace Game.Character
 
         void Update()
         {
+            if (IsServer)
+            {
+                UpdateMovement();
+            }
+
             if (!IsOwner)
                 return;
 
             CheckInputs();
-            UpdateMovement();
         }
 
         #endregion
@@ -45,7 +49,18 @@ namespace Game.Character
         /// </summary>
         void UpdateMovement()
         {
+            if (! CanMove)
+                return;
             transform.position += new Vector3(m_MoveX.Value * Speed * Time.deltaTime, 0f, 0f);
+
+            // update rotation depending on movement
+            if (m_MoveX.Value == 1)
+            {
+                SetRotation(0f);
+            } else if (m_MoveX.Value == -1)
+            {
+                SetRotation(180f);
+            }
         }
 
         void SetRotation(float y)
@@ -74,12 +89,10 @@ namespace Game.Character
             if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.A))
             {
                 m_MoveX.Value = -1;
-                SetRotation(180f);
             }
             else if (Input.GetKey(KeyCode.D))
             {
                 m_MoveX.Value = 1;
-                SetRotation(0f);
             } 
         }
 
@@ -120,7 +133,10 @@ namespace Game.Character
         {
             get
             {
-                return ! m_Controller.StateHandler.IsStunned && ! m_Controller.CounterHandler.HasCounter;
+                return
+                    ! m_Controller.StateHandler.IsStunned 
+                    && ! m_Controller.CounterHandler.HasCounter
+                    && ! m_Controller.StateHandler.HasState(Enums.EStateEffect.Jump);
             }
         }
 

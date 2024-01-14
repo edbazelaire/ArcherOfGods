@@ -10,18 +10,19 @@ namespace Game.Spells
     {
         #region Members
 
-        float m_MaxHeight;
-        float m_MaxDistance;
+        protected float m_MaxHeight;
+        protected float m_MaxDistance;
 
-        Vector3 m_OriginalPosition;
+        protected Vector3 m_OriginalPosition;
 
         #endregion
 
         #region Init & End
 
-        public override void Initialize(Vector3 target, ESpell spellType)
+        public override void Initialize(Vector3 target, string spellName)
         {
-            base.Initialize(target, spellType);
+            target.y = 0;
+            base.Initialize(target, spellName);
 
             m_OriginalPosition = transform.position;
 
@@ -56,7 +57,7 @@ namespace Game.Spells
         /// [SERVER] check for collision with wall or player
         /// </summary>
         /// <param name="collision"></param>
-        protected void OnTriggerEnter2D(Collider2D collision)
+        protected virtual void OnTriggerEnter2D(Collider2D collision)
         {
             // only server can check for collision
             if (!IsServer)
@@ -67,7 +68,7 @@ namespace Game.Spells
                 End();
 
             // if spell hits a player, hit it and end the spell
-            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player") && !m_IsAoe)
+            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player") && m_SpellData.TriggerPlayer)
                 OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
         }
 
@@ -131,13 +132,6 @@ namespace Game.Spells
             float rot_z = Mathf.Atan2(diff.y, diff.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0f, 0f, rot_z);
         }
-
-        #endregion
-
-
-        #region Dependent Properties
-
-        bool m_IsAoe => m_SpellData.Radius > 0;
 
         #endregion
     }

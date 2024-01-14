@@ -1,14 +1,11 @@
 using Assets.Scripts.Game;
-using Assets.Scripts.Game.Character;
 using Data;
 using Enums;
 using Game.Character;
 using Game.Managers;
-using System;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Controller : NetworkBehaviour
 {
@@ -28,7 +25,6 @@ public class Controller : NetworkBehaviour
     NetworkVariable<ECharacter>     m_Character = new (ECharacter.Count);
     NetworkVariable<int>            m_Team = new(0);
     bool                            m_IsPlayer;
-    ECharacter m_CharacterValue     = ECharacter.Count;
 
     // -- Components & GameObjects
     GameObject              m_CharacterPreview;
@@ -39,6 +35,7 @@ public class Controller : NetworkBehaviour
     SpellHandler            m_SpellHandler;
     StateHandler            m_StateHandler;
     CounterHandler          m_CounterHandler;
+    Collider2D              m_Collider;     
 
     // ===================================================================================
     // PUBLIC ACCESSORS
@@ -57,6 +54,7 @@ public class Controller : NetworkBehaviour
     public StateHandler     StateHandler        => m_StateHandler;
     public CounterHandler   CounterHandler      => m_CounterHandler;
     public EnergyHandler    EnergyHandler       => m_EnergyHandler;
+    public Collider2D       Collider            => m_Collider;
 
 
     public int test = 0;
@@ -72,6 +70,8 @@ public class Controller : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         Debug.Log("Controller.OnNetworkSpawn()");   
+
+        m_Collider = Finder.FindComponent<Collider2D>(gameObject);
 
         // setup components
         m_Life = Finder.FindComponent<Life>(gameObject);
@@ -120,6 +120,7 @@ public class Controller : NetworkBehaviour
 
         transform.position = ArenaManager.Instance.Spawns[team][0].position;
         transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
+        transform.localScale = transform.localScale * characterData.Size;
 
         // get animator
         Animator animator = Finder.FindComponent<Animator>(m_CharacterPreview);
@@ -147,8 +148,8 @@ public class Controller : NetworkBehaviour
         m_SpellHandler.Initialize(characterData.Spells);
 
         // init health and energy
-        m_Life.Initialize(50);
-        m_EnergyHandler.Initialize(10, 100);
+        m_Life.Initialize(characterData.MaxHealth);
+        m_EnergyHandler.Initialize(10, characterData.MaxEnergy);
     }
 
     /// <summary>
@@ -205,6 +206,12 @@ public class Controller : NetworkBehaviour
     public void ResetRotation()
     {
         transform.rotation = Quaternion.Euler(0f, Team == 0 ? 0f : -180f, 0f);
+    }
+
+    [ClientRpc]
+    public void ActivateColliderClientRPC(bool on)
+    {
+        m_Collider.enabled = on;
     }
 
     #endregion

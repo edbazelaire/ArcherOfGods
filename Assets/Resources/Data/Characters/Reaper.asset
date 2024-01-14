@@ -16,3 +16,7 @@ MonoBehaviour:
   Image: {fileID: 470484783931029153, guid: 477669bcd87193c4e9a8cd1b7e03622f, type: 3}
   CharacterPreview: {fileID: 6406391710760573647, guid: 80d231bc565848c4a83592499ed40b2f, type: 3}
   Spells: 00000000010000000400000005000000
+  Size: 1
+  Speed: 1
+  MaxHealth: 100
+  MaxEnergy: 100

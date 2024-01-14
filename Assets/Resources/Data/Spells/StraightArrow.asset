@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f7d0115edefaac40a924c0b246d24f9, type: 3}
   m_Name: StraightArrow
   m_EditorClassIdentifier: 
-  Spell: 1
   SpellType: 0
   Image: {fileID: 85321049289429126, guid: 2869cc109de97fa4e989c71b6a0f5e66, type: 3}
   Border: {fileID: 0}
@@ -21,7 +20,7 @@ MonoBehaviour:
   AnimationPrefabs:
   - {fileID: 458114271446715719, guid: a0691b7d658df354ea6923fa145aede0, type: 3}
   OnCastPrefabs: []
-  OnHitPrefab: {fileID: 0}
+  OnHit: []
   Trajectory: 2
   MaxHit: 0
   EnergyGain: 10
@@ -34,15 +33,22 @@ MonoBehaviour:
   - Type: 0
     Duration: 3
     SpeedBonus: 0
+    IsInfinite: 0
     Damages: 0
     Shield: 0
     Heal: 0
     Tick: 0
   AllyStateEffects: []
-  Radius: 0
+  Size: 0.3
   Duration: 0
-  OnCounterProc: 0
-  CounterDuration: 0
+  CounterData:
+    Type: 0
+    Duration: 0
+    SpeedBonus: 0
+    MaxHit: 0
+    OnCounterProc: 0
+    ColorSwap: {r: 0, g: 0, b: 0, a: 0}
+    CounterGraphics: {fileID: 0}
   Animation: 0
   AnimationTimer: 2
   CastAt: 1

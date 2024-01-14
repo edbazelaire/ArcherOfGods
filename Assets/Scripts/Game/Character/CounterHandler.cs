@@ -1,25 +1,26 @@
 ﻿using Data;
 using Enums;
-using Game;
-using Game.Character;
 using Game.Managers;
-using System.Collections;
+using Game.Spells;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
 
-namespace Assets.Scripts.Game.Character
+namespace Game.Character
 {
     public class CounterHandler : NetworkBehaviour
     {
         #region Members
 
-        NetworkVariable<int> m_CounterProc = new NetworkVariable<int>((int)ESpell.Count);
-        NetworkVariable<float> m_CounterTimer = new NetworkVariable<float>(0f);
+        NetworkVariable<bool>   m_CounterActivated  = new NetworkVariable<bool>(false);
+        NetworkVariable<float>  m_CounterTimer      = new NetworkVariable<float>(0f);
 
         Controller m_Controller;
+        SCounterData m_CounterData;
+        int m_HitCtr = 0;
+        GameObject m_CounterGraphics;
 
-        public NetworkVariable<int> CounterProc => m_CounterProc;
+        public NetworkVariable<bool> CounterActivated => m_CounterActivated;
         public bool HasCounter => m_CounterTimer.Value > 0;
 
         #endregion
@@ -45,6 +46,23 @@ namespace Assets.Scripts.Game.Character
         #endregion
 
 
+        #region Client RPCs
+
+        [ClientRpc]
+        void SetCounterGraphicsClientRPC(bool activate)
+        {
+            if (activate)
+                m_CounterGraphics = Instantiate(m_CounterData.CounterGraphics, m_Controller.transform);
+            else
+            {
+                Destroy(m_CounterGraphics);
+                m_CounterGraphics = null;
+            }
+        }
+
+        #endregion
+
+
         #region Private Manipulators
 
         void UpdateCounterTimer()
@@ -62,37 +80,79 @@ namespace Assets.Scripts.Game.Character
         void EndCounter()
         {
             m_CounterTimer.Value = 0;
-            m_CounterProc.Value = (int)ESpell.Count;
+            CounterActivated.Value = false;
             m_Controller.Movement.CancelMovement(false);
+
+            // reset color on the client side
+            if (m_CounterData.ColorSwap != default)
+                m_Controller.AnimationHandler.ChangeColorClientRPC(Color.white);
+
+            // destory counter graphics on the client side
+            if (m_CounterGraphics != null)
+                SetCounterGraphicsClientRPC(false);
         }
 
         #endregion
 
 
-
         #region Public Manipulators
 
-        public void SetCounter(ESpell CounterProc, float duration)
+        public void SetCounter(SCounterData counterData)
         {
             if (!IsServer)
                 return;
 
-            m_CounterProc.Value = (int)CounterProc;
-            m_CounterTimer.Value = duration;
+            m_CounterData = counterData;
+            m_CounterTimer.Value = m_CounterData.Duration;
             m_Controller.Movement.CancelMovement(true);
+
+            if (m_CounterData.ColorSwap != default)
+            {
+                m_Controller.AnimationHandler.ChangeColorClientRPC(m_CounterData.ColorSwap);
+            }
+
+            if (m_CounterData.CounterGraphics != null)
+            {
+                SetCounterGraphicsClientRPC(true);
+            }
         }
 
-        public void ProcCounter(Controller enemy)
+        public void ProcCounter(Spell enemySpell)
         {
             if (!IsServer)
                 return;
-            
-            var targetPosition = enemy.transform.position;
 
-            SpellData spellData = SpellLoader.GetSpellData((ESpell)m_CounterProc.Value);
-            spellData.Cast(OwnerClientId, targetPosition, transform.position);
+            var targetPosition = enemySpell.Controller.transform.position;
+            SpellData spellData;
 
-            EndCounter();
+            switch (m_CounterData.Type)
+            {
+                // cast the counter spell on the enemy
+                case ECounterType.Proc:
+                    spellData = SpellLoader.GetSpellData(m_CounterData.OnCounterProc);
+                    spellData.Cast(OwnerClientId, targetPosition, transform.position);
+                    break;
+
+                // block the spell : do nothing
+                case ECounterType.Block:
+                    // todo : block animation
+                    break;
+
+                // Recast the spell to the enemy
+                case ECounterType.Reflect:
+                    enemySpell.SpellData.Cast(OwnerClientId, targetPosition, transform.position);
+                    break;
+
+                default :
+                    Debug.LogError("Unhandled counter type : " + m_CounterData.Type);
+                    break;
+            }
+
+            enemySpell.DestroySpell();
+
+            m_HitCtr++;
+            if (m_HitCtr >= m_CounterData.MaxHit && m_CounterData.MaxHit > 0)
+                EndCounter();
         }
 
         #endregion
