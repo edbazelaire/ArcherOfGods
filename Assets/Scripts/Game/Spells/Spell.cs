@@ -1,8 +1,7 @@
 ﻿using Data;
-using Enums;
-using Game.Character;
 using Game.Managers;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
@@ -13,6 +12,8 @@ namespace Game.Spells
     public class Spell : NetworkBehaviour
     {
         #region Members
+
+        public Action OnSpellEndedEvent;
 
         const string c_GraphicsContainer = "GraphicsContainer";
 
@@ -26,6 +27,7 @@ namespace Game.Spells
         /// <summary> on cast prefabs (spawn on cast) </summary>
         protected List<GameObject>  m_OnCastPrefabs;
 
+
         public SpellData SpellData => m_SpellData;
         public Controller Controller => m_Controller;
 
@@ -38,18 +40,19 @@ namespace Game.Spells
         /// 
         /// </summary>
         /// <param name="target"></param>
-        /// <param name="spell"></param>
+        /// <param name="spellName"></param>
         public virtual void Initialize(Vector3 target, string spellName)
         {
-            m_Controller    =  GameManager.Instance.GetPlayer(OwnerClientId);
-            m_SpellData     =  SpellLoader.GetSpellData(spellName);
-            m_HittedPlayerId = new List<ulong>();
+            m_Controller        =  GameManager.Instance.GetPlayer(OwnerClientId);
+            m_SpellData         =  SpellLoader.GetSpellData(spellName);
+            m_HittedPlayerId    = new List<ulong>();
 
             // set the target
             SetTarget(target);
 
-            // initialize graphics of the spell
+            // initialize graphics of the spell (whith delay if has any)
             InitGraphics();
+
         }
 
         /// <summary>
@@ -102,15 +105,12 @@ namespace Game.Spells
         public void InitializeClientRpc(Vector3 target, string spellName)
         {
             Initialize(target, spellName);
-            
-            m_OnCastPrefabs = m_SpellData.SpawnOnCastPrefabs(m_Controller.gameObject.transform, m_Target);
         }
 
         [ClientRpc]
         public void EndClientRpc()
         {
-            foreach (var prefab in m_OnCastPrefabs)
-                Destroy(prefab);
+            OnSpellEndedEvent?.Invoke();
         }
 
         #endregion
@@ -134,11 +134,12 @@ namespace Game.Spells
         /// <summary>
         /// Update the position of the spell and [SERVER] check if the spell has reached its max distance
         /// </summary>
-        protected virtual void UpdateMovement()
-        {
-            return;
-        }
+        protected virtual void UpdateMovement() { }
 
+        /// <summary>
+        /// Check if a Player has been hit
+        /// </summary>
+        /// <param name="controller"></param>
         protected virtual void OnHitPlayer(Controller controller)
         {
             // not alive : skip

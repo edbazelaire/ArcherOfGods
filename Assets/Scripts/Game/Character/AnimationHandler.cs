@@ -5,8 +5,6 @@ using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static UnityEngine.AdaptivePerformance.Provider.AdaptivePerformanceSubsystemDescriptor;
 
 namespace Game.Character
 {
@@ -17,16 +15,16 @@ namespace Game.Character
         bool m_Initialized = false;
 
         /// <summary> controller of this AnimationHandler </summary>
-        Controller m_Controller;
+        Controller              m_Controller;
 
         /// <summary> sprite renderer of the Character</summary>
-        List<SpriteRenderer> m_SpriteRenderers;
+        List<SpriteRenderer>    m_SpriteRenderers;
 
         /// <summary> animator of the Character </summary>
-        Animator m_Animator;
+        Animator                m_Animator;
 
         /// <summary> particles displayed with the animation </summary>
-        List<GameObject> m_AnimationPrefabs;
+        List<GameObject>        m_AnimationPrefabs;
 
         #endregion
 
@@ -48,6 +46,7 @@ namespace Game.Character
             m_Controller.SpellHandler.AnimationTimer.OnValueChanged         += OnAnimationTimerChanged;
             m_Controller.CounterHandler.CounterActivated.OnValueChanged     += OnCounterActivatedValueChanged;
             m_Controller.StateHandler.StateEffectList.OnListChanged         += OnStateEffectListChanged;
+            m_Controller.StateHandler.SpeedBonus.OnValueChanged             += OnSpeedBonusValueChanged;
 
             m_Initialized = true;
         }
@@ -70,12 +69,61 @@ namespace Game.Character
 
         #region Client RPC
 
+        #endregion
+
+
+        #region Public Manipulators
+
+        /// <summary>
+        /// change the color of this character on each clients
+        /// </summary>
+        /// <param name="color"></param>
         [ClientRpc]
         public void ChangeColorClientRPC(Color color)
         {
             foreach (var spriteRenderer in m_SpriteRenderers)
                 spriteRenderer.color = color;
-        }   
+        }
+
+        /// <summary>
+        /// Call clients to hide/display a character
+        /// </summary>
+        /// <param name="hidden"></param>
+        [ClientRpc]
+        public void HideCharacterClientRPC(bool hidden)
+        {
+            HideCharacter(hidden);
+        }
+
+        /// <summary>
+        /// Hide / show the character colors
+        /// </summary>
+        /// <param name="hidden"></param>
+        public void HideCharacter(bool hidden)
+        {
+            Color color = hidden ? new Color(0f, 0f, 0f, 0f) : Color.white;
+            SetColor(color);
+        }
+
+
+        /// <summary>
+        /// Update Animation MovementSpeed factor depending on current speed
+        /// </summary>
+        public void UpdateMovementSpeed()
+        {
+            Debug.Log("Setting Animation MovementSpeed factor : " + m_Controller.Movement.Speed);
+            m_Animator.SetFloat("MovementSpeed", m_Controller.Movement.Speed);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="win"></param>
+        public void GameOverAnimation(bool win)
+        {
+            m_Animator.SetTrigger(win ? "Win" : "Lose");
+        }
+
 
         #endregion
 
@@ -100,6 +148,12 @@ namespace Game.Character
             EndAnimationParticles();
         }
 
+        void SetColor(Color color)
+        {
+            foreach (var spriteRenderer in m_SpriteRenderers)
+                spriteRenderer.color = color;
+        }
+
         #endregion
 
 
@@ -107,11 +161,6 @@ namespace Game.Character
 
         void MoveAnimation(bool isMoving)
         {
-            // todo later : handle animation cancels
-            //var info = m_Animator.GetCurrentAnimatorStateInfo(0);
-            //if (isMoving)
-            //    CancelCast();
-
             m_Animator.SetBool("IsMoving", isMoving);
         }
 
@@ -124,8 +173,8 @@ namespace Game.Character
 
             m_Animator.SetTrigger(spellData.Animation.ToString());
 
-            // not working anymore ????
-            m_Animator.SetFloat("CastSpeed", 1f / spellData.Speed);
+            // update speed of the animation
+            m_Animator.SetFloat("CastSpeed", 1f / spellData.AnimationTimer);
         }
 
         void CancelCastAnimation()
@@ -143,11 +192,11 @@ namespace Game.Character
         {
             SpellData spellData = SpellLoader.GetSpellData(m_Controller.SpellHandler.SelectedSpell);
 
-            if (spellData.AnimationPrefabs.Count == 0)
+            if (spellData.OnAnimation.Count == 0)
                 return;
 
-            foreach (var prefab in spellData.AnimationPrefabs)
-                m_AnimationPrefabs.Add(GameObject.Instantiate(prefab, m_Controller.SpellHandler.SpellSpawn));
+            foreach (SPrefabSpawn onAnimationPrefab in spellData.OnAnimation)
+                m_AnimationPrefabs.Add(onAnimationPrefab.Spawn(m_Controller, spellData.AnimationTimer));
         }
 
         /// <summary>
@@ -176,15 +225,11 @@ namespace Game.Character
 
             // from 0 : start casting
             if (oldValue <= 0 && newValue > 0)
-            {
                 Cast();
-            }
 
             // to 0 : end casting
             else if (oldValue > 0 && newValue <= 0)
-            {
                 CancelCast();
-            }
         }
 
         /// <summary>
@@ -204,12 +249,24 @@ namespace Game.Character
         }
 
         /// <summary>
+        /// Change MovementSpeed parameter in the Animator when the speed value changes
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        void OnSpeedBonusValueChanged(float oldValue, float newValue)
+        {
+            UpdateMovementSpeed();
+        }
+
+        /// <summary>
         /// Change counter of the character on proc
         /// </summary>
         /// <param name="oldValue"></param>
         /// <param name="newValue"></param>
         void OnStateEffectListChanged(NetworkListEvent<int> changeEvent)
         {
+            Debug.Log(changeEvent.Type + " " + (EStateEffect)changeEvent.Value);
+
             switch ((EStateEffect)changeEvent.Value)
             {
                 case EStateEffect.Invisible:
@@ -218,13 +275,15 @@ namespace Game.Character
                     if (changeEvent.Type != NetworkListEvent<int>.EventType.RemoveAt)
                         opacity = IsOwner ? 0.5f : 0f;
 
-                    foreach (var spriteRenderer in m_SpriteRenderers)
-                    {
-                        var baseColor = spriteRenderer.color;
-                        baseColor.a = opacity;
-                        spriteRenderer.color = baseColor;
-                    }
-                        
+                    SetColor(new Color(1f, 1f, 1f, opacity));
+                    break;
+
+                case (EStateEffect.IronSkin):
+                    SetColor(changeEvent.Type == NetworkListEvent<int>.EventType.Add ? Color.grey : Color.white);
+                    break;
+
+                case (EStateEffect.Cursed):
+                    SetColor(changeEvent.Type == NetworkListEvent<int>.EventType.Add ? Color.magenta : Color.white);
                     break;
 
                 case (EStateEffect.Jump):

@@ -99,7 +99,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2289734337587161120}
-  - component: {fileID: 4085682504820428597}
+  - component: {fileID: -3356909344428737094}
   m_Layer: 0
   m_Name: DotPreview
   m_TagString: Untagged
@@ -127,7 +127,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4085682504820428597
+--- !u!114 &-3356909344428737094
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -136,6 +136,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 7274605584167926077}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2b4199845fbaeb4c973e2803f1c3f2e, type: 3}
+  m_Script: {fileID: 11500000, guid: c4edc920e2acbb749ad34ab2656390a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

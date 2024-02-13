@@ -1,30 +1,44 @@
-﻿using Assets.Scripts.Data;
+﻿using Data;
 using Enums;
+using Game.Managers;
 using Game.Spells;
+using Game.UI;
+using MyBox;
 using System;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Game.Character
 {
     public class StateHandler : NetworkBehaviour
     {
         #region Members
-
+        // ==============================================================================================
+        // PRIVATE ACCESSORS
+        // -- Network Variables
         NetworkList<int>        m_StateEffectList;
-        NetworkVariable<float>  m_SpeedBonus = new(0f);
+        NetworkVariable<float>  m_SpeedBonus = new(1f);
         NetworkVariable<int>    m_Shield = new(0);
 
+        // -- SERVER SIDE
         Controller              m_Controller;
         List<StateEffect>       m_StateEffects;
+        int                     m_ResistanceFix     = 0;
+        float                   m_ResistancePerc    = 1f;
 
+        // ==============================================================================================
+        // PUBLIC ACCESSORS
         public NetworkList<int> StateEffectList => m_StateEffectList;
         public bool IsStunned => m_StateEffectList.Contains((int)EStateEffect.Stun);
-
-        public float SpeedBonus => m_SpeedBonus.Value;
+        public NetworkVariable<float> SpeedBonus => m_SpeedBonus;
         public int Shield => m_Shield.Value;
+
+        // ==============================================================================================
+        // EVENTS
+        public event Action<EListEvent, EStateEffect, int, float> OnStateEvent;
 
         #endregion
 
@@ -43,14 +57,22 @@ namespace Game.Character
 
         public override void OnNetworkSpawn()
         {
-            m_StateEffectList.OnListChanged += OnHitEffectsListChanged;
-            m_Controller.SpellHandler.AnimationTimer.OnValueChanged += OnAnimationTimerChanged;
+            base.OnNetworkSpawn();
+
+            m_Controller.SpellHandler.AnimationTimer.OnValueChanged     += OnAnimationTimerChanged;
         }
+
+        public override void OnNetworkDespawn()
+        {
+            base.OnNetworkDespawn();
+
+            m_StateEffectList.Dispose();
+        }
+
 
         public override void OnDestroy()
         {
-            m_StateEffectList.OnListChanged -= OnHitEffectsListChanged;
-            m_Controller.SpellHandler.AnimationTimer.OnValueChanged -= OnAnimationTimerChanged;
+            m_Controller.SpellHandler.AnimationTimer.OnValueChanged     -= OnAnimationTimerChanged;
         }
 
         #endregion
@@ -64,28 +86,26 @@ namespace Game.Character
             if (! IsServer) 
                 return;
 
-            bool removedDone = false;
             for (int i = m_StateEffects.Count - 1; i >= 0; i--)
             {
-                bool removeState = false;
-
-                if (! m_StateEffects[i].Update(Time.deltaTime))
-                    removeState = true;
-
-                if (!removeState)
-                    continue;
-
-                RemoveState(m_StateEffects[i].StateEffectData.Type, true);
-                removedDone = true;
+                m_StateEffects[i].UpdateTimer();
             }
-
-            if (removedDone)
-                RecalculateBonus();
         }
 
         #endregion
 
-        
+
+        #region Client RPC
+
+        [ClientRpc]
+        void OnStateEventClientRPC(EListEvent listEvent, EStateEffect stateEffect, int stacks, float duration)
+        {
+            OnStateEvent?.Invoke(listEvent, stateEffect, stacks, duration);
+        }
+
+        #endregion
+
+
         #region Public Accessors
 
         public bool HasState(EStateEffect state)
@@ -101,45 +121,26 @@ namespace Game.Character
             m_Controller.Collider.enabled = !on;
 
             if (on)
-                AddStateEffect(new SStateEffectData(EStateEffect.Jump, isInfinite: true));
+                AddStateEffect(new SStateEffectData(EStateEffect.Jump, duration: -1));
             else
-                RemoveState(EStateEffect.Jump, skipRecalculation: true);
+                RemoveState(EStateEffect.Jump);
+        }
+
+        public int ApplyResistance(int damages)
+        {
+            // apply res fix first
+            damages = Math.Max(0, damages - m_ResistanceFix);
+
+            // apply percentage res
+            damages = (int)Mathf.Round(damages * m_ResistancePerc);
+            
+            return damages;
         }
 
         #endregion
 
 
         #region Private Manipulators
-
-        void RemoveState(EStateEffect state, bool skipRecalculation = false)
-        {
-            if (!IsServer)
-                return;
-
-            // remove effect type from list of active effects
-            int index = m_StateEffectList.IndexOf((int)state);
-            if (index == -1)
-            {
-                ErrorHandler.FatalError($"Unable to find state {state} in list");
-                return;
-            }
-
-            m_StateEffectList.RemoveAt(index);
-            m_StateEffects.RemoveAt(index);
-
-            if (! skipRecalculation)
-                RecalculateBonus();
-        }
-
-        /// <summary>
-        /// Client side impact of list changed
-        /// </summary>
-        /// <param name="changeEvent"></param>
-        void OnHitEffectsListChanged(NetworkListEvent<int> changeEvent)
-        {
-            if (changeEvent.Type == NetworkListEvent<int>.EventType.Add)
-                RecalculateBonus();
-        }
 
         /// <summary>
         /// When an animation starts, remove states that are not allowed
@@ -148,7 +149,7 @@ namespace Game.Character
         /// <param name="newValue"></param>
         void OnAnimationTimerChanged(float previousValue, float newValue)
         {
-            if (previousValue > 0)
+            if (previousValue > 0 || newValue <= 0)
                 return;
 
             if (HasState(EStateEffect.Invisible))
@@ -165,28 +166,43 @@ namespace Game.Character
             if (!IsServer)
                 return;
 
-            int shield = 0;
-            float speedFactor = 0f;
+            int shield          = 0;
+            float speedBonus    = 1f;
+            int resFix          = 0;
+            float resPerc       = 1f;
+
             foreach (var effect in m_StateEffects)
             {
-                speedFactor += effect.StateEffectData.SpeedBonus;
-                shield      += effect.StateEffectData.Shield;
+                // some stack effects are set at 0 but the minimum value of the factor is 1
+                int stacksFactor = Math.Max(1, effect.Stacks);
+
+                shield      += effect.RemainingShield;
+                speedBonus  *= Mathf.Pow(effect.SpeedBonus, stacksFactor);
+                resFix      += stacksFactor * effect.ResistanceFix;
+                resPerc     *= Mathf.Pow(effect.ResistancePerc, stacksFactor);
             }
 
-            m_SpeedBonus.Value = speedFactor;
-            m_Shield.Value = shield;
+            m_SpeedBonus.Value  = speedBonus;
+            m_Shield.Value      = shield;
+            m_ResistanceFix     = resFix;
+            m_ResistancePerc    = resPerc;
         }
 
         /// <summary>
         /// Refresh the state effect
         /// </summary>
         /// <param name="stateEffect"></param>
-        void RefreshEffect(EStateEffect stateEffect)
+        void RefreshEffect(EStateEffect stateEffect, int stacks = 0)
         {
             foreach (var effect in m_StateEffects)
             {
-                if (effect.StateEffectData.Type == stateEffect)
-                    effect.Reset();
+                if (effect.Type != stateEffect)
+                    continue;
+
+                effect.Refresh(stacks);
+                OnStateEventClientRPC(EListEvent.Add, effect.Type, effect.Stacks, effect.Duration);
+                RecalculateBonus();
+                break;
             }
         }
 
@@ -198,34 +214,84 @@ namespace Game.Character
         /// <summary>
         /// Add a state effect to the character
         /// </summary>
-        /// <param name="stateEffectData"></param>
+        /// <param name="stateEffect"></param>
         public void AddStateEffect(SStateEffectData stateEffectData)
         {
             if (! IsServer)
                 return;
 
             // if already in the list of state effects, refresh it
-            if (HasState(stateEffectData.Type))
+            if (HasState(stateEffectData.StateEffect))
             {
-                RefreshEffect(stateEffectData.Type);
+                RefreshEffect(stateEffectData.StateEffect, stateEffectData.Stacks);
                 return;
             }
 
-            // create the state effect from the data
-            switch (stateEffectData.Type)
-            {
-                case EStateEffect.Poison:
-                case EStateEffect.Burn:
-                    m_StateEffects.Add(new TickDamageEffect(m_Controller, stateEffectData));
-                    break;
-                
-                default:
-                    m_StateEffects.Add(new StateEffect(m_Controller, stateEffectData));
-                    break;
-            }
+            // create and add state effect  
+            StateEffect stateEffect = SpellLoader.GetStateEffect(stateEffectData.StateEffect);
+            stateEffect.Initialize(m_Controller, stateEffectData);
+            m_StateEffects.Add(stateEffect);
 
             // add the state effect to the list of active effects
-            m_StateEffectList.Add((int)stateEffectData.Type);
+            m_StateEffectList.Add((int)stateEffectData.StateEffect);
+
+            // send event to clients (for UI update)
+            OnStateEventClientRPC(EListEvent.Add, stateEffect.Type, stateEffect.Stacks, stateEffect.Duration);
+
+            // recheck bonus potentially provided by this new stateEffect
+            RecalculateBonus();
+        }
+
+        /// <summary>
+        /// Add a state effect to the character
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="duration"></param>
+        public void AddStateEffect(EStateEffect type, int? stacks = default, float? duration = default, float? speedBonus = default)
+        {
+            if (!IsServer)
+                return;
+
+            AddStateEffect(new SStateEffectData(
+                type, 
+                stacks:     stacks      ??      1,
+                duration:   duration    ??     -1f,
+                speedBonus: speedBonus  ??      0           
+            ));
+        }
+
+        /// <summary>
+        /// Remove a state effect from the character
+        /// </summary>
+        /// <param name="state"></param>
+        public int RemoveState(EStateEffect state)
+        {
+            if (!IsServer)
+                return 0;
+
+            // remove effect type from list of active effects
+            int index = m_StateEffectList.IndexOf((int)state);
+            if (index == -1)
+            {
+                ErrorHandler.FatalError($"Unable to find state {state} in list");
+                return 0;
+            }
+
+            // keep track of the number of stacks this spell had
+            int nStacks = m_StateEffects[index].Stacks;
+
+            // send event to clients (for UI update)
+            OnStateEventClientRPC(EListEvent.Remove, m_StateEffects[index].Type, m_StateEffects[index].Stacks, m_StateEffects[index].Duration);
+
+            // remove effect from list on Server side
+            m_StateEffectList.RemoveAt(index);
+            m_StateEffects.RemoveAt(index);
+
+            // recalculate bonuses givent by state effects
+            RecalculateBonus();
+
+            // return number of stacks this spell had (can be used when a spell consumes the state)
+            return nStacks;
         }
 
         /// <summary>

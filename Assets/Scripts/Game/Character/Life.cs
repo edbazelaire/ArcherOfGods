@@ -17,25 +17,21 @@ public class Life : NetworkBehaviour
 
     // ===================================================================================
     // NETWORK VARIABLES
-    NetworkVariable<int>            m_MaxHp = new (10);
-    NetworkVariable<int>            m_Hp    = new (10);
+    NetworkVariable<int>            m_MaxHp = new (1);
+    NetworkVariable<int>            m_Hp    = new (0);
 
     // ===================================================================================
     // PRIVATE VARIABLES
     /// <summary> Controller of the Owner</summary>
     Controller                      m_Controller;
 
-    /// <summary> initial health points </summary>
-    int                             m_InitialHp = 50;
-
     // ===================================================================================
     // PUBLIC ACCESSORS 
-    /// <summary> Current health points </summary>
-    public NetworkVariable<int> MaxHp { get { return m_MaxHp; } }  
-    public NetworkVariable<int> Hp { get { return m_Hp; } }  
+    public NetworkVariable<int> MaxHp => m_MaxHp;  
+    public NetworkVariable<int> Hp => m_Hp;  
 
     /// <summary> Is the character alive </summary>
-    public bool IsAlive { get { return m_Hp.Value > 0; } }
+    public bool IsAlive => m_Hp.Value > 0;
 
     #endregion
 
@@ -81,11 +77,13 @@ public class Life : NetworkBehaviour
     /// Apply damage to the character
     /// </summary>
     /// <param name="damage"> amount of damages </param>
-    public void Hit(int damage)
+    public void Hit(int damage, bool ignoreRes = false)
     {
         // only server can apply damages
         if (!IsServer)
             return;
+
+        damage = ignoreRes ? damage : m_Controller.StateHandler.ApplyResistance(damage);
 
         // check provided value
         if (damage < 0)
@@ -122,8 +120,8 @@ public class Life : NetworkBehaviour
         }
 
         // apply heals
-        if (m_Hp.Value + heal > m_InitialHp)
-            m_Hp.Value = m_InitialHp;
+        if (m_Hp.Value + heal > m_MaxHp.Value)
+            m_Hp.Value = m_MaxHp.Value;
         else
             m_Hp.Value += heal;
     }

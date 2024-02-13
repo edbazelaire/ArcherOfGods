@@ -1,5 +1,6 @@
 ﻿using Data;
 using Enums;
+using Game.Spells;
 using System;
 using System.Collections.Generic;
 using Tools;
@@ -13,16 +14,10 @@ namespace Game.Managers
 
         static SpellLoader s_Instance;
 
-        public GameObject SpellPrefab;
-        public GameObject ProjectilePrefab;
-        public GameObject AoePrefab;
-        public GameObject InstantSpellPrefab;
-        public GameObject JumpPrefab;
-
-        private SpellData[] m_SpellsList;
-        private SpellData[] m_OnHitList;
-        Dictionary<ESpell, SpellData> m_Spells { get; set; }
-        Dictionary<string, SpellData> m_OnHitSpellData { get; set; }
+        Dictionary<string, GameObject> m_SpellsPrefabs;
+        Dictionary<ESpell, SpellData> m_Spells;
+        Dictionary<string, SpellData> m_OnHitSpellData;
+        Dictionary<string, StateEffect> m_StateEffects;
 
         #endregion
 
@@ -31,19 +26,32 @@ namespace Game.Managers
 
         void Initialize()
         {
+            InitializeSpellPrefabs();
             InitializeSpells();
+            InitializeStateEffects();
 
             DontDestroyOnLoad(s_Instance.gameObject);
         }
 
+        void InitializeSpellPrefabs()
+        {
+            m_SpellsPrefabs = new Dictionary<string, GameObject>();
+
+            GameObject[] spellPrefabs = AssetLoader.LoadSpellPrefabs();
+            foreach (GameObject spellPrefab in spellPrefabs)
+            {
+                m_SpellsPrefabs.Add(spellPrefab.name, spellPrefab);
+            }
+        }
+
         void InitializeSpells()
         {
-            LoadSpells();
+            SpellData[] spellList = LoadSpells();
 
             m_Spells = new Dictionary<ESpell, SpellData>();
             m_OnHitSpellData = new Dictionary<string, SpellData>();
 
-            foreach (SpellData spell in m_SpellsList)
+            foreach (SpellData spell in spellList)
             {
                 if (spell.name.StartsWith("_"))
                 {
@@ -65,23 +73,28 @@ namespace Game.Managers
 
                 m_Spells.Add(spell.Spell, spell);
             }
+        }
 
+        void InitializeStateEffects()
+        {
+            StateEffect[] allData = LoadStateEffects();
 
-            if (m_Spells.Count != (int)ESpell.Count)
+            m_StateEffects = new Dictionary<string, StateEffect>();
+
+            foreach (StateEffect data in allData)
             {
-                ErrorHandler.FatalError("SpellLoader : Spell list is not complete");
-                return;
+                m_StateEffects.Add(data.name, data);
             }
         }
 
-        void LoadSpells()
+        SpellData[] LoadSpells()
         {
-            m_SpellsList = Resources.LoadAll<SpellData>("Data/Spells");
-            if (m_SpellsList == null)
-            {
-                ErrorHandler.FatalError("SpellLoader : No spells found");
-                return;
-            }
+           return Resources.LoadAll<SpellData>("Data/Spells");
+        }
+
+        StateEffect[] LoadStateEffects()
+        {
+           return Resources.LoadAll<StateEffect>("Data/StateEffects");
         }
 
         #endregion
@@ -107,6 +120,30 @@ namespace Game.Managers
                 return s_Instance;
             }
         }
+
+        /// <summary>
+        /// Get the specific prefab for a spell if exists, otherwise return default prefab for this type of spell
+        /// </summary>
+        /// <param name="spellName"></param>
+        /// <param name="spellType"></param>
+        /// <returns></returns>
+        public static GameObject GetSpellPrefab(string spellName, ESpellType spellType)
+        {
+            // check for specific prefab of the spell
+            if (Instance.m_SpellsPrefabs.ContainsKey(spellName))
+                return Instance.m_SpellsPrefabs[spellName];
+
+            // conversion for inherited default spell types with no default prefabs
+            if (spellType == ESpellType.Counter)
+                spellType = ESpellType.InstantSpell;
+
+            // check that exists
+            if (! Instance.m_SpellsPrefabs.ContainsKey(spellType.ToString()))
+                ErrorHandler.FatalError("Unable to find default prefab for spell type " + spellType.ToString());
+
+            // returns default prefab for spell type
+            return Instance.m_SpellsPrefabs[spellType.ToString()];
+        } 
 
         /// <summary>
         /// Get the spell data of the given spell
@@ -143,6 +180,25 @@ namespace Game.Managers
             }
 
             return Instance.m_OnHitSpellData[spellName];
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="stateEffect"></param>
+        /// <returns></returns>
+        public static StateEffect GetStateEffect(EStateEffect stateEffect)
+        {
+            string stateEffectName = stateEffect.ToString();
+
+            if (! Instance.m_StateEffects.ContainsKey(stateEffectName))
+            {
+                StateEffect state = ScriptableObject.CreateInstance<StateEffect>();
+                state.name = stateEffectName;
+                return state;
+            }
+
+            return Instance.m_StateEffects[stateEffectName];
         }
 
         #endregion

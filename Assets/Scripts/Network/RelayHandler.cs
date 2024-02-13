@@ -24,6 +24,8 @@ namespace Assets.Scripts.Network
 
         public async Task<string> CreateRelay()
         {
+            Debug.Log("RelayHandler.CreateRelay()");
+
             try
             {
                 Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3);

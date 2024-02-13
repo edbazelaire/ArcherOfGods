@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 namespace Tools
@@ -173,6 +171,14 @@ namespace Tools
         internal static T FindComponent<T>(GameObject gameObject, object c_HealthBar)
         {
             throw new NotImplementedException();
+        }
+
+        public static void CleanContent(GameObject gameObject)
+        {
+            foreach (Transform child in gameObject.transform)
+            {
+                GameObject.Destroy(child.gameObject);
+            }
         }
     }
 }

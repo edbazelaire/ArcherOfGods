@@ -110,7 +110,7 @@ GameObject:
   - component: {fileID: 1796420421912006041}
   - component: {fileID: -927820376416270423}
   - component: {fileID: 6285027811574116592}
-  - component: {fileID: 9162969401348228439}
+  - component: {fileID: -3965553549312345165}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -161,7 +161,7 @@ Rigidbody2D:
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 128
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 0
@@ -215,7 +215,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1038606761
+  GlobalObjectIdHash: 1460694738
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -235,7 +235,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ffd860517640e164484eff3495b9244c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  test: 0
 --- !u!114 &7432711300283882174
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -248,7 +247,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17d84a81547c3094fa5e2fa0bc1e276f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  InitialSpeed: 5
+  BASE_PLAYER_SPEED: 3.5
 --- !u!114 &7458529212983236836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -321,7 +320,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e97c3cdee007fc34da5133ce2c18d509, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &9162969401348228439
+--- !u!114 &-3965553549312345165
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

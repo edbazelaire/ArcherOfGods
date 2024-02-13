@@ -8,8 +8,20 @@ namespace Game.Spells
 {
     public class InstantSpell : Spell
     {
+        #region Members
+
         ESpellType[] COUNTER_PROCABLE_SPELLTYPE = { ESpellType.Projectile };
 
+        #endregion
+
+
+        #region Inherited Manipulators
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="spellName"></param>
         public override void Initialize(Vector3 target, string spellName)
         {
             base.Initialize(target, spellName);
@@ -34,6 +46,9 @@ namespace Game.Spells
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         protected override void Update()
         {
             base.Update();
@@ -48,12 +63,10 @@ namespace Game.Spells
                 CheckCounterUpdate();
         }
 
-        protected virtual void CheckCounterUpdate()
-        {
-            if (! m_Controller.CounterHandler.HasCounter)
-                End();
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="collision"></param>
         protected virtual void OnTriggerEnter2D(Collider2D collision)
         {
             if (!IsServer)
@@ -79,5 +92,18 @@ namespace Game.Spells
                 m_Controller.CounterHandler.ProcCounter(spell);
             }
         }
+
+        #endregion
+
+
+        #region Protected Manipulators
+
+        protected virtual void CheckCounterUpdate()
+        {
+            if (!m_Controller.CounterHandler.HasCounter)
+                End();
+        }
+
+        #endregion
     }
 }

@@ -8,12 +8,14 @@ namespace Game.Character
     {
         #region Members
 
-        public float InitialSpeed;
+        public float BASE_PLAYER_SPEED = 3f;
 
-        Controller              m_Controller;
+        Controller                  m_Controller;
 
-        NetworkVariable<int>    m_MoveX                 = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        NetworkVariable<bool>   m_MovementCancelled     = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        NetworkVariable<int>        m_MoveX                 = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        NetworkVariable<bool>       m_MovementCancelled     = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        float m_InitialSpeed;
 
         #endregion
 
@@ -27,19 +29,33 @@ namespace Game.Character
 
         void Update()
         {
-            if (IsServer)
-            {
-                UpdateMovement();
-            }
+            if (IsOwner)
+                CheckInputs();
 
-            if (!IsOwner)
+            if (!IsServer)
                 return;
-
-            CheckInputs();
+            
+            UpdateMovement();
         }
 
         #endregion
 
+
+        #region Private Manipulators
+
+        /// <summary>
+        /// Initialize player movement speed
+        /// </summary>
+        /// <param name="characterSpeed"></param>
+        public void Initialize(float characterSpeed)
+        {
+            if (!IsServer)
+                return;
+
+            m_InitialSpeed = BASE_PLAYER_SPEED * characterSpeed;
+        }
+
+        #endregion
 
 
         #region Private Manipulators
@@ -49,18 +65,18 @@ namespace Game.Character
         /// </summary>
         void UpdateMovement()
         {
-            if (! CanMove)
+            if (m_MoveX.Value == 0 || ! CanMove)
                 return;
-            transform.position += new Vector3(m_MoveX.Value * Speed * Time.deltaTime, 0f, 0f);
 
-            // update rotation depending on movement
-            if (m_MoveX.Value == 1)
-            {
+            // depending on team, the camera is rotated implying that movement is inverted
+            float teamFactor = m_Controller.Team == 0 ? 1f : -1f;
+            transform.position += new Vector3(teamFactor * m_MoveX.Value * Speed * Time.deltaTime, 0f, 0f);
+
+            // update rotation depending on movement (and team)
+            if (teamFactor * m_MoveX.Value == 1)
                 SetRotation(0f);
-            } else if (m_MoveX.Value == -1)
-            {
+            else if (teamFactor * m_MoveX.Value == -1)
                 SetRotation(180f);
-            }
         }
 
         void SetRotation(float y)
@@ -75,7 +91,7 @@ namespace Game.Character
         {
             m_MoveX.Value = 0;
 
-            if (! CanMove)
+            if (! CanMove || ! m_Controller.IsPlayer)
                 return;
 
             // if movement has been cancelled, wait for all inputs to be released
@@ -96,6 +112,14 @@ namespace Game.Character
             } 
         }
 
+        void ResetRotation()
+        {
+            if (!IsServer)
+                return;
+
+            SetRotation(m_Controller.Team == 0 ? 0f : -180f);
+        }
+
         #endregion
 
 
@@ -103,6 +127,15 @@ namespace Game.Character
 
         public void CancelMovement(bool cancel)
         {
+            if (cancel)
+            {
+                // reset rotation locally
+                ResetRotation();
+
+                // reset rotation on server side
+                ResetRotationServerRPC();
+            }
+
             if (cancel && ! IsMoving)
                 return;
 
@@ -114,6 +147,15 @@ namespace Game.Character
             }
         }
 
+        [ServerRpc]
+        public void ResetRotationServerRPC()
+        {
+            if (!IsServer)
+                return;
+
+            ResetRotation();
+        }
+
         #endregion
 
 
@@ -121,7 +163,7 @@ namespace Game.Character
 
         public float Speed
         {
-            get { return Math.Max(0, InitialSpeed + m_Controller.StateHandler.SpeedBonus); }
+            get { return Math.Max(0, m_InitialSpeed * m_Controller.StateHandler.SpeedBonus.Value); }
         }
 
         public bool IsMoving

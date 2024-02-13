@@ -1,88 +1,354 @@
 using Enums;
+using Externals;
 using Game.Managers;
+using MyBox;
 using Network;
-using System;
+using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game
 {
-    public class GameManager: NetworkBehaviour
+    public class GameManager: OvNetworkBehavior
     {
         #region Members
 
         static GameManager s_Instance;
 
+        public const int POUTCH_CLIENT_ID   = 999;
+        public const int N_LOADING_STEPS    = 3;
+
         // ===================================================================================
         // PRIVATE VARIABLES 
         // -- Network Variables
-        NetworkVariable<EGameState>     m_State = new NetworkVariable<EGameState>(EGameState.LoadingScreen);
-        NetworkList<int>                m_Players;
+        /// <summary> current state of the Game </summary>
+        NetworkVariable<EGameState>     m_State                 = new NetworkVariable<EGameState>(EGameState.WaitingForConnection);
+        /// <summary> percentage of the game preparation at start </summary>
+        NetworkVariable<float>          m_ProgressGameStart     = new NetworkVariable<float>(0f);
+        /// <summary> expected number of players in the game </summary>
+        NetworkVariable<int>            m_NPlayers              = new NetworkVariable<int>(-1);
 
-        // -- Data
-        Dictionary<ulong, ECharacter>   m_PlayersData = new();
-        List<Controller>                m_Controllers;
+        // -- Player Data
+        /// <summary> [SERVER] dict matching a client id to player data </summary>
+        Dictionary<ulong, ECharacter>   m_PlayersData           = new();
+        /// <summary> [CLIENT/SERVER] dict matchin a client id to a player controller </summary>
+        Dictionary<ulong, Controller>   m_Controllers           = new();
+
+        // -- Initialization
+        /// <summary> [CLIENT/SERVER] has the GameManager current Instance been initialized ? </summary>
+        bool                            m_Initialized           = false;
+        /// <summary> [SERVER] list of clientId who have return that their initialization was finalized </summary>
+        List<ulong>                     m_ClientsInitialized    = new();   
+        /// <summary> [CLIENT] used to check if the initialization is completed on the client side (to avoid sending multiple time the validation to the server) </summary>
+        bool                            m_InitOnClientSide      = false;
 
         // ===================================================================================
         // PUBLIC ACCESSORS 
-        public List<Controller>         Controllers                 => m_Controllers;
+        public Dictionary<ulong, Controller>    Controllers                 => m_Controllers;
+        public NetworkVariable<float>           ProgressGameStart           => m_ProgressGameStart;
+        public bool                             IsGameStarted               => m_State.Value >= EGameState.Intro;
 
         #endregion
 
 
-
         #region Inherited Manipulators
-
-        private void Awake()
-        {
-            m_Players = new ();
-            m_Controllers = new List<Controller>();
-        }
-
-        private void Start()
-        {
-            s_Instance = this;
-
-            m_State.OnValueChanged                              += OnStateValueChanged;
-            m_Players.OnListChanged                             += OnPlayerListChanged;
-            NetworkManager.Singleton.OnClientConnectedCallback  += OnClientConnected;
-            LobbyHandler.Instance.OnRelayJoined                 += OnLobbyRelayJoind;
-
-            DontDestroyOnLoad(gameObject);
-        }
-
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
 
-            Debug.Log("GameManager spawned");
+            m_ClientsInitialized    = new();
+            m_PlayersData           = new();
+            m_Controllers           = new Dictionary<ulong, Controller>();
+
+            s_Instance = this;
         }
 
         #endregion
 
 
-        #region Initialization 
+        #region Initialization & End
 
         void Initialize()
         {
+            // avoid re-initialization
+            if (m_Initialized)
+                return;
+
+            m_Controllers                           = new Dictionary<ulong, Controller>();
+            m_InitOnClientSide                      = false;
+
+            // instantiate listeners
+            m_ProgressGameStart.OnValueChanged      += OnProgressGameStartChanged;
+            m_State.OnValueChanged                  += OnStateValueChanged;
+
+            // set number of max players equal to number of players in the lobby
+            m_NPlayers.Value                        = 2;
+
+            // set that the GameManager is initialized to avoid re-initialization
+            m_Initialized                           = true;
+
             return;
+        }
+        
+        /// <summary>
+        /// Reset Instance, unregister all listeners, destroy game object
+        /// </summary>
+        public void Shutdown()
+        {
+            // unregister from each events
+            m_State.OnValueChanged                              -= OnStateValueChanged;
+
+            if (IsServer)
+            {
+                m_ProgressGameStart.Value = 0f;
+            }
+
+            // reset value of static Instance, so the Initialize() would be re-called
+            s_Instance = null;
+
+            // destroy this GameManager
+            Destroy(gameObject);
         }
 
         #endregion
 
 
-        #region Private Manipulators
+        #region [STATE] Waiting For Connection 
 
-        void GameOver(int team)
+        /// <summary>
+        /// Check that all players are there, loaded, and ready to play
+        /// </summary>
+        /// <returns></returns>
+        bool CheckConnectionDone()
         {
-            Debug.Log($"Team {team} won");
+            bool connectionDone = m_PlayersData.Count == LobbyHandler.Instance.MaxPlayers;
+            return connectionDone;
         }
 
-        void OnPlayerDied()
+        /// <summary>
+        /// Add the data of a player to the list of players data
+        /// </summary>
+        /// <param name="clientId"></param>
+        /// <param name="character"></param>
+        [ServerRpc(RequireOwnership = false)]
+        public void AddPlayerDataServerRPC(ulong clientId, ECharacter character)
         {
-            CheckWin();
+            if (!IsServer)
+                return;
+
+            Debug.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + character.ToString());
+            m_PlayersData.Add(clientId, character);
+
+            m_ProgressGameStart.Value += 1f / ((float)LobbyHandler.Instance.MaxPlayers * N_LOADING_STEPS);
+
+            // check if all players are there
+            if (CheckConnectionDone())
+                SetState(EGameState.PreparingGame);
+        }
+
+        #endregion
+
+
+        #region [STATE] Preparing Game
+
+        /// <summary>
+        /// Spawn all players
+        /// </summary>
+        void SpawnPlayers()
+        {
+            if (!IsServer)
+                return;
+
+            foreach (var playerData in m_PlayersData)
+            {
+                ulong clientId = (ulong)playerData.Key;
+                var character = playerData.Value;
+                SpawnPlayer(clientId, character);
+                m_ProgressGameStart.Value += 1f / (LobbyHandler.Instance.MaxPlayers * N_LOADING_STEPS);
+            }
+
+            if (m_PlayersData.Count == 1)
+                SpawnPoutch();
+        }
+
+        /// <summary>
+        /// Spawn a player
+        /// </summary>
+        /// <param name="clientId"></param>
+        /// <param name="character"></param>
+        void SpawnPlayer(ulong clientId, ECharacter character)
+        {
+            if (! IsServer)
+                return;
+
+            int team = m_Controllers.Count;
+
+            // create player prefab and spawn it
+            GameObject playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab, ArenaManager.Instance.transform);
+
+            playerPrefab.GetComponent<NetworkObject>().SpawnWithOwnership(clientId, true);
+
+            // add player to list of player controllers
+            Controller controller = Finder.FindComponent<Controller>(playerPrefab);
+
+            // initialize player data
+            controller.Initialize(
+                character: character,
+                team: team
+            );
+
+            // add event listener to the player's hp
+            controller.Life.Hp.OnValueChanged += CheckPlayerDeath;
+        }
+
+        /// <summary>
+        /// Spawn an immobile AI
+        /// </summary>
+        void SpawnPoutch()
+        {
+            // create player prefab and spawn it
+            GameObject poutch = Instantiate(CharacterLoader.Instance.PlayerPrefab, ArenaManager.Instance.transform);
+            poutch.GetComponent<NetworkObject>().Spawn();
+
+            // add player to list of player controllers
+            Controller poutchController = Finder.FindComponent<Controller>(poutch);
+
+            // setup poutch's character / team
+            ECharacter character = ECharacter.Alexander;
+            int team = 1;
+
+            // initialize player data
+            poutchController.Initialize(
+                character: character,
+                team: team,
+                false
+            );
+
+            // add event listener to the player's hp
+            poutchController.Life.Hp.OnValueChanged += CheckPlayerDeath;
+        }
+
+        /// <summary>
+        /// [LOCAL] Link client id to controllers
+        /// </summary>
+        /// <param name="clientId"></param>
+        /// <param name="controller"></param>
+        public void AddController(ulong clientId, Controller controller)
+        {
+            if (m_Controllers.ContainsKey(clientId))
+            {
+                ErrorHandler.Warning("Trying to add Controller for client " + clientId + " but this client is already in list of controllers");
+                return;
+            }
+            m_Controllers.Add(clientId, controller);
+        }
+
+        /// <summary>
+        /// Wait for all clients to return that every controller are properly initilized
+        /// </summary>
+        /// <returns></returns>
+        IEnumerator WaitClientInitialized()
+        {
+            if (!IsServer)
+                yield break;
+
+            // call clients to check if they are 
+            while (m_ClientsInitialized.Count != LobbyHandler.Instance.MaxPlayers) 
+            {
+                CheckInitializedClientRPC();
+                yield return null;
+            }
+
+            // once every one is initialized, setup the UI 
+            SetupUIClientRPC();
+
+            // goto intro
+            SetState(EGameState.Intro);
+        }
+
+        /// <summary>
+        /// Check on client that all controllers have been set
+        /// </summary>
+        /// <returns></returns>
+        [ClientRpc]
+        void CheckInitializedClientRPC()
+        {
+            // check if already known as init
+            if (m_InitOnClientSide)
+                return;
+
+            if (m_Controllers.Count != 2)
+                return;
+
+            m_InitOnClientSide = true;
+
+            // tell server that is ready
+            SetClientIntializedServerRPC(NetworkManager.Singleton.LocalClientId);
+        }
+
+        /// <summary>
+        /// Tell the server that the client is ready
+        /// </summary>
+        /// <param name="clientId"></param>
+        [ServerRpc(RequireOwnership=false)]
+        void SetClientIntializedServerRPC(ulong clientId)
+        {
+            Debug.Log("Client Initialized : " + clientId);
+
+            if (! m_ClientsInitialized.Contains(clientId))
+                m_ClientsInitialized.Add(clientId);
+        }
+
+        /// <summary>
+        /// Call all clients to setup UI for each controller
+        /// </summary>
+        [ClientRpc]
+        void SetupUIClientRPC()
+        {
+            foreach (Controller controller in m_Controllers.Values)
+            {
+                controller.InitializeUI();
+            }
+        }
+
+        #endregion
+
+
+        #region [STATE] Intro
+
+        void StartIntro()
+        {
+            LobbyHandler.Instance.LeaveLobby();
+
+            if (!IsServer)
+                return;
+
+            SetState(EGameState.GameRunning);
+        }
+
+        #endregion
+
+
+        #region [STATE] Game Over
+
+        /// <summary>
+        /// Call the game over on clients
+        /// </summary>
+        /// <param name="team"></param>
+        [ClientRpc]
+        void GameOverClientRPC(int team)
+        {
+            // set "Game Ended" mode for each player
+            foreach (Controller controller in m_Controllers.Values) 
+            {
+                controller.OnGameEnded(team == controller.Team);
+            }
+
+            // activate end game screen
+            GameUIManager.Instance.SetUpGameOver(team == Owner.Team);
         }
 
         void CheckPlayerDeath(int oldValue, int newValue)
@@ -91,18 +357,20 @@ namespace Game
                 OnPlayerDied();
         }
 
-        void CheckWin()
+        void CheckGameEnd()
         {
             var teamCtr = new List<int>();
-            foreach (Controller controller in m_Controllers)
+            foreach (var item in m_Controllers)
             {
+                Controller controller = item.Value;
                 if (controller.Life.IsAlive && !teamCtr.Contains(controller.Team))
                     teamCtr.Add(controller.Team);
             }
 
+
             if (teamCtr.Count == 1)
             {
-                GameOver(teamCtr[0]);
+                GameOverClientRPC(teamCtr[0]);
             }
         }
 
@@ -111,86 +379,17 @@ namespace Game
 
         #region Public Manipulators
 
-        public Controller Owner
-        {
-            get
-            {
-                return GetPlayer(NetworkManager.Singleton.LocalClientId);
-            }
-        }
-
-        void SpawnPlayers()
-        {
-            if (!IsServer)
-                return;
-
-            foreach (var player in m_Players)
-            {
-                ulong clientId = (ulong)player;
-                var character = m_PlayersData[clientId];
-                SpawnPlayer(clientId, character);
-            }
-        }
-
-        void SpawnPlayer(ulong clientId, ECharacter character)
-        {
-            Debug.Log("SpawnPlayer");
-
-            int team = m_Controllers.Count;
-
-            // create player prefab and spawn it
-            GameObject playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab);
-            
-            playerPrefab.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
-
-            // add player to list of player controllers
-            Controller player = Finder.FindComponent<Controller>(playerPrefab);
-            AddControllerClientRPC(clientId);
-
-            // initialize player data
-            player.Initialize(
-                character: character,
-                team: team
-            );
-
-            player.InitializeUIClientRPC((ECharacter)character, team);
-
-            // add event listener to the player's hp
-            player.Life.Hp.OnValueChanged += CheckPlayerDeath;
-        }
-
-        [ClientRpc]
-        void AddControllerClientRPC(ulong clientId)
-        {
-            foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
-            {
-                var controller = Finder.FindComponent<Controller>(player);
-                if (controller.OwnerClientId == clientId)
-                {
-                    m_Controllers.Add(controller);
-                    return;
-                }
-            }
-        }
-
-        [ClientRpc]
-        public void ClientMessageClientRPC(string message)
-        {
-            Debug.Log(message);
-        }
-        
         public Controller GetPlayer(ulong clientId)
         {
-            foreach (Controller controller in m_Controllers)
-                if (controller.OwnerClientId == clientId)
-                    return controller;
+            if (! m_Controllers.ContainsKey(clientId))
+                ErrorHandler.FatalError("Unable to find controller with client id : " + clientId);
 
-            return null;
+            return m_Controllers[clientId];
         }
 
         public Controller GetFirstEnemy(int team)
         {
-            foreach (Controller controller in m_Controllers)
+            foreach (Controller controller in m_Controllers.Values)
                 if (controller.Team != team)
                     return controller;
 
@@ -202,23 +401,25 @@ namespace Game
             return GetPlayer(clientId) != null;
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void AddPlayerDataServerRPC(ulong clientId, ECharacter character)
+
+        #endregion
+
+
+        #region Private Manipulators
+
+        /// <summary>
+        /// Set the state of the game
+        /// </summary>
+        /// <param name="state"></param>
+        void SetState(EGameState state)
         {
-            Debug.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + character.ToString());
-            m_PlayersData.Add(clientId, character);
+            if (! IsServer)
+            {
+                Debug.LogWarning("Trying to set state from a non Server machine");
+                return;
+            }
 
-            // check if all players are there
-            if (CheckGameStarted())
-                m_State.Value = EGameState.InGame;
-        }
-
-        bool CheckGameStarted()
-        {
-            bool gameStarted =  m_Players.Count == LobbyHandler.Instance.MaxPlayers 
-                && m_PlayersData.Count == m_Players.Count;
-
-            return gameStarted;
+            m_State.Value = state;
         }
 
         #endregion
@@ -232,42 +433,57 @@ namespace Game
             {
                 if (s_Instance == null)
                 {
+                    // check in scene
                     s_Instance = FindAnyObjectByType<GameManager>();
+                    
+                    // not found : create a new one
+                    if (s_Instance == null)
+                    {
+                        ErrorHandler.Error("GameManager not found");
+                        return null;
+                    } 
+
                     s_Instance.Initialize();
                 }
                 return s_Instance;
             }
         }
 
+        public static bool FindInstance(bool checkSpawned = false)
+        {
+            var instance = FindAnyObjectByType<GameManager>();
+            if (instance == null)
+                return false;
+
+            if (checkSpawned && ! instance.IsSpawned) 
+                return false;
+
+            instance.Initialize();
+            s_Instance = instance;
+            return true;
+        }
+
+        public static bool Exists => s_Instance != null || FindAnyObjectByType<GameManager>() == null;
+
+        /// <summary>
+        /// Controller of the local player
+        /// </summary>
+        public Controller Owner
+        {
+            get
+            {
+                return GetPlayer(NetworkManager.Singleton.LocalClientId);
+            }
+        }
+
         #endregion
+
 
         #region Listeners
 
-        void OnClientConnected(ulong clientId)
+        void OnProgressGameStartChanged(float oldValuen, float progress)
         {
-            Debug.LogWarning("Client connected : " + clientId + " ==========================================================");
-
-            if (!IsServer)
-                return;
-
-            m_Players.Add((int)clientId);
-        }
-
-        void OnPlayerListChanged(NetworkListEvent<int> changeEvent)
-        {
-            if (!IsServer)
-                return;
-
-            // check if all players are there
-            if (CheckGameStarted())
-                m_State.Value = EGameState.InGame;
-        }
-
-        void OnLobbyRelayJoind(ulong clientId, ECharacter character)
-        {
-            Debug.Log("OnLobbyRelayJoind");
-            if (IsOwner)
-                AddPlayerDataServerRPC(clientId, character);
+            //Debug.Log("Progress : " + progress);
         }
 
         void OnStateValueChanged(EGameState oldValue, EGameState newState)
@@ -275,18 +491,43 @@ namespace Game
             Debug.Log("New state : " + newState);
             switch (newState) 
             {
-                case EGameState.MainMenu:
-                case EGameState.LoadingScreen:
+                case EGameState.WaitingForConnection:
                     break;
 
-                case EGameState.InGame:
+                case EGameState.PreparingGame:
+                    StartCoroutine(WaitClientInitialized());
                     SpawnPlayers();
                     break;
 
+                case EGameState.Intro:
+                    StartIntro();
+                    break;
+
+                case EGameState.GameRunning:
+                    break;
+
+                case EGameState.GameOver:
+                    break;
             }
         }
 
+        void OnPlayerDied()
+        {
+            CheckGameEnd();
+        }
 
         #endregion
+
+
+        #region Debug Callbacks
+
+        [Command(KeyCode.N)]
+        public void AutoWin()
+        {
+            GameOverClientRPC(Owner.Team);
+        }
+
+        #endregion
+
     }
 }

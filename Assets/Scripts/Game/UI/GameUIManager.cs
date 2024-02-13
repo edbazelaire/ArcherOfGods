@@ -1,19 +1,17 @@
 using Enums;
-using Game.Character;
-using Game.Managers;
-using Game.Spells;
+using Game;
 using Game.UI;
 using System.Collections.Generic;
-using System.ComponentModel;
 using Tools;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameUIManager : MonoBehaviour
 {
     static GameUIManager s_Instance;
 
+    [SerializeField] private EndGameUI m_EndGameUI;
+
+    const string        c_PlayerUIContainers        = "PlayerUIContainers";
     const string        c_PlayerUIContainerPrefix   = "PlayerUIContainer_";
     const string        c_SpellsContainer           = "SpellsContainer";
     const int           NUM_TEAMS                   = 2;
@@ -32,9 +30,11 @@ public class GameUIManager : MonoBehaviour
 
     #region Initialization
 
-    void Initialize()
+    public void Initialize()
     {
         m_SpellItems = new List<SpellItemUI>();
+
+        m_EndGameUI.gameObject.SetActive(false);
 
         FindPlayerUIContainers();
         FindSpellsContainer();
@@ -50,14 +50,9 @@ public class GameUIManager : MonoBehaviour
         {
             // get container game object
             GameObject container = GameObject.Find(GetPlayerUIContainerName(i));
-            if (!Checker.NotNull(container))
-                continue;
 
-            // remove all potential content in container
-            foreach (Transform child in container.transform)
-            {
-                Destroy(child.gameObject);
-            }
+            // remove all childs in container
+            UIHelper.CleanContent(container);
 
             // add container as container for team "i"
             m_PlayerUIContainers.Add(container);
@@ -84,10 +79,11 @@ public class GameUIManager : MonoBehaviour
     /// <summary>
     /// Set the health bar for this controller
     /// </summary>
-    /// <param name="healthBar"></param>
     public void SetPlayersUI(ulong ClientId, int team)
     {
-        PlayerUI playerUI = Finder.FindComponent<PlayerUI>(Instantiate(m_PlayerUITemplate, m_PlayerUIContainers[team].transform));
+        bool ally = GameManager.Instance.Owner.Team == team;
+
+        PlayerUI playerUI = Finder.FindComponent<PlayerUI>(Instantiate(m_PlayerUITemplate, m_PlayerUIContainers[ally ? 0 : 1].transform));
         playerUI.Initialize(ClientId);
     }
 
@@ -114,6 +110,11 @@ public class GameUIManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Get the SpellItemUI of the given spell
+    /// </summary>
+    /// <param name="spell"></param>
+    /// <returns></returns>
     public SpellItemUI GetSpellUIItem(ESpell spell) 
     {
         foreach (SpellItemUI spellItem in m_SpellItems)
@@ -122,6 +123,17 @@ public class GameUIManager : MonoBehaviour
                 return spellItem;
         }
         return null;
+    }
+
+    #endregion
+
+
+    #region GameOver
+
+    public void SetUpGameOver(bool win)
+    {
+        m_EndGameUI.gameObject.SetActive(true);
+        m_EndGameUI.SetUpGameOver(win);
     }
 
     #endregion

@@ -36,5 +36,12 @@ namespace Managers
                 { KEY_CLIENT_ID, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, "") }
             };
         }
+
+        public static void Display()
+        {
+            Debug.LogWarning("PlayerData =================================================");
+            Debug.Log("     + " + KEY_PLAYER_NAME + " : " + PlayerData.PlayerName);
+            Debug.Log("     + " + KEY_CHARACTER + " : " + PlayerData.Character.ToString());
+        }
     }
 }

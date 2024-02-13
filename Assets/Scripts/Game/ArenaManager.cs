@@ -1,9 +1,11 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Tools;
+using Unity.Netcode;
 using UnityEngine;
 
-namespace Assets.Scripts.Game
+namespace Game
 {
     public class ArenaManager : MonoBehaviour
     {
@@ -19,17 +21,21 @@ namespace Assets.Scripts.Game
         const string c_TargetHight = "TargetHight";
         const int c_NumTeams = 2;
 
-        GameObject m_Arena;
-        Transform m_TargetHight;
-        List<Transform> m_TargettableAreas;
-        List<List<Transform>> m_Spawns;
+        GameObject              m_Arena;
+        Transform               m_TargetHight;
+        List<Transform>         m_TargettableAreas;
+        List<List<Transform>>   m_Spawns;
 
         public GameObject Arena => m_Arena;
         public List<List<Transform>> Spawns => m_Spawns;
         public Transform TargetHight => m_TargetHight;
-        public List<Transform> TargettableAreas => m_TargettableAreas;
+        public Transform EnemyTargettableArea => GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team == 0 ? m_TargettableAreas[1] : m_TargettableAreas[0];
+        public Transform AllyTargettableArea => GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team == 0 ? m_TargettableAreas[0] : m_TargettableAreas[1];
 
         #endregion
+
+
+        #region Inherited Manipulators
 
         void Awake()
         {
@@ -43,8 +49,10 @@ namespace Assets.Scripts.Game
             Initialize();
         }
 
+        #endregion
 
-        #region Private Members
+
+        #region Private Manipulators
 
         void Initialize()
         {
@@ -100,6 +108,7 @@ namespace Assets.Scripts.Game
         {
             m_TargettableAreas = new List<Transform>();
 
+            // re-order targettable areas by id
             int i = 0;
             bool end = false;
             while (!end)
@@ -123,9 +132,15 @@ namespace Assets.Scripts.Game
                 // increment id of target area to search
                 i++;
             }
+            
         }
 
-        public static ArenaManager Instance 
+        #endregion
+
+
+        #region Static Accessors
+
+        public static ArenaManager Instance
         {
             get
             {
@@ -139,7 +154,7 @@ namespace Assets.Scripts.Game
 
                 s_Instance.Initialize();
                 return s_Instance;
-            }        
+            }
         }
 
         #endregion

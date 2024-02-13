@@ -18,10 +18,10 @@ namespace Data
         public List<ESpell>     Spells;
 
         [Header("Stats")]
-        public float            Size = 1f;
-        public float            Speed = 1f;
-        public int              MaxHealth = 100;
-        public int              MaxEnergy = 100;
+        public float            Size        = 1f;
+        public float            Speed       = 1f;
+        public int              MaxHealth   = 100;
+        public int              MaxEnergy   = 100;
 
         public GameObject InstantiateCharacterPreview(GameObject parent)
         {

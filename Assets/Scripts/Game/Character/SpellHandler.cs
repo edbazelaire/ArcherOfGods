@@ -1,16 +1,11 @@
-﻿using Assets.Scripts.Game;
-using Data;
+﻿using Data;
 using Enums;
 using Game.Managers;
-using Game.Spells;
-using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Dynamic;
 using Tools;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game.Character
@@ -54,6 +49,7 @@ namespace Game.Character
         public bool                         IsCasting               => m_AnimationTimer.Value > 0f;
         public ESpell                       SelectedSpell           => m_SelectedSpell;
         public Transform                    SpellSpawn              => m_SpellSpawn;
+        public Vector3                      TargetPos               => m_TargetPos.Value;   
 
         // ===================================================================================
         // EVENTS
@@ -66,8 +62,8 @@ namespace Game.Character
 
         private void Awake()
         {
-            m_SpellsNet = new NetworkList<int>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-            m_CooldownsNet   = new NetworkList<float>(default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+            m_SpellsNet     = new NetworkList<int>(default);
+            m_CooldownsNet  = new NetworkList<float>(default);
         }
 
         public override void OnNetworkSpawn()
@@ -121,10 +117,16 @@ namespace Game.Character
         [ServerRpc]
         public void AskSpellSelectionServerRPC(ESpell spellType)
         {
+            if (!IsServer)
+                return;
+
             if (!CanSelect(spellType))
                 return;
 
             SelectSpell(spellType);
+
+            if (IsInstantSpell)
+                CastSelectedSpell();
         }
 
         /// <summary>
@@ -147,7 +149,7 @@ namespace Game.Character
             
             // get spawn position and cast the spell
             var spawnPosition = m_SpellSpawn.position + GetSpawnOffset(spellData.Trajectory);
-            spellData.Cast(m_Controller.OwnerClientId, m_TargetPos.Value, spawnPosition, m_SpellSpawn.rotation);
+            StartCoroutine(spellData.CastDelay(m_Controller.OwnerClientId, m_TargetPos.Value, spawnPosition, m_SpellSpawn.rotation));
 
             SpellCastedClientRPC(m_SelectedSpell);
 
@@ -174,6 +176,8 @@ namespace Game.Character
         void SpellCastedClientRPC(ESpell spell)
         {
             OnSpellCasted?.Invoke(spell);
+
+            SpellLoader.GetSpellData(spell).SpawnOnCastPrefabs(m_Controller.transform, m_TargetPos.Value);
         }
 
         #endregion
@@ -414,6 +418,7 @@ namespace Game.Character
             if (!IsOwner)
                 yield break;
 
+            // if curently casting another spell, cancel it
             if (IsCasting)
                 CancelCast();
 
@@ -424,9 +429,6 @@ namespace Game.Character
 
             // cancel current movement
             m_Controller.Movement.CancelMovement(true);
-
-            // reset rotation
-            m_Controller.ResetRotation();
 
             // set animation timer
             m_AnimationTimer.Value = spellData.AnimationTimer;
@@ -440,6 +442,7 @@ namespace Game.Character
                     // ask server to cast the spell
                     CastServerRPC();
                     castDone = true;
+                    m_Controller.Movement.CancelMovement(false);
                 }
 
                 m_AnimationTimer.Value -= Time.deltaTime;
@@ -493,7 +496,7 @@ namespace Game.Character
         {
             get
             {
-                return ArenaManager.Instance.TargettableAreas[m_Controller.Team];
+                return ArenaManager.Instance.EnemyTargettableArea;
             }
         }
 

@@ -1,6 +1,6 @@
-using Assets.Scripts.Game;
 using Data;
 using Enums;
+using Game;
 using Game.Character;
 using Game.Managers;
 using Tools;
@@ -9,22 +9,15 @@ using UnityEngine;
 
 public class Controller : NetworkBehaviour
 {
-    #region Members        //// ask the Server to select first spell by default
-
-
-    // ===================================================================================
-    // CONSTANTS
-    const string c_CharacterPreview = "CharacterPreview";
+    #region Members      
 
     // ===================================================================================
     // PRIVATE VARIABLES 
     // -- Network Variables
-    NetworkVariable<int>    m_CharacterNet = new NetworkVariable<int>((int)ECharacter.Count);
-
-    // -- Data
-    NetworkVariable<ECharacter>     m_Character = new (ECharacter.Count);
-    NetworkVariable<int>            m_Team = new(0);
-    bool                            m_IsPlayer;
+    NetworkVariable<ECharacter>     m_Character     = new NetworkVariable<ECharacter>(ECharacter.Count);
+    NetworkVariable<int>            m_Team          = new NetworkVariable<int>(-1);
+    NetworkVariable<bool>           m_IsPlayer      = new NetworkVariable<bool>(true);
+    NetworkVariable<bool>           m_IsInitialized = new NetworkVariable<bool>(false);
 
     // -- Components & GameObjects
     GameObject              m_CharacterPreview;
@@ -43,7 +36,9 @@ public class Controller : NetworkBehaviour
     // -- Data
     public ECharacter       Character           => m_Character.Value;
     public int              Team                => m_Team.Value;
-    public bool             IsPlayer            => m_IsPlayer;
+    public bool             IsPlayer            => m_IsPlayer.Value;
+    public ulong            PlayerId            => IsPlayer ? OwnerClientId : GameManager.POUTCH_CLIENT_ID;
+
 
     // -- Components & GameObjects
     public GameObject       CharacterPreview    => m_CharacterPreview;
@@ -56,8 +51,6 @@ public class Controller : NetworkBehaviour
     public EnergyHandler    EnergyHandler       => m_EnergyHandler;
     public Collider2D       Collider            => m_Collider;
 
-
-    public int test = 0;
 
     #endregion
 
@@ -74,63 +67,92 @@ public class Controller : NetworkBehaviour
         m_Collider = Finder.FindComponent<Collider2D>(gameObject);
 
         // setup components
-        m_Life = Finder.FindComponent<Life>(gameObject);
-        m_EnergyHandler = Finder.FindComponent<EnergyHandler>(gameObject);
-        m_Movement = Finder.FindComponent<Movement>(gameObject);
-        m_SpellHandler = Finder.FindComponent<SpellHandler>(gameObject);
-        m_AnimationHandler = Finder.FindComponent<AnimationHandler>(gameObject);
-        m_StateHandler = Finder.FindComponent<StateHandler>(gameObject);
-        m_CounterHandler = Finder.FindComponent<CounterHandler>(gameObject);
+        m_Life              = Finder.FindComponent<Life>(gameObject);
+        m_EnergyHandler     = Finder.FindComponent<EnergyHandler>(gameObject);
+        m_Movement          = Finder.FindComponent<Movement>(gameObject);
+        m_SpellHandler      = Finder.FindComponent<SpellHandler>(gameObject);
+        m_AnimationHandler  = Finder.FindComponent<AnimationHandler>(gameObject);
+        m_StateHandler      = Finder.FindComponent<StateHandler>(gameObject);
+        m_CounterHandler    = Finder.FindComponent<CounterHandler>(gameObject);
+
+        // add event to call UI initialization after NetworkVariable update 
+        m_IsInitialized.OnValueChanged += OnInitializedChanged;
     }
- 
+
+
+    void OnInitializedChanged(bool old, bool newValue)
+    {
+        Debug.LogWarning("==============================================================");
+        Debug.Log("Initialized : ");
+        Debug.Log("     + LocalClient : " + NetworkManager.Singleton.LocalClientId);
+        Debug.Log("     + Owner : " + OwnerClientId);
+        Debug.LogWarning("==============================================================");
+
+        // add controller on client side
+        if (newValue)
+            GameManager.Instance.AddController(PlayerId, this);
+    }
+
     /// <summary>
     /// Initialize the controller
     /// </summary>
     public void Initialize(ECharacter character, int team, bool isPlayer = true)
     {
-        if (IsServer)
-        {
-            Debug.Log("Controller.Initialize()");
-            Debug.Log("     + id " + OwnerClientId);
-            Debug.Log("     + character " + character);
-            Debug.Log("     + team " + team);
+        if (!IsServer)
+            return;
 
-            m_CharacterNet.Value = (int)character;
-            m_Character.Value = character;
-            m_Team.Value = team;
-            m_IsPlayer = isPlayer;
+        m_Character.Value       = character;
+        m_Team.Value            = team;
+        m_IsPlayer.Value        = isPlayer;
 
-            Life.Hp.OnValueChanged += OnHpChanged;
+        Life.Hp.OnValueChanged += OnHpChanged;
 
-            transform.position = ArenaManager.Instance.Spawns[team][0].position;
-            transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
+        transform.position = ArenaManager.Instance.Spawns[team][0].position;
+        transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
 
-            InitializeCharacterData(character);
-        }
+        InitializeCharacterData(character);
+
+        m_IsInitialized.Value = true;
     }
 
-    [ClientRpc]
-    public void InitializeUIClientRPC(ECharacter character, int team)
+    public void InitializeUI()
     {
+        ECharacter character    = m_Character.Value;
+        int team                = m_Team.Value;
+
         // display the player's ui 
-        GameUIManager.Instance.SetPlayersUI(OwnerClientId, team);
+        GameUIManager.Instance.SetPlayersUI(PlayerId, team);
 
         CharacterData characterData = CharacterLoader.GetCharacterData(character);
         m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
 
-        transform.position = ArenaManager.Instance.Spawns[team][0].position;
-        transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
+        // setup local client position
         transform.localScale = transform.localScale * characterData.Size;
 
         // get animator
-        Animator animator = Finder.FindComponent<Animator>(m_CharacterPreview);
+        Animator animator       = Finder.FindComponent<Animator>(m_CharacterPreview);
         m_AnimationHandler.Initialize(animator);
 
-        if (!IsOwner)
+        // initialize base MovementSpeed
+        m_AnimationHandler.UpdateMovementSpeed();
+
+        // update personnal UI if is owner (and not an AI)
+        if (!IsOwner || !IsPlayer)
             return;
+
+        // flip camera for player of team 1
+        if (team == 1)
+        {
+            Camera.main.transform.rotation = Quaternion.Euler(0f, -180f, 0f);
+            var cameraPos = Camera.main.transform.position;
+            cameraPos.z *= -1;
+            Camera.main.transform.position = cameraPos;
+        }
 
         // setup the seplls icons buttons
         SetupSpellUI(character);
+
+        // TODO
         //m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
 
@@ -146,6 +168,9 @@ public class Controller : NetworkBehaviour
 
         // initialize SpellHandler with character's spells
         m_SpellHandler.Initialize(characterData.Spells);
+
+        // initialize MovementSpeed with character's speed
+        m_Movement.Initialize(characterData.Speed);
 
         // init health and energy
         m_Life.Initialize(characterData.MaxHealth);
@@ -203,11 +228,6 @@ public class Controller : NetworkBehaviour
 
     #region Public Manipulators
 
-    public void ResetRotation()
-    {
-        transform.rotation = Quaternion.Euler(0f, Team == 0 ? 0f : -180f, 0f);
-    }
-
     [ClientRpc]
     public void ActivateColliderClientRPC(bool on)
     {
@@ -217,22 +237,7 @@ public class Controller : NetworkBehaviour
     #endregion
 
 
-    #region Private Manipulators
-
-    //void OnSpellSelected(int oldVale, int spell)
-    //{
-    //    Debug.Log("SpellSelected");
-    //    GameUIManager.Instance.SelectSpell((ESpell)spell);
-    //}
-
-    //void OnCooldownChanged(NetworkListEvent<float> changeEvent)
-    //{
-    //    ESpell spell = m_SpellHandler.Spells[changeEvent.Index];
-
-    //    float cooldown = changeEvent.Value;
-
-    //    GameUIManager.Instance.ChangeCooldown(spell, cooldown);
-    //}
+    #region Death & Game Over Manipulators
 
     void OnHpChanged(int oldValue, int newValue)
     {
@@ -246,9 +251,32 @@ public class Controller : NetworkBehaviour
     void Die()
     {
         m_CharacterPreview.SetActive(false);
-        m_Movement.enabled = false;
-        m_SpellHandler.enabled = false;
-        m_StateHandler.enabled = false;
+        ActivateActionComponent(false);
+    }
+
+    public void OnGameEnded(bool win)
+    {
+        // dead players have no end game method
+        if (!m_Life.IsAlive)
+            return;
+
+        // call for 
+        m_AnimationHandler.GameOverAnimation(win);
+
+        // deactivate all "action" components
+        ActivateActionComponent(false);
+    }
+
+    /// <summary>
+    /// activate / deactivate players "action" components (that allows player to take actions)
+    /// </summary>
+    /// <param name="active"></param>
+    void ActivateActionComponent(bool active)
+    {
+        m_Movement.enabled          = active;
+        m_SpellHandler.enabled      = active;
+        m_StateHandler.enabled      = active;
+        m_CounterHandler.enabled    = active;
     }
 
     #endregion

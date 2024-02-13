@@ -1,7 +1,9 @@
 ﻿using Data;
 using Enums;
+using Game.Managers;
 using System;
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEngine.RuleTile.TilingRuleOutput;
 
@@ -11,9 +13,9 @@ namespace Game.Spells
     {
         #region Members
 
-        bool m_StartEnd = false;
-        float m_DurationTimer;
-        float m_OffsetY;
+        bool    m_StartEnd              = false;
+        float   m_DurationTimer;
+        float   m_OffsetY;
 
         #endregion
 
@@ -29,6 +31,9 @@ namespace Game.Spells
             m_MaxDistance = Math.Abs(m_Target.x - m_OriginalPosition.x);
 
             m_DurationTimer = m_SpellData.Duration;
+
+            if (EJumpType.Teleport == m_SpellData.JumpType)
+                m_Controller.AnimationHandler.HideCharacter(true);
 
             // make player untargatable, unmovable and unrotatable
             if (IsServer)
@@ -50,9 +55,8 @@ namespace Game.Spells
             if (!IsServer)
                 return;
 
-            Vector3 pos = transform.position;
-            pos.y += m_OffsetY;
-            m_Controller.transform.position = pos;
+            if (m_SpellData.JumpType != EJumpType.Teleport)
+                UpdatePlayerPosition();
 
             // check if the spell has reached its max distance
             if (Math.Abs(transform.position.x - m_OriginalPosition.x) >= m_MaxDistance)
@@ -62,6 +66,12 @@ namespace Game.Spells
 
                 // re activate collider
                 m_Controller.Collider.enabled = true;
+
+                if (m_SpellData.JumpType == EJumpType.Teleport)
+                {
+                    m_Controller.AnimationHandler.HideCharacterClientRPC(false);
+                    m_Controller.transform.position = transform.position;
+                }
 
                 // reset jump state
                 m_Controller.StateHandler.SetStateJump(false);
@@ -79,7 +89,6 @@ namespace Game.Spells
 
         #region Protected Members
 
-
         #endregion
 
 
@@ -95,6 +104,16 @@ namespace Game.Spells
             }
             
             m_DurationTimer -= Time.deltaTime;
+        }
+
+        /// <summary>
+        /// Update the player position to the spell position
+        /// </summary>
+        void UpdatePlayerPosition()
+        {
+            Vector3 pos = transform.position;
+            pos.y += m_OffsetY;
+            m_Controller.transform.position = pos;
         }
 
         #endregion

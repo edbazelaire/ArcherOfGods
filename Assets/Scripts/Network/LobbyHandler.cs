@@ -1,26 +1,44 @@
-﻿using Assets.Scripts.Network;
+﻿using Assets;
+using Assets.Scripts.Network;
 using Enums;
 using Game;
 using Managers;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Tools;
 using Unity.Netcode;
 using Unity.Services.Authentication;
 using Unity.Services.Lobbies;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Network
 {
+    public enum ELobbyState
+    {
+        Inactive,
+        Joining,
+        WaitingLobbyFull,
+        SceneLoading,
+        WaitingRelayCode,
+        JoiningRelay,
+        WaitingGameManager,
+        SendingPlayerData,
+        Ready,
+    }
+
     public class LobbyHandler : MonoBehaviour
     {
+        #region Members
+
         static LobbyHandler s_Instance;
         public static LobbyHandler Instance { 
-            get { 
+            get 
+            { 
                 if (s_Instance != null) 
                     return s_Instance;
+
                 var gameObject = new GameObject("LobbyHandler");
                 gameObject.AddComponent<LobbyHandler>();
                 s_Instance = gameObject.GetComponent<LobbyHandler>();
@@ -30,56 +48,225 @@ namespace Network
         }
 
         const string KEY_RELAY_CODE = "RelayCode";
+        const float HEARTBEAT_TIMER = 15f;
+        const float UPDATE_LOBBY_TIMER = 1.5f;
 
         public Action<ulong, ECharacter> OnRelayJoined;
 
+        private ELobbyState m_State;
         private Lobby m_HostLobby;
         private Lobby m_JoinedLobby;
 
-        private string m_GameMode = "1v1";
+        private EGameMode m_GameMode = EGameMode.Solo;
 
-        private float heartbeatTimer    = 0.0f;
-        private float updateLobbyTimer  = 0.0f;
+        private float m_HeartbeatTimer    = 0.0f;
+        private float m_UpdateLobbyTimer  = 0.0f;
 
-        bool m_ServerStarted = false;
-        bool m_SceneLoaded = false;
-        bool m_ClientConnected = false;
-        bool m_LobbyGetLobbyRequestInProgress = false;
+        bool m_RequestInProgress = false;
 
         bool IsHost => m_HostLobby != null && m_JoinedLobby != null && m_HostLobby.Id == m_JoinedLobby.Id;
-        int m_MaxPlayers => m_GameMode == "1v1" ? 1 : 2;
+        int m_MaxPlayers => m_GameMode == EGameMode.Solo ? 1 : 2;
         public int MaxPlayers => m_MaxPlayers;
+        public ELobbyState State => m_State;
+
+        public EGameMode GameMode { get => m_GameMode; set => m_GameMode = value; }
+
+        #endregion
 
 
-        public string GameMode { get => m_GameMode; set => m_GameMode = value; }
+        #region Initialize & End
 
         private void Initialize()
         {
-            SceneManager.sceneLoaded += OnSceneChanged;
-            NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
-
             DontDestroyOnLoad(gameObject);
         }
 
+        /// <summary>
+        /// Leave current lobby and reset parameterss
+        /// </summary>
+        void ResetLobby()
+        {
+            m_HostLobby = null;
+            m_JoinedLobby = null;
+
+            SetState(ELobbyState.Inactive);
+        }
+
+        #endregion
+
+
+        #region Update Methods
+
         void Update()
         {
+            HandleLobbyState();
+        }
+
+        /// <summary>
+        /// Check lobby data updates
+        /// </summary>
+        async void HandleLobbyState()
+        {
+            if (m_State == ELobbyState.Inactive)
+                return;
+
+            if (m_RequestInProgress)
+                return;
+
+            // send heartbeat to maintain the lobby alive
             HandleLobbyHeartbeat();
 
-            CheckLobbyFull();
-            HandleLobbyUpdates();
+            switch (m_State)
+            {
+                case ELobbyState.Joining:
+                    if (m_JoinedLobby == null)
+                        return;
+
+                    SetRequestInProgress();
+
+                    m_JoinedLobby = await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id);
+                    NextState();
+                    return;
+
+                case ELobbyState.WaitingLobbyFull:
+                    UpdateLobbyData();
+
+                    if (m_JoinedLobby.Players.Count != m_JoinedLobby.MaxPlayers)
+                        return;
+                    SceneLoader.Instance.LoadScene("Arena");
+                    NextState();
+                    return;
+
+                case ELobbyState.SceneLoading:
+                    if (SceneLoader.Instance.IsLoading)
+                        return;
+
+                    if (!IsHost)
+                    {
+                        NextState();
+                        return;
+                    }
+
+                    // Host creates the relay and instantly go to state "SendingPlayerData"
+                    SetRequestInProgress();
+
+                    string relayCode = await RelayHandler.Instance.CreateRelay();
+
+                    UpdateLobbyRelayCode(relayCode);
+
+                    // spawn the GameManager on Server
+                    while (!GameManager.FindInstance())
+                        return;
+
+                    SetState(ELobbyState.SendingPlayerData);
+                    return;
+
+                case ELobbyState.WaitingRelayCode:
+                    UpdateLobbyData();
+
+                    // if relay code not provided yet : return
+                    if (m_JoinedLobby.Data[KEY_RELAY_CODE].Value == "")
+                        return;
+
+                    NextState();
+                    return;
+
+                case ELobbyState.JoiningRelay:
+                    SetRequestInProgress();
+
+                    await RelayHandler.Instance.JoinRelay(m_JoinedLobby.Data[KEY_RELAY_CODE].Value);
+                    NextState();
+                    return;
+
+                case ELobbyState.WaitingGameManager:
+                    while (!GameManager.FindInstance(true))
+                        return;
+
+                    NextState();
+                    return;
+
+                case ELobbyState.SendingPlayerData:
+                    var playerData = m_PlayerData;
+                    GameManager.Instance.AddPlayerDataServerRPC(NetworkManager.Singleton.LocalClientId, (ECharacter)Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value));
+                    NextState();
+                    return;
+
+                case ELobbyState.Ready:
+                    return;
+
+
+                default:
+                    ErrorHandler.Error("Unhandled LobbyState : " + m_State);
+                    return;
+            }
         }
+
+        /// <summary>
+        /// Send Heartbeat to the lobby to maintain it alive
+        /// </summary>
+        async void HandleLobbyHeartbeat()
+        {
+            if (m_HostLobby == null)
+                return;
+
+            m_HeartbeatTimer -= Time.deltaTime;
+            if (m_HeartbeatTimer > 0.0f)
+                return;
+
+            // reset heatbeat
+            m_HeartbeatTimer = HEARTBEAT_TIMER;
+
+            try
+            {
+                await LobbyService.Instance.SendHeartbeatPingAsync(m_HostLobby.Id);
+
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.LogWarning(e);
+                m_HeartbeatTimer = 0f;        // set timer back to 0 to send an other one
+            }
+
+
+        }
+
+        async void UpdateLobbyData()
+        {
+            if (m_JoinedLobby == null)
+                return;
+
+            if (m_RequestInProgress)
+                return;
+
+            m_UpdateLobbyTimer -= Time.deltaTime;
+            if (m_UpdateLobbyTimer > 0.0f)
+                return;
+
+            m_UpdateLobbyTimer = UPDATE_LOBBY_TIMER;
+
+            SetRequestInProgress();
+
+            m_JoinedLobby = await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id);
+
+            SetRequestInProgress(false);
+        }
+
+        #endregion
+
+
+        #region Join & Exit Lobby
 
         public async Task<bool> QuickJoinLobby()
         {
-            m_ServerStarted = false;
-
             bool success = await JoinLobby();
 
             if (!success)
                 success = await CreateLobby();
 
-            if (! success)
+            if (!success)
                 Debug.Log("Failed to join or create lobby");
+
+            SetState(ELobbyState.Joining);
 
             return success;
         }
@@ -101,7 +288,7 @@ namespace Network
                         { "GameMode", new DataObject(DataObject.VisibilityOptions.Public, "1v1", DataObject.IndexOptions.S1) },
                         { KEY_RELAY_CODE, new DataObject(DataObject.VisibilityOptions.Member, "", DataObject.IndexOptions.S2) }
                     }
-                };  
+                };
 
                 m_HostLobby = await LobbyService.Instance.CreateLobbyAsync(lobbyName, m_MaxPlayers, createLobbyOptions);
                 m_JoinedLobby = m_HostLobby;
@@ -147,159 +334,76 @@ namespace Network
 
             return false;
         }
-
-        public async Task<List<Lobby>> ListLobbies()
+        
+        /// <summary>
+        /// Leave the current joined lobby
+        /// </summary>
+        public async void LeaveLobby()
         {
-            try
-            {
-                QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions {
-                    Count = 25,
-                    Filters = new List<QueryFilter> {
-                        new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT),
-                        new QueryFilter(QueryFilter.FieldOptions.S1, "1v1", QueryFilter.OpOptions.EQ)
-                    },
-                    Order = new List<QueryOrder> {
-                        new QueryOrder(false, QueryOrder.FieldOptions.Created)
-                    }
-                };
+            if (LobbyService.Instance != null && m_JoinedLobby != null)
+                await LobbyService.Instance.RemovePlayerAsync(m_JoinedLobby.Id, AuthenticationService.Instance.PlayerId);
 
-                QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
+            ResetLobby();
 
-                Debug.Log("Lobbies found: " + queryResponse.Results.Count);
-
-                foreach (var lobby in queryResponse.Results)
-                {
-                    Debug.Log("Lobby: " + lobby.Name + " - MaxPlayers : " + lobby.MaxPlayers);
-                }
-
-                return queryResponse.Results;
-
-            } catch (LobbyServiceException e)
-            {
-                Debug.Log("Failed to list lobbies: " + e.Message);
-                return new List<Lobby>();
-            }
+            Debug.Log("Lobby left");
         }
 
-        async void HandleLobbyHeartbeat()
+        /// <summary>
+        /// Delete lobby from Host
+        /// </summary>
+        async void DeleteHostLobby()
         {
             if (m_HostLobby == null)
                 return;
 
-            heartbeatTimer -= Time.deltaTime;
-            if (heartbeatTimer > 0.0f)
-                return;
-
-            // reset heatbeat
-            heartbeatTimer = 15.0f;
-
             try
             {
-                await LobbyService.Instance.SendHeartbeatPingAsync(m_HostLobby.Id);
-
-            } catch (LobbyServiceException e)
-            {
-                Debug.LogWarning(e);
-                heartbeatTimer = 0f;        // set timer back to 0 to send an other one
+                await Lobbies.Instance.DeleteLobbyAsync(m_HostLobby.Id);
+                m_HostLobby = null;
             }
-            
-           
-        }
-
-        async void HandleLobbyUpdates()
-        {
-            if (m_JoinedLobby == null || m_ClientConnected || m_LobbyGetLobbyRequestInProgress)
-                return;
-
-            updateLobbyTimer -= Time.deltaTime;
-            if (updateLobbyTimer > 0.0f)
-                return;
-
-            updateLobbyTimer = 1.1f;
-            m_LobbyGetLobbyRequestInProgress = true;
-
-            m_JoinedLobby = await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id);
-
-            m_LobbyGetLobbyRequestInProgress = false;
-
-            if (( m_JoinedLobby.Data[KEY_RELAY_CODE].Value != "") && !m_ServerStarted)
+            catch (LobbyServiceException e)
             {
-                m_ServerStarted = true;
-
-                if (!IsHost)
-                    await RelayHandler.Instance.JoinRelay(m_JoinedLobby.Data[KEY_RELAY_CODE].Value);
-
-                m_ClientConnected = true;
-                Debug.Log("Joining done");
+                Debug.Log("Failed to delete lobby: " + e.Message);
             }
         }
 
-        void OnClientConnected(ulong clientId)
+        #endregion
+
+
+        #region State Methods
+
+        void SetState(ELobbyState state)
         {
-            Debug.Log("LobbyManager : Client connected : " + clientId);
+            Debug.Log("NEW LOBBY STATE : " + state);
 
-            if (NetworkManager.Singleton.LocalClientId != clientId)
-                return;
+            // if state changes : reset request in progress
+            SetRequestInProgress(false);
 
-            var playerData = m_PlayerData;
-            GameManager.Instance.AddPlayerDataServerRPC(clientId, (ECharacter)Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value));
+            // set new state
+            m_State = state;
         }
 
-        void CheckLobbyFull()
+        void NextState()
         {
-            if (m_JoinedLobby == null || m_SceneLoaded)
-                return;
-
-            if (m_JoinedLobby.Players.Count != m_JoinedLobby.MaxPlayers)
-                return;
-
-            Debug.Log("Lobby full : game can start");
-            m_SceneLoaded = true;
-            SceneLoader.Instance.LoadScene("Arena");
+            SetState(m_State + 1);
         }
 
-        async void OnSceneChanged(Scene scene, LoadSceneMode mode)
+        void SetRequestInProgress(bool inProgress = true) 
         {
-            if (scene.name != "Arena" || m_ServerStarted)
-                return;
-
-            if ( m_HostLobby == null )
-                return;
-
-            SceneManager.sceneLoaded -= OnSceneChanged;
-
-            bool success = await CheckSceneLoaded(scene);
-            if (!success)
-                return;
-
-            string relayCode = await RelayHandler.Instance.CreateRelay();
-
-            UpdateLobbyRelayCode(relayCode);
-        }
-
-        async Task<bool> CheckSceneLoaded(Scene scene)
-        {
-            float timer = 30f;
-            int checkMilliSec = 1000;
-            while (scene.isLoaded == false)
+            // reset timers on reseting request in progress (to avoid spam the server)
+            if (m_RequestInProgress && inProgress == false)
             {
-                await Task.Delay(checkMilliSec);
-                timer -= (float)checkMilliSec / 1000;
-
-                Debug.Log("Waiting for scene to load... ");
-
-                if (timer <= 0)
-                {
-                    return false;
-                } 
+                m_HeartbeatTimer = HEARTBEAT_TIMER;
+                m_UpdateLobbyTimer = UPDATE_LOBBY_TIMER;
             }
 
-            Debug.LogWarning("Scene loaded");
-            return true;
+            m_RequestInProgress = inProgress; 
         }
 
+        #endregion
 
-        #region Update Data Methods 
+
+        #region Update Lobby Data Methods 
 
         async void UpdateLobbyRelayCode(string relayCode)
         {
@@ -364,37 +468,8 @@ namespace Network
 
         #endregion
 
-        public async Task LeaveLobby()
-        {
-            await LobbyService.Instance.RemovePlayerAsync(m_JoinedLobby.Id, AuthenticationService.Instance.PlayerId);
-            m_JoinedLobby = null;
-        }
 
-        async void MigradeLobbyHost()
-        {
-            try
-            {
-                m_HostLobby = await Lobbies.Instance.UpdateLobbyAsync(m_HostLobby.Id, new UpdateLobbyOptions
-                {
-                    HostId = m_JoinedLobby.Players[1].Id
-                });
-            } catch (LobbyServiceException e)
-            {
-                Debug.Log("Failed to migrate lobby host: " + e.Message);
-            }
-        }
-
-        async void DeleteLobby()
-        {
-            try
-            {
-                await Lobbies.Instance.DeleteLobbyAsync(m_HostLobby.Id);
-                m_HostLobby = null;
-            } catch (LobbyServiceException e)
-            {
-                Debug.Log("Failed to delete lobby: " + e.Message);
-            }
-        }
+        #region Dependent Accessors
 
         Dictionary<string, PlayerDataObject> m_PlayerData
         {
@@ -412,7 +487,62 @@ namespace Network
             }
         }
 
-        #region Debug Methods
+        #endregion
+
+
+        #region Tools Methods
+        public async Task<List<Lobby>> ListLobbies()
+        {
+            try
+            {
+                QueryLobbiesOptions queryLobbiesOptions = new QueryLobbiesOptions
+                {
+                    Count = 25,
+                    Filters = new List<QueryFilter> {
+                        new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT),
+                        new QueryFilter(QueryFilter.FieldOptions.S1, "1v1", QueryFilter.OpOptions.EQ)
+                    },
+                    Order = new List<QueryOrder> {
+                        new QueryOrder(false, QueryOrder.FieldOptions.Created)
+                    }
+                };
+
+                QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
+
+                Debug.Log("Lobbies found: " + queryResponse.Results.Count);
+
+                foreach (var lobby in queryResponse.Results)
+                {
+                    Debug.Log("Lobby: " + lobby.Name + " - MaxPlayers : " + lobby.MaxPlayers);
+                }
+
+                return queryResponse.Results;
+
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.Log("Failed to list lobbies: " + e.Message);
+                return new List<Lobby>();
+            }
+        }
+
+        /// <summary>
+        /// Change Host of the Lobby
+        /// </summary>
+        async void MigradeLobbyHost()
+        {
+            try
+            {
+                m_HostLobby = await Lobbies.Instance.UpdateLobbyAsync(m_HostLobby.Id, new UpdateLobbyOptions
+                {
+                    HostId = m_JoinedLobby.Players[1].Id
+                });
+            }
+            catch (LobbyServiceException e)
+            {
+                Debug.Log("Failed to migrate lobby host: " + e.Message);
+            }
+        }
 
         void PrintPlayers(Lobby lobby)
         {
