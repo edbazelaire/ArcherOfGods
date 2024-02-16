@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Ic_Erasement_0: 2980338038947159215
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,4 +1,5 @@
 ﻿using Enums;
+using Game.Spells;
 using UnityEngine;
 
 namespace Tools
@@ -6,6 +7,8 @@ namespace Tools
     public static class AssetLoader
     {
         const string c_IconPrefix = "Ic_";
+        const string c_ChestPrefix = "Chest";
+        const string c_TemplatePrefix = "Template";
 
         // =============================================================================================================
         // DATA
@@ -23,6 +26,9 @@ namespace Tools
         // SPELLS           -------------------------------------------------------------
         public const string c_SpellsPrefabsPath = c_PrefabsPath + "Spells/";
 
+        // ---- Items 
+        public const string c_ItemsPrefabPath = c_PrefabsPath + "Items/";
+
         // =============================================================================================================
         // UI 
         public const string c_UIPath = "UI/";
@@ -35,6 +41,8 @@ namespace Tools
         public const string c_MainTab = c_MainMenuPath + "MainTab/";
         // ---- PopUps & Overlays
         public const string c_OverlayPath = c_UIPath + "OverlayScreens/";
+
+
 
         // =============================================================================================================
         // SPRITES
@@ -78,6 +86,21 @@ namespace Tools
         #endregion
 
 
+        #region ItemUI Prefabs
+
+        public static GameObject LoadChestPrefab(EChestType chestType)
+        {
+            return Load<GameObject>(c_ItemsPrefabPath + c_ChestPrefix + chestType.ToString());
+        }
+
+        public static GameObject LoadTemplateItem(string suffix)
+        {
+            return Load<GameObject>(c_ItemsPrefabPath, c_TemplatePrefix + suffix);
+        }
+
+        #endregion
+
+
         #region Icon Loading
 
         public static Sprite LoadSpellIcon(ESpell spell)
@@ -90,7 +113,7 @@ namespace Tools
             return Load<Sprite>(c_IconStateEffectPath + c_IconPrefix + stateEffect.ToString());
         }
 
-        public static Sprite LoadCurrencyIcon(EReward reward)
+        public static Sprite LoadCurrencyIcon(ERewardType reward)
         {
             return Load<Sprite>(c_CurrenciesPath + reward.ToString());
         }

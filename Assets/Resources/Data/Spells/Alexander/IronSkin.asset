@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: IronSkin
   m_EditorClassIdentifier: 
   SpellType: 1
+  Rarety: 1
   Graphics: {fileID: 0}
   Preview: {fileID: 0}
   OnAnimation: []
@@ -27,6 +28,7 @@ MonoBehaviour:
   Speed: 0
   Distance: -1
   Duration: 0
+  Delay: 0
   Size: 0.3
   TriggerPlayer: 1
   EnemyStateEffects: []

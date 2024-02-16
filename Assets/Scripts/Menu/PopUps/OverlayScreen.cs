@@ -68,10 +68,7 @@ namespace Menu.PopUps
 
                 // dont do anything on touching button 
                 if (clickedObject != null && clickedObject.GetComponent<Button>() != null)
-                {
-                    Debug.Log("clicked object is already a button");
                     return;
-                }
 
                 // Invoke the event with the clicked GameObject as parameter
                 OnTouch(clickedObject);

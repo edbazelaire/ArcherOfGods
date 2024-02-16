@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Rempart
   m_EditorClassIdentifier: 
   SpellType: 3
+  Rarety: 2
   Graphics: {fileID: 1289543790355709915, guid: b24eacb1121c8634bbd0a0ca61272ea1, type: 3}
   Preview: {fileID: 0}
   OnAnimation: []
@@ -27,6 +28,7 @@ MonoBehaviour:
   Speed: 0
   Distance: -1
   Duration: 0
+  Delay: 0
   Size: 2
   TriggerPlayer: 0
   EnemyStateEffects: []

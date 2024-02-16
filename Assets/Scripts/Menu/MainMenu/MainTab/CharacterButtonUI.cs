@@ -22,17 +22,17 @@ public class CharacterButtonUI: MonoBehaviour
         SetUpIcon();
         SetUpButton();
 
-        MainMenuUI.CharacterSelectedEvent += OnCharacterSelected;
+        MainTab.CharacterSelectedEvent += OnCharacterSelected;
     }
 
     private void OnDestroy()
     {
-        MainMenuUI.CharacterSelectedEvent -= OnCharacterSelected;
+        MainTab.CharacterSelectedEvent -= OnCharacterSelected;
     }
 
     public void SelectCharacter()
     {
-        MainMenuUI.CharacterSelectedEvent?.Invoke(m_Character);
+        MainTab.CharacterSelectedEvent?.Invoke(m_Character);
     }
 
     void SetUpIcon()

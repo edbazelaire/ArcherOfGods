@@ -206,16 +206,24 @@
         Debug,
     }
 
-    public enum EReward
+    public enum ERewardType
     {
-        Golds, 
+        Golds,
+        Spell,
     }
 
     public enum EChestType
     {
         Common,
-        Rate,
+        Rare,
         Epic,
         Legendary
+    }
+
+    public enum EChestState
+    {
+        Idle,
+        Ready,
+        Opening,
     }
 }

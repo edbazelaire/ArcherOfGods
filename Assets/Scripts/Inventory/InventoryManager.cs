@@ -1,33 +1,67 @@
 ﻿using Assets;
 using Enums;
-using Game.Managers;
-using NUnit.Framework.Interfaces;
 using Save;
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Tools;
-using UnityEngine;
 
 namespace Inventory
 {
-    public static class InventoryManager 
+    public static class InventoryManager
     {
         #region Members
 
-        public const int MAX_CHESTS = 4;
+        // =================================================================================================
+        // CONSTANTS
+        public const        int                     MAX_CHESTS      = 4;
+        public static       ERewardType[]           CURRENCIES      => new ERewardType[] { ERewardType.Golds };
 
-        public static Action<ChestData, int> ChestsAddedEvent;
+        // =================================================================================================
+        // EVENTS
+        public static       Action<ChestData, int>  ChestsAddedEvent;
 
-        static List<SpellItem> m_SpellItems;
-
-        public static int Golds => Convert.ToInt32(Main.CloudSaveManager.InventoryCloudData.Data[InventoryCloudData.KEY_GOLDS]);
-        public static ChestData[] Chests => (ChestData[])Main.CloudSaveManager.ChestsCloudData.Data[ChestsCloudData.KEY_CHESTS];
+        // =================================================================================================
+        // ACCESSORS
+        public static       List<SSpellCloudData>   SpellData       => (List<SSpellCloudData>)Main.CloudSaveManager.InventoryCloudData.Data[ERewardType.Spell.ToString()];
+        public static       int                     Golds           => Convert.ToInt32(Main.CloudSaveManager.InventoryCloudData.Data[InventoryCloudData.KEY_GOLDS]);
+        public static       ChestData[]             Chests          => (ChestData[])Main.CloudSaveManager.ChestsCloudData.Data[ChestsCloudData.KEY_CHESTS];
 
         #endregion
 
 
-        #region Golds Management
+        #region Currency Management
+
+        public static int GetCurrency(ERewardType rewardType)
+        {
+            if (! CURRENCIES.Contains(rewardType))
+            {
+                ErrorHandler.Error("Reward " + rewardType + " is not a currency");
+                return 0;
+            }
+
+            return (int)Main.CloudSaveManager.InventoryCloudData.Data[rewardType.ToString()];
+        }
+
+        public static void UpdateCurrency(ERewardType reward, int amount) 
+        {
+            var data = Main.CloudSaveManager.InventoryCloudData.Data;
+
+            if (!data.ContainsKey(reward.ToString()))
+            {
+                ErrorHandler.Error("Currency " + reward + " not found in inventory cloud data");
+                return;
+            }
+            
+            var total = (int)data[reward.ToString()] + amount;
+            if (amount < 0)
+            {
+                ErrorHandler.Error($"Not enought {reward} ({(int)data[reward.ToString()]}) to spend ({amount})");
+                return;
+            }
+
+            Main.CloudSaveManager.InventoryCloudData.SetData(reward, total);
+        }
 
         public static bool CanBuy(int cost)
         {
@@ -42,9 +76,7 @@ namespace Inventory
                 return;
             }
 
-            var test = Golds;
-
-            Main.CloudSaveManager.InventoryCloudData.SetData(EReward.Golds, Golds + qty);
+            Main.CloudSaveManager.InventoryCloudData.SetData(ERewardType.Golds, Golds + qty);
         }
 
         public static void Spend(int cost)
@@ -61,7 +93,17 @@ namespace Inventory
                 return;
             }
 
-            Main.CloudSaveManager.InventoryCloudData.SetData(EReward.Golds, Golds - cost);
+            Main.CloudSaveManager.InventoryCloudData.SetData(ERewardType.Golds, Golds - cost);
+        }
+
+        #endregion
+
+
+        #region Spell Management
+
+        public static SSpellCloudData GetSpellData(ESpell spell)
+        {
+            return Main.CloudSaveManager.InventoryCloudData.GetSpell(spell);
         }
 
         #endregion
@@ -106,17 +148,63 @@ namespace Inventory
             Main.CloudSaveManager.ChestsCloudData.SaveValue(ChestsCloudData.KEY_CHESTS);
         }
 
-        public static void CollectChest(int index)
+        public static void RemoveChestAtIndex(int index)
         {
-            // collect data according to type of chest
-            Main.SetPopUp(EPopUpState.ChestOpeningScreen, Chests[index].ChestType);
+            // this can happen if the negative index check was not done before the call
+            if (index < 0)
+            {
+                ErrorHandler.Warning("Trying to remove chest with index " + index + ". This should be handled before calling this method");
+                return;
+            }
+
+            // this should never happen
+            if (index >= Chests.Length)
+            {
+                ErrorHandler.Error("Trying to remove chest with " + index);
+                return;
+            }
 
             // remove chest data from cloud data
             Chests[index] = null;
             Main.CloudSaveManager.ChestsCloudData.SaveValue(ChestsCloudData.KEY_CHESTS);
         } 
 
-        
+        /// <summary>
+        /// Add a list of rewards to the inventory
+        /// </summary>
+        /// <param name="rewards"></param>
+        public static void CollectRewards(List<SReward> rewards)
+        {
+            foreach (SReward reward in rewards) 
+            {
+                CollectReward(reward);
+            }
+        }
+
+        /// <summary>
+        /// Add a reward to the inventory
+        /// </summary>
+        /// <param name="reward"></param>
+        public static void CollectReward(SReward reward)
+        {
+            if (CURRENCIES.Contains(reward.RewardType))
+            {
+                UpdateCurrency(reward.RewardType, reward.Qty);
+                return;
+            }
+
+            if (reward.RewardType == ERewardType.Spell)
+            {
+                var spelLCloudData = Main.CloudSaveManager.InventoryCloudData.GetSpell((ESpell)reward.Metadata[SReward.METADATA_KEY_SPELL_TYPE]);
+                spelLCloudData.Qty += reward.Qty;
+                Main.CloudSaveManager.InventoryCloudData.SetSpell(spelLCloudData);
+                return;
+            }
+
+            ErrorHandler.Error("Unhandled case : " + reward.RewardType);
+        }
+
+
         #endregion
     }
 }

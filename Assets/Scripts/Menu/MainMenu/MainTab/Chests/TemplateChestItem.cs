@@ -1,4 +1,7 @@
-﻿using Game.Managers;
+﻿using Assets;
+using Assets.Scripts.Menu.MainMenu.MainTab.Chests;
+using Enums;
+using Game.Managers;
 using Inventory;
 using Save;
 using System;
@@ -23,15 +26,16 @@ namespace Menu
 
         const string c_EmptySlot                = "EmptySlot";
         const string c_ChestPreviewContainer    = "ChestPreviewContainer";
+        const string c_ChestContainer           = "ChestContainer";
         const string c_ChestPreview             = "ChestPreview";
         const string c_ChestTimer               = "ChestTimer";
 
         Button m_Button;
         GameObject m_EmptySlot;
         GameObject m_ChestPreviewContainer;
-        SpriteRenderer m_ChestPreview;
+        GameObject m_ChestContainer;
+        ChestUI m_ChestUI;
         TMP_Text m_ChestTimer;
-        Animator m_Animator;
 
         ChestData m_ChestData       = null;
         int m_Index                 = -1;
@@ -47,8 +51,7 @@ namespace Menu
             m_Button                    = Finder.FindComponent<Button>(gameObject);
             m_EmptySlot                 = Finder.Find(gameObject, c_EmptySlot);
             m_ChestPreviewContainer     = Finder.Find(gameObject, c_ChestPreviewContainer);
-            m_ChestPreview              = Finder.FindComponent<SpriteRenderer>(m_ChestPreviewContainer, c_ChestPreview);
-            m_Animator                  = Finder.FindComponent<Animator>(m_ChestPreview.gameObject);
+            m_ChestContainer            = Finder.Find(m_ChestPreviewContainer, c_ChestContainer);
             m_ChestTimer                = Finder.FindComponent<TMP_Text>(m_ChestPreviewContainer, c_ChestTimer);
 
             // LISTENERS
@@ -95,6 +98,13 @@ namespace Menu
         public void SetChestData(ChestData chestData)
         {
             m_ChestData = chestData;
+
+            // create prefab in the preview
+            UIHelper.CleanContent(m_ChestContainer);
+
+            if (m_ChestData != null)
+                m_ChestUI = ItemLoader.GetChestRewardData(m_ChestData.ChestType).Instantiate(m_ChestContainer);
+            
             UpdateState();
         }
 
@@ -107,8 +117,6 @@ namespace Menu
 
             if (m_ChestData == null)
                 return;
-
-            m_ChestPreview.sprite = ItemLoader.GetChestRewardData(m_ChestData.ChestType).Image;
         }
 
         /// <summary>
@@ -173,11 +181,14 @@ namespace Menu
                     break;
 
                 case EChestButtonState.Locked:
+                    // delay on frame because gameobject might no be init yet
+                    CoroutineManager.DelayMethod(() => { m_ChestUI.ActivateIdle(false); });
                     break;
 
                 case EChestButtonState.Ready:
                     m_ChestTimer.text = TextLocalizer.LocalizeText("Ready");
-                    m_Animator.SetTrigger("Ready");
+                    // delay on frame because gameobject might no be init yet
+                    CoroutineManager.DelayMethod(() => { m_ChestUI.ActivateIdle(true); });
                     break;
             }
 
@@ -196,7 +207,7 @@ namespace Menu
             if (m_State != EChestButtonState.Ready)
                 return;
 
-            InventoryManager.CollectChest(m_Index);
+            Main.SetPopUp(EPopUpState.ChestOpeningScreen, m_ChestData.ChestType, m_Index);
             SetChestData(null);
         }
 

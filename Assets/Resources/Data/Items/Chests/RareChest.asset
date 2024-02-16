@@ -14,5 +14,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ChestType: 1
   Image: {fileID: 21300000, guid: d142fafab3943fc46b3510c9d9c621e4, type: 3}
-  UnlockTime: 60
+  UnlockTime: 10
   Golds: 960000002c010000
+  SpellsDistribution:
+  - Rarety: 0
+    MinAmount: 25
+    MaxAmount: 50
+  - Rarety: 0
+    MinAmount: 25
+    MaxAmount: 50
+  - Rarety: 0
+    MinAmount: 25
+    MaxAmount: 50
+  - Rarety: 0
+    MinAmount: 25
+    MaxAmount: 50
+  - Rarety: 1
+    MinAmount: 5
+    MaxAmount: 10
+  - Rarety: 1
+    MinAmount: 5
+    MaxAmount: 10
+  - Rarety: 2
+    MinAmount: 1
+    MaxAmount: 1

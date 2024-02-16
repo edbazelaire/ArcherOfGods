@@ -3,6 +3,7 @@ using Enums;
 using Game.Spells;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tools;
 using UnityEngine;
 
@@ -18,6 +19,8 @@ namespace Game.Managers
         Dictionary<ESpell, SpellData> m_Spells;
         Dictionary<string, SpellData> m_OnHitSpellData;
         Dictionary<string, StateEffect> m_StateEffects;
+
+        public static List<ESpell> Spells => Instance.m_Spells.Keys.ToList();
 
         #endregion
 
@@ -180,6 +183,24 @@ namespace Game.Managers
             }
 
             return Instance.m_OnHitSpellData[spellName];
+        }
+
+        /// <summary>
+        /// Get all spells of a specific rarety
+        /// </summary>
+        /// <param name="rarety"></param>
+        /// <returns></returns>
+        public static List<SpellData> GetSpellsFromRarety(ERarety rarety) 
+        { 
+            List<SpellData> spells = new List<SpellData>();
+            foreach (var spellData in Instance.m_Spells.Values)
+            {
+                if (spellData.Rarety != rarety)
+                    continue;
+                spells.Add(spellData);
+            }
+
+            return spells;
         }
 
         /// <summary>

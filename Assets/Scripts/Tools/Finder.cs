@@ -145,7 +145,7 @@ namespace Tools
         {
             if (name == "")
             {
-                var childComponents = parent.transform.GetComponentsInChildren<T>();
+                var childComponents = parent.transform.GetComponentsInChildren<T>(true);
 
                 if (throwError && !Checker.CheckSize<T>(childComponents, 1, atLeast: true))
                     return new List<T>();

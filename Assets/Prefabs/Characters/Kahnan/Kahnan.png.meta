@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Kahnan_0: -7875660994389597486
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

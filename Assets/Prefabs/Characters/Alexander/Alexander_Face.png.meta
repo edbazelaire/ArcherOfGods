@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Alexander_Face_0: 2821800460070387325
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

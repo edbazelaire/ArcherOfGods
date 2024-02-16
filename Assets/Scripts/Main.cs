@@ -6,6 +6,7 @@ using Menu.PopUps;
 using Save;
 using System;
 using System.Collections;
+using System.Linq;
 using System.Threading.Tasks;
 using Tools;
 using Unity.Services.Authentication;
@@ -124,7 +125,9 @@ namespace Assets
             // setup initalization depending on the popup state
             switch (popUpState) {
                 case EPopUpState.ChestOpeningScreen:
-                    obj.GetComponent<ChestOpeningScreen>().Initialize((EChestType)args[0]);;
+                    EChestType chestType = (EChestType)args[0];
+                    int chestIndex = args.Length > 1 ? (int)args[1] : -1;
+                    obj.GetComponent<ChestOpeningScreen>().Initialize(chestType, chestIndex);
                     break;
 
                 default:

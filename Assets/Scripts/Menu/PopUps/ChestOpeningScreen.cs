@@ -1,7 +1,9 @@
-﻿using Data;
+﻿using Assets.Scripts.Menu.MainMenu.MainTab.Chests;
+using Data;
 using Enums;
 using Game.Managers;
 using Inventory;
+using Save;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,8 +26,7 @@ namespace Menu.PopUps
         const string        c_RewardDisplayContainer    = "RewardDisplayContainer";
 
         GameObject          m_ChestContainer;
-        SpriteRenderer      m_ChestPreview;
-        Animator            m_ChestAnimator;
+        ChestUI             m_ChestUI;
         GameObject          m_RewardDisplayContainer;
         Image               m_RewardIcon;
         TMP_Text            m_RewardQty;
@@ -36,9 +37,10 @@ namespace Menu.PopUps
         TMP_Text            m_QuantityCounter;
 
         // SPECIFIC DATA
-        ChestRewardData m_ChestRewardData;
-        int m_RewardIndex = 0;
-        Dictionary<EReward, object> m_Rewards;
+        ChestRewardData     m_ChestRewardData;
+        int                 m_ChestIndex;   
+        int                 m_RewardIndex       = 0;
+        List<SReward>       m_Rewards           = new();
 
         #endregion
 
@@ -47,10 +49,11 @@ namespace Menu.PopUps
 
         public ChestOpeningScreen() : base(EPopUpState.ChestOpeningScreen) { }
 
-        public void Initialize(EChestType chestType)
+        public void Initialize(EChestType chestType, int chestIndex = -1)
         {
-            m_ChestRewardData = ItemLoader.GetChestRewardData(chestType);
-            m_RewardIndex = 0;
+            m_ChestRewardData   = ItemLoader.GetChestRewardData(chestType);
+            m_ChestIndex        = chestIndex;  
+            m_RewardIndex       = 0;
 
             base.Initialize();
         }
@@ -66,6 +69,17 @@ namespace Menu.PopUps
 
             SetupChestUI();
             SetupRewardsUI();
+
+            // listeners
+            m_ChestUI.OpenAnimationEndedEvent += OnOpenAnimationEnded;
+
+        }
+
+        protected override void OnExit()
+        {
+            m_ChestUI.OpenAnimationEndedEvent -= OnOpenAnimationEnded;
+
+            base.OnExit();
         }
 
         #endregion
@@ -77,11 +91,10 @@ namespace Menu.PopUps
         {
             // setup game objects
             m_ChestContainer        = Finder.Find(gameObject, c_ChestContainer);
-            m_ChestPreview          = Finder.FindComponent<SpriteRenderer>(m_ChestContainer, c_ChestPreview);
-            m_ChestAnimator         = m_ChestPreview.GetComponent<Animator>();
 
-            // setup image of the chest and idle animation
-            m_ChestPreview.sprite   = m_ChestRewardData.Image;
+            // instantiate chest prefab
+            m_ChestUI               = m_ChestRewardData.Instantiate(m_ChestContainer);
+            m_ChestUI.ActivateIdle(true);
         }
 
         void SetupRewardsUI()
@@ -104,64 +117,72 @@ namespace Menu.PopUps
 
         #region Rewards
 
-        IEnumerator OpenChest()
+        void OpenChest()
         {
-            m_ChestAnimator.Play(CHEST_OPENING_ANIMATION);
-
-            // wait for the animation to start
-            while (! m_ChestAnimator.GetCurrentAnimatorStateInfo(0).IsName(CHEST_OPENING_ANIMATION))
-            {
-                yield return null;
-            }
-
-            // wait for the end of the animation
-            while (m_ChestAnimator.GetCurrentAnimatorStateInfo(0).IsName(CHEST_OPENING_ANIMATION))
-            {
-                yield return null;
-            }
-
-            // hide chest / display rewards section
-            m_ChestContainer.gameObject.SetActive(false);
-            m_RewardDisplayContainer.gameObject.SetActive(true);
-
-            // start displaying rewards
-            DisplayNextReward();
+            m_ChestUI.ActivateOpen(true);
         }
 
         void DisplayNextReward()
         {
             if (m_RewardIndex >= m_Rewards.Count)
+            {
                 OnExit();
+                return;
+            }
 
+            string title = "";
             Sprite icon = null;
             int nextRequestedValue = 1;
             int currentlyOwnValue = 1;
-            int qty = 0;
-            EReward reward = m_Rewards.Keys.ToList()[m_RewardIndex];
-            switch (reward)
+            int level = 0;
+
+            SReward reward = m_Rewards[m_RewardIndex];
+            int qty = reward.Qty;
+
+            if (InventoryManager.CURRENCIES.Contains(reward.RewardType))
             {
-                case (EReward.Golds):
-                    // collect reward
-                    qty = (int)m_Rewards[reward];
-                    InventoryManager.AddGolds(qty);
+                // setup icon and values
+                title = reward.RewardType.ToString();
+                icon = AssetLoader.LoadCurrencyIcon(reward.RewardType);
+                currentlyOwnValue = InventoryManager.GetCurrency(reward.RewardType) - qty;
+                nextRequestedValue = currentlyOwnValue;
+                m_Level.gameObject.SetActive(false);
+            } 
+            else
+            {
+                switch (reward.RewardType)
+                {
+                    case (ERewardType.Spell):
+                        // get data from cloud manager
+                        ESpell spell = (ESpell)reward.Metadata[SReward.METADATA_KEY_SPELL_TYPE];
+                        SSpellCloudData spellCloudData = InventoryManager.GetSpellData(spell);
 
-                    // setup icon and values
-                    icon = AssetLoader.LoadCurrencyIcon(reward);
-                    currentlyOwnValue = InventoryManager.Golds;
-                    nextRequestedValue = currentlyOwnValue;
-                    m_Level.gameObject.SetActive(false);
-                    break;
+                        // setup infos
+                        title = spell.ToString();                       // title is the name of the spell
+                        icon = AssetLoader.LoadSpellIcon(spell);        // load icon from ressources
+                        nextRequestedValue = 1;                         // TODO     -------------------------------------------------------
+                        currentlyOwnValue = spellCloudData.Qty - qty;   // quantity is collected before display so retrieve the qty to the current value to know how much the player used to own
+                        level = spellCloudData.Level;                   // get level from cloud data
+                        m_Level.gameObject.SetActive(true);             // make sure that level TMP is active
+                        break;
 
-                default:
-                    ErrorHandler.Error("Unset Reward : " + reward);
-                    break;
+                    default:
+                        ErrorHandler.Error("Unset Reward : " + reward);
+                        break;
+                }
+            
             }
 
             m_RewardIcon.sprite         = icon;
             m_RewardQty.text            = qty.ToString();
-            m_RewardTitle.text          = reward.ToString();
+            m_RewardTitle.text          = title;
             m_QuantityCounter.text      = string.Format("{0} / {1}", currentlyOwnValue, nextRequestedValue);
             m_QuantityFill.fillAmount   = Mathf.Clamp(currentlyOwnValue / nextRequestedValue, 0, 1);
+
+            if (m_Level.isActiveAndEnabled) 
+            {
+                m_Level.text = TextLocalizer.LocalizeText("Level ") + level.ToString();
+            }
 
             m_RewardIndex++;
         }
@@ -173,7 +194,6 @@ namespace Menu.PopUps
 
         protected override void OnUIButton(string bname)
         {
-            Debug.Log("Button clicked : " + bname);
             switch(bname) 
             {
                 case (c_ChestContainer):
@@ -195,7 +215,7 @@ namespace Menu.PopUps
             m_Rewards = m_ChestRewardData.GetRewards();
 
             // animate chest opening and display rewards
-            StartCoroutine(OpenChest());
+            OpenChest();
         }
 
         protected override void OnTouch(GameObject gameObject)
@@ -205,6 +225,21 @@ namespace Menu.PopUps
             // if first reward was already shown : display the next one
             if(m_RewardIndex > 0) 
                 DisplayNextReward();
+        }
+
+        void OnOpenAnimationEnded()
+        {
+            // hide chest / display rewards section
+            m_ChestContainer.gameObject.SetActive(false);
+            m_RewardDisplayContainer.gameObject.SetActive(true);
+
+            // collect chest rewards and remove it from database if is in 
+            InventoryManager.CollectRewards(m_Rewards);
+            if (m_ChestIndex >= 0)
+                InventoryManager.RemoveChestAtIndex(m_ChestIndex);
+
+            // start displaying rewards
+            DisplayNextReward();
         }
 
         #endregion

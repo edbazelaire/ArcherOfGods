@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Ic_EpicChest_0: -4363317194639067447
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

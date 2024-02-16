@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Ic_Torment_0: 7022070427770730974
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
