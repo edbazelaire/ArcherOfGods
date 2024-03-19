@@ -2,7 +2,6 @@ using Assets;
 using Assets.Scripts.UI;
 using Enums;
 using Game;
-using Game.Managers;
 using Network;
 using System;
 using System.Collections;
@@ -48,7 +47,6 @@ public class SceneLoader : MonoBehaviour
             ErrorHandler.FatalError("Loading screen not set");
 
         m_LoadingScreen.Display(true);
-
         AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
 
         float progress;

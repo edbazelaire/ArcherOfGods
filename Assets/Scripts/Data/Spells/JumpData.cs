@@ -5,8 +5,11 @@ using UnityEngine;
 namespace Data
 {
     [CreateAssetMenu(fileName = "Jump", menuName = "Game/Spells/Jump")]
-    public class JumpData : SpellData
+    public class JumpData : ProjectileData
     {
-        //public EJumpType JumpType = EJumpType.None;
+        public override ESpellType SpellType => ESpellType.Jump;
+
+        [Header("Jump Data")]
+        public EJumpType JumpType = EJumpType.None;
     }
 }

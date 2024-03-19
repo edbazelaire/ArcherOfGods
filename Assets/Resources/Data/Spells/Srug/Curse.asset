@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Curse
   m_EditorClassIdentifier: 
   SpellType: 0
+  Rarety: 0
+  Linked: 1
   Graphics: {fileID: 2910976597878939058, guid: 6004c88444bcc9b48ad4d76700f22980, type: 3}
   Preview: {fileID: 7274605584167926077, guid: 0961e062c4a6d3b40b81e8e5e6da0eae, type: 3}
   OnAnimation: []
@@ -27,6 +29,7 @@ MonoBehaviour:
   Speed: 20
   Distance: -1
   Duration: 0
+  Delay: 0
   Size: 0.3
   TriggerPlayer: 1
   EnemyStateEffects:
@@ -44,7 +47,7 @@ MonoBehaviour:
     ColorSwap: {r: 0, g: 0, b: 0, a: 0}
     CounterGraphics: {fileID: 0}
   JumpType: 0
-  Animation: 1
+  Animation: 2
   IsCancellable: 1
   AnimationTimer: 0.3
   CastAt: 1

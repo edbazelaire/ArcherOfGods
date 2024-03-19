@@ -186,8 +186,14 @@ namespace Network
                     return;
 
                 case ELobbyState.SendingPlayerData:
-                    var playerData = m_PlayerData;
-                    GameManager.Instance.AddPlayerDataServerRPC(NetworkManager.Singleton.LocalClientId, (ECharacter)Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value));
+                    var playerData = m_PlayerData;                          // TODO : remove if no longer necessary
+                    
+                    GameManager.Instance.AddPlayerDataServerRPC(
+                        NetworkManager.Singleton.LocalClientId,
+                        StaticPlayerData.ToStruct()
+
+                        //(ECharacter)Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value),   : old method (using lobby data) -> remove if not necessary
+                    );
                     NextState();
                     return;
 
@@ -282,7 +288,7 @@ namespace Network
                     IsPrivate = false,
                     Player = new Player
                     {
-                        Data = PlayerData.GetPlayerData()
+                        Data = StaticPlayerData.ToPlayerDataObject()
                     },
                     Data = new Dictionary<string, DataObject> {
                         { "GameMode", new DataObject(DataObject.VisibilityOptions.Public, "1v1", DataObject.IndexOptions.S1) },
@@ -320,7 +326,7 @@ namespace Network
                 {
                     Player = new Player
                     {
-                        Data = PlayerData.GetPlayerData()
+                        Data = StaticPlayerData.ToPlayerDataObject()
                     }
                 };
 
@@ -443,15 +449,13 @@ namespace Network
             }
         }
 
-        async void UpdatePlayerData(string playerName = "", ECharacter character = ECharacter.Count, ulong clientId = 99999999)
+        async void UpdatePlayerData(string playerName = "", ECharacter character = ECharacter.Count)
         {
             var data = new Dictionary<string, PlayerDataObject>();
             if (playerName != "")
-                data.Add(PlayerData.KEY_PLAYER_NAME, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName));
+                data.Add(StaticPlayerData.KEY_PLAYER_NAME, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, playerName));
             if ( character != ECharacter.Count )
-                data.Add(PlayerData.KEY_CHARACTER, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, ((int)character).ToString()));
-            if ( clientId != 99999999)
-                data.Add(PlayerData.KEY_CLIENT_ID, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, clientId.ToString()));
+                data.Add(StaticPlayerData.KEY_CHARACTER, new PlayerDataObject(PlayerDataObject.VisibilityOptions.Member, ((int)character).ToString()));
 
             try
             {

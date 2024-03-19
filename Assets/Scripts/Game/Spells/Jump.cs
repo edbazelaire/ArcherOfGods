@@ -13,6 +13,8 @@ namespace Game.Spells
     {
         #region Members
 
+        JumpData m_SpellData => m_BaseSpellData as JumpData;
+
         bool    m_StartEnd              = false;
         float   m_DurationTimer;
         float   m_OffsetY;
@@ -20,9 +22,9 @@ namespace Game.Spells
         #endregion
 
         // Use this for initialization
-        public override void Initialize(Vector3 target, string spellName)
+        public override void Initialize(Vector3 target, string spellName, int level)
         {
-            base.Initialize(target, spellName);
+            base.Initialize(target, spellName, level);
 
             m_OffsetY = 0.1f + ((CapsuleCollider2D)m_Controller.Collider).size.y / 2;
 

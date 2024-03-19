@@ -1,3 +1,4 @@
+using Enums;
 using System;
 using Unity.Netcode;
 using UnityEngine;
@@ -53,6 +54,9 @@ namespace Game.Character
                 return;
 
             m_InitialSpeed = BASE_PLAYER_SPEED * characterSpeed;
+
+            // register movement methods to UI movement buttons
+
         }
 
         #endregion
@@ -102,11 +106,11 @@ namespace Game.Character
                 return;
             }
 
-            if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.A))
+            if (Input.GetKey(KeyCode.Q) || GameUIManager.LeftMovementButtonPressed)
             {
                 m_MoveX.Value = -1;
             }
-            else if (Input.GetKey(KeyCode.D))
+            else if (Input.GetKey(KeyCode.D) || GameUIManager.RightMovementButtonPressed)
             {
                 m_MoveX.Value = 1;
             } 
@@ -177,8 +181,9 @@ namespace Game.Character
             {
                 return
                     ! m_Controller.StateHandler.IsStunned 
+                    && ! m_Controller.StateHandler.HasState(EStateEffect.Frozen) 
                     && ! m_Controller.CounterHandler.HasCounter
-                    && ! m_Controller.StateHandler.HasState(Enums.EStateEffect.Jump);
+                    && ! m_Controller.StateHandler.HasState(EStateEffect.Jump);
             }
         }
 

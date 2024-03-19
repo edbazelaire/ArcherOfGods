@@ -1,6 +1,11 @@
-﻿using MyBox;
+﻿using Data;
+using Enums;
+using Inventory;
+using MyBox;
+using Save;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tools.Debugs;
 using Unity.Netcode;
 using UnityEngine;
@@ -186,7 +191,6 @@ namespace Tools
             if (hasError)
                 return;
 
-            Debug.Log("Callback Registered : " + command  + " with key " + key);
             m_Commands.Add(new SCommand(callback, command, key));
         }
 
@@ -407,6 +411,44 @@ namespace Tools
             }
 
             ConsoleUI.Log(text);
+        }
+
+        [Command(KeyCode.P)]
+        public void UnlockAllSpells()
+        {
+            foreach (ESpell spell in Enum.GetValues(typeof(ESpell)))
+            {
+                SSpellCloudData data = InventoryManager.GetSpellData(spell);
+                if (data.Level == 0)
+                    InventoryManager.Unlock(ref data);
+            }
+        }
+
+        [Command]
+        public void DisplayErrors()
+        {
+            if (ErrorHandler.Errors.Count == 0)
+            {
+                ConsoleUI.Log("No error registered");
+                return;
+            }
+
+            foreach (Error error in ErrorHandler.Errors)
+            {
+                ConsoleUI.Log(error.Message); 
+            } 
+        }
+
+        [Command]
+        public void LastErrorTrace()
+        {
+            if (ErrorHandler.Errors.Count == 0)
+            {
+                ConsoleUI.Log("No error registered");
+                return;
+            }
+
+            ConsoleUI.Log(ErrorHandler.Errors.Last().GetTraceString());
         }
 
         #endregion

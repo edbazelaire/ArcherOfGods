@@ -1,6 +1,7 @@
 using Enums;
 using Externals;
 using Game.Managers;
+using Managers;
 using MyBox;
 using Network;
 using System.Collections;
@@ -33,7 +34,7 @@ namespace Game
 
         // -- Player Data
         /// <summary> [SERVER] dict matching a client id to player data </summary>
-        Dictionary<ulong, ECharacter>   m_PlayersData           = new();
+        Dictionary<ulong, SPlayerData>  m_PlayersData           = new();
         /// <summary> [CLIENT/SERVER] dict matchin a client id to a player controller </summary>
         Dictionary<ulong, Controller>   m_Controllers           = new();
 
@@ -50,6 +51,7 @@ namespace Game
         public Dictionary<ulong, Controller>    Controllers                 => m_Controllers;
         public NetworkVariable<float>           ProgressGameStart           => m_ProgressGameStart;
         public bool                             IsGameStarted               => m_State.Value >= EGameState.Intro;
+        public bool                             IsGameOver                  => m_State.Value >= EGameState.GameOver;
 
         #endregion
 
@@ -134,13 +136,13 @@ namespace Game
         /// <param name="clientId"></param>
         /// <param name="character"></param>
         [ServerRpc(RequireOwnership = false)]
-        public void AddPlayerDataServerRPC(ulong clientId, ECharacter character)
+        public void AddPlayerDataServerRPC(ulong clientId, SPlayerData playerData)
         {
             if (!IsServer)
                 return;
 
-            Debug.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + character.ToString());
-            m_PlayersData.Add(clientId, character);
+            Debug.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + playerData.Character.ToString());
+            m_PlayersData.Add(clientId, playerData);
 
             m_ProgressGameStart.Value += 1f / ((float)LobbyHandler.Instance.MaxPlayers * N_LOADING_STEPS);
 
@@ -162,11 +164,9 @@ namespace Game
             if (!IsServer)
                 return;
 
-            foreach (var playerData in m_PlayersData)
+            foreach (var item in m_PlayersData)
             {
-                ulong clientId = (ulong)playerData.Key;
-                var character = playerData.Value;
-                SpawnPlayer(clientId, character);
+                SpawnPlayer(item.Key, item.Value);
                 m_ProgressGameStart.Value += 1f / (LobbyHandler.Instance.MaxPlayers * N_LOADING_STEPS);
             }
 
@@ -179,7 +179,7 @@ namespace Game
         /// </summary>
         /// <param name="clientId"></param>
         /// <param name="character"></param>
-        void SpawnPlayer(ulong clientId, ECharacter character)
+        void SpawnPlayer(ulong clientId, SPlayerData playerData)
         {
             if (! IsServer)
                 return;
@@ -196,7 +196,7 @@ namespace Game
 
             // initialize player data
             controller.Initialize(
-                character: character,
+                playerData: playerData,
                 team: team
             );
 
@@ -216,14 +216,10 @@ namespace Game
             // add player to list of player controllers
             Controller poutchController = Finder.FindComponent<Controller>(poutch);
 
-            // setup poutch's character / team
-            ECharacter character = ECharacter.Alexander;
-            int team = 1;
-
             // initialize player data
             poutchController.Initialize(
-                character: character,
-                team: team,
+                playerData: new SPlayerData("Poutchy", 1, ECharacter.Alexander, ERune.None, new ESpell[] {}, new int[] {}),
+                team: 1,
                 false
             );
 
@@ -395,6 +391,17 @@ namespace Game
 
             return null;
         }
+
+        public Controller GetFirstAlly(int team, ulong slefId)
+        {
+            // find first non self ally
+            foreach (Controller controller in m_Controllers.Values)
+                if (controller.Team == team && controller.OwnerClientId != slefId)
+                    return controller;
+
+            // none found -> return self
+            return GetPlayer(slefId);
+        }
         
         public bool HasPlayer(ulong clientId)
         {
@@ -525,6 +532,18 @@ namespace Game
         public void AutoWin()
         {
             GameOverClientRPC(Owner.Team);
+        }
+
+        [Command(KeyCode.M)]
+        public void RemoveLife() 
+        {
+            Owner.Life.Hit(50);
+        }
+
+        [Command(KeyCode.L)]
+        public void RemoveLifeEnemy() 
+        {
+            GetFirstEnemy(Owner.Team).Life.Hit(50);
         }
 
         #endregion

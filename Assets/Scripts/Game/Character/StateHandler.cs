@@ -2,14 +2,12 @@
 using Enums;
 using Game.Managers;
 using Game.Spells;
-using Game.UI;
-using MyBox;
 using System;
 using System.Collections.Generic;
 using Tools;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Game.Character
 {
@@ -19,26 +17,24 @@ namespace Game.Character
         // ==============================================================================================
         // PRIVATE ACCESSORS
         // -- Network Variables
-        NetworkList<int>        m_StateEffectList;
-        NetworkVariable<float>  m_SpeedBonus = new(1f);
-        NetworkVariable<int>    m_Shield = new(0);
+        NetworkList<FixedString64Bytes>     m_StateEffectList;
+        NetworkVariable<float>              m_SpeedBonus = new(1f);
+        NetworkVariable<int>                m_RemainingShield = new(0);
 
         // -- SERVER SIDE
         Controller              m_Controller;
         List<StateEffect>       m_StateEffects;
-        int                     m_ResistanceFix     = 0;
-        float                   m_ResistancePerc    = 1f;
 
         // ==============================================================================================
         // PUBLIC ACCESSORS
-        public NetworkList<int> StateEffectList => m_StateEffectList;
-        public bool IsStunned => m_StateEffectList.Contains((int)EStateEffect.Stun);
+        public NetworkList<FixedString64Bytes> StateEffectList => m_StateEffectList;
+        public bool IsStunned => m_StateEffectList.Contains(EStateEffect.Stun.ToString());
         public NetworkVariable<float> SpeedBonus => m_SpeedBonus;
-        public int Shield => m_Shield.Value;
+        public NetworkVariable<int> RemainingShield => m_RemainingShield;
 
         // ==============================================================================================
         // EVENTS
-        public event Action<EListEvent, EStateEffect, int, float> OnStateEvent;
+        public event Action<EListEvent, string, int, float> OnStateEvent;
 
         #endregion
 
@@ -48,7 +44,7 @@ namespace Game.Character
         private void Awake()
         {
             // init network lists
-            m_StateEffectList = new NetworkList<int>();
+            m_StateEffectList = new NetworkList<FixedString64Bytes>();
 
             // init components 
             m_Controller = GetComponent<Controller>();
@@ -88,7 +84,7 @@ namespace Game.Character
 
             for (int i = m_StateEffects.Count - 1; i >= 0; i--)
             {
-                m_StateEffects[i].UpdateTimer();
+                m_StateEffects[i].Update();
             }
         }
 
@@ -98,7 +94,7 @@ namespace Game.Character
         #region Client RPC
 
         [ClientRpc]
-        void OnStateEventClientRPC(EListEvent listEvent, EStateEffect stateEffect, int stacks, float duration)
+        void OnStateEventClientRPC(EListEvent listEvent, string stateEffect, int stacks, float duration)
         {
             OnStateEvent?.Invoke(listEvent, stateEffect, stacks, duration);
         }
@@ -108,9 +104,14 @@ namespace Game.Character
 
         #region Public Accessors
 
+        public bool HasState(string state)
+        {
+            return m_StateEffectList.Contains(state);
+        }
+
         public bool HasState(EStateEffect state)
         {
-            return m_StateEffectList.Contains((int)state);
+            return HasState(state.ToString());
         }
 
         public void SetStateJump(bool on)
@@ -129,12 +130,21 @@ namespace Game.Character
         public int ApplyResistance(int damages)
         {
             // apply res fix first
-            damages = Math.Max(0, damages - m_ResistanceFix);
+            damages = Math.Max(0, damages - GetInt(EStateEffectProperty.ResistanceFix));
 
             // apply percentage res
-            damages = (int)Mathf.Round(damages * m_ResistancePerc);
+            damages = (int)Mathf.Round(damages * GetFloat(EStateEffectProperty.ResistancePerc));
             
             return damages;
+        }
+
+        public int ApplyBonusDamages(int damages)
+        {
+            // apply percentage res
+            damages = Math.Max(0, damages + GetInt(EStateEffectProperty.BonusDamages));
+
+            // apply res fix first
+            return (int)Mathf.Round(damages * GetFloat(EStateEffectProperty.BonusDamagesPerc));   
         }
 
         #endregion
@@ -166,41 +176,30 @@ namespace Game.Character
             if (!IsServer)
                 return;
 
-            int shield          = 0;
-            float speedBonus    = 1f;
-            int resFix          = 0;
-            float resPerc       = 1f;
+            m_SpeedBonus.Value  = GetFloat(EStateEffectProperty.SpeedBonus);
 
+            int baseValue = 0;
             foreach (var effect in m_StateEffects)
             {
-                // some stack effects are set at 0 but the minimum value of the factor is 1
-                int stacksFactor = Math.Max(1, effect.Stacks);
-
-                shield      += effect.RemainingShield;
-                speedBonus  *= Mathf.Pow(effect.SpeedBonus, stacksFactor);
-                resFix      += stacksFactor * effect.ResistanceFix;
-                resPerc     *= Mathf.Pow(effect.ResistancePerc, stacksFactor);
+                baseValue += effect.RemainingShield;
             }
 
-            m_SpeedBonus.Value  = speedBonus;
-            m_Shield.Value      = shield;
-            m_ResistanceFix     = resFix;
-            m_ResistancePerc    = resPerc;
+            m_RemainingShield.Value = baseValue;
         }
 
         /// <summary>
         /// Refresh the state effect
         /// </summary>
-        /// <param name="stateEffect"></param>
-        void RefreshEffect(EStateEffect stateEffect, int stacks = 0)
+        /// <param name="stateEffectName"></param>
+        void RefreshEffect(string stateEffectName, int stacks = 1)
         {
             foreach (var effect in m_StateEffects)
             {
-                if (effect.Type != stateEffect)
+                if (effect.StateEffectName != stateEffectName)
                     continue;
 
                 effect.Refresh(stacks);
-                OnStateEventClientRPC(EListEvent.Add, effect.Type, effect.Stacks, effect.Duration);
+                OnStateEventClientRPC(EListEvent.Add, effect.StateEffectName, effect.Stacks, effect.GetFloat(EStateEffectProperty.Duration));
                 RecalculateBonus();
                 break;
             }
@@ -215,28 +214,37 @@ namespace Game.Character
         /// Add a state effect to the character
         /// </summary>
         /// <param name="stateEffect"></param>
-        public void AddStateEffect(SStateEffectData stateEffectData)
+        public void AddStateEffect(SStateEffectData stateEffectData, int level = 1)
         {
             if (! IsServer)
                 return;
 
+            // create and add state effect  
+            StateEffect stateEffect = SpellLoader.GetStateEffect(stateEffectData.StateEffect, level);
+            AddStateEffect(stateEffect, stateEffectData);
+        }
+
+        public void AddStateEffect(StateEffect stateEffect, SStateEffectData? overridingData = null)
+        {
+            if (!IsServer)
+                return;
+
             // if already in the list of state effects, refresh it
-            if (HasState(stateEffectData.StateEffect))
+            if (HasState(stateEffect.StateEffectName))
             {
-                RefreshEffect(stateEffectData.StateEffect, stateEffectData.Stacks);
+                RefreshEffect(stateEffect.StateEffectName, overridingData != null ? overridingData.Value.Stacks : 1);
                 return;
             }
 
-            // create and add state effect  
-            StateEffect stateEffect = SpellLoader.GetStateEffect(stateEffectData.StateEffect);
-            stateEffect.Initialize(m_Controller, stateEffectData);
-            m_StateEffects.Add(stateEffect);
+            if (! stateEffect.Initialize(m_Controller, overridingData))
+                return;
 
             // add the state effect to the list of active effects
-            m_StateEffectList.Add((int)stateEffectData.StateEffect);
+            m_StateEffects.Add(stateEffect);
+            m_StateEffectList.Add(stateEffect.StateEffectName);
 
             // send event to clients (for UI update)
-            OnStateEventClientRPC(EListEvent.Add, stateEffect.Type, stateEffect.Stacks, stateEffect.Duration);
+            OnStateEventClientRPC(EListEvent.Add, stateEffect.StateEffectName, stateEffect.Stacks, stateEffect.GetFloat(EStateEffectProperty.Duration));
 
             // recheck bonus potentially provided by this new stateEffect
             RecalculateBonus();
@@ -264,13 +272,13 @@ namespace Game.Character
         /// Remove a state effect from the character
         /// </summary>
         /// <param name="state"></param>
-        public int RemoveState(EStateEffect state)
+        public int RemoveState(string state)
         {
             if (!IsServer)
                 return 0;
 
             // remove effect type from list of active effects
-            int index = m_StateEffectList.IndexOf((int)state);
+            int index = m_StateEffectList.IndexOf(state);
             if (index == -1)
             {
                 ErrorHandler.FatalError($"Unable to find state {state} in list");
@@ -281,9 +289,10 @@ namespace Game.Character
             int nStacks = m_StateEffects[index].Stacks;
 
             // send event to clients (for UI update)
-            OnStateEventClientRPC(EListEvent.Remove, m_StateEffects[index].Type, m_StateEffects[index].Stacks, m_StateEffects[index].Duration);
+            OnStateEventClientRPC(EListEvent.Remove, m_StateEffects[index].StateEffectName, m_StateEffects[index].Stacks, 0f);
 
             // remove effect from list on Server side
+            Destroy(m_StateEffects[index]);
             m_StateEffectList.RemoveAt(index);
             m_StateEffects.RemoveAt(index);
 
@@ -295,13 +304,22 @@ namespace Game.Character
         }
 
         /// <summary>
+        /// Remove a state effect from the character
+        /// </summary>
+        /// <param name="state"></param>
+        public int RemoveState(EStateEffect state)
+        {
+            return RemoveState(state.ToString());
+        }
+
+        /// <summary>
         /// Hit the shield with some damages and return the remaining damages
         /// </summary>
         /// <param name="damages"></param>
         /// <returns></returns>
         public int HitShield(int damages)
         {
-            if (Shield == 0)
+            if (m_RemainingShield.Value == 0)
                 return damages;
 
             foreach (var effect in m_StateEffects)
@@ -319,21 +337,41 @@ namespace Game.Character
         #endregion
 
 
-        #region Network Variables Accessors
+        #region Public Data Accessors
 
-        public List<EStateEffect> OnHitEffectList
+        public float GetFloat(EStateEffectProperty property)
         {
-            get
+            // only server can calculate speed factor
+            if (!IsServer)
+                return 1f;
+
+            float baseValue = 1f;
+
+            foreach (var effect in m_StateEffects)
             {
-                var list = new List<EStateEffect>();
-                foreach (var effect in m_StateEffectList)
-                {
-                    list.Add((EStateEffect)effect);
-                }
-                return list;
+                baseValue += effect.GetFloat(property);
             }
+
+            return baseValue;
+        }
+
+        public int GetInt(EStateEffectProperty property)
+        {
+            // only server can calculate speed factor
+            if (!IsServer)
+                return 0;
+
+            int baseValue = 0;
+
+            foreach (var effect in m_StateEffects)
+            {
+                baseValue += effect.GetInt(property);
+            }
+
+            return baseValue;
         }
 
         #endregion
+
     }
 }

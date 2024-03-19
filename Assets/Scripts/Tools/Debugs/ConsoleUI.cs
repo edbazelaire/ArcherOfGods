@@ -4,7 +4,6 @@ using Tools.Debugs;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static UnityEditor.ShaderGraph.Internal.KeywordDependentCollection;
 
 namespace Tools
 {

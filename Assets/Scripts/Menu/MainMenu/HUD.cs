@@ -34,8 +34,11 @@ namespace Assets.Scripts.Menu
 
         void AddTest()
         {
-            var testButton = Finder.FindComponent<Button>(gameObject, "TestButton");
-            testButton.onClick.AddListener(() => { InventoryManager.AddChest(InventoryManager.CreateRandomChest()); } );
+            var chestButton = Finder.FindComponent<Button>(gameObject, "ChestButton");
+            chestButton.onClick.AddListener(() => { InventoryManager.AddChest(InventoryManager.CreateRandomChest()); } );
+
+            var xpButton = Finder.FindComponent<Button>(gameObject, "XpButton");
+            xpButton.onClick.AddListener(() => { InventoryManager.AddXp(CharacterBuildsCloudData.SelectedCharacter, 50); } );
         }
 
         #region GUI Manipulators

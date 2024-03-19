@@ -13,7 +13,7 @@ namespace Menu.PopUps
         protected bool m_Initialized = false;
 
         protected EPopUpState m_Ref;
-        protected string PrefabPath { get; set; } = AssetLoader.c_OverlayPath;
+        protected virtual string PrefabPath { get; set; } = AssetLoader.c_OverlayPath;
 
 
         public OverlayScreen(EPopUpState reference)
@@ -23,8 +23,8 @@ namespace Menu.PopUps
 
         public virtual void Initialize()
         {
-            OnPrefabLoaded();
             OnEnter();
+            CoroutineManager.DelayMethod(OnPrefabLoaded);
 
             m_Initialized = true;
         }
@@ -82,10 +82,12 @@ namespace Menu.PopUps
 
         protected virtual void RegisterButtons()
         {
-            var buttons = Finder.FindComponents<Button>(gameObject);
+            var buttons = Finder.FindComponents<Button>(gameObject, throwError: false);
+            if (buttons == null)
+                return;
+
             foreach (var button in buttons)
             {
-                Debug.Log("Found Button : " + button.name);
                 button.onClick.AddListener(() => OnUIButton(button.name));
             }
         }
@@ -95,7 +97,10 @@ namespace Menu.PopUps
         /// </summary>
         protected virtual void UnRegisterButtons()
         {
-            var buttons = Finder.FindComponents<Button>(gameObject);
+            var buttons = Finder.FindComponents<Button>(gameObject, throwError: false);
+            if (buttons == null)
+                return;
+
             foreach (var button in buttons)
             {
                 button.onClick.RemoveAllListeners();
@@ -111,7 +116,7 @@ namespace Menu.PopUps
             switch (bname)
             {
                 default:
-                    ErrorHandler.Error("Unregistered button : " + bname);
+                    //ErrorHandler.Warning("Unregistered button : " + bname);
                     return;
             }
         }

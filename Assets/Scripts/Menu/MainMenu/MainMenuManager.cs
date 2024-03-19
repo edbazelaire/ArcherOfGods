@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using Tools;
 using UnityEngine;
 
@@ -21,11 +20,16 @@ namespace Menu.MainMenu
         /// <summary> time that the scroll animation will take to move an entire tab window </summary>
         [SerializeField] float m_ScrollTime = 0.5f;
 
+        /// <summary> container of the main menu tabs button </summary>
+        GameObject m_MainSelectionTab;
+
         /// <summary> type of enum used for the tabs </summary>
-        protected Type m_TabEnumType { get; set; } = typeof(EMainMenuTabs);
+        protected override Type m_TabEnumType { get; set; } = typeof(EMainMenuTabs);
+        protected override Enum m_DefaultTab { get; set; } = EMainMenuTabs.MainTab;
 
         /// <summary> coroutine of the scroll end animation </summary>
         Coroutine m_ScrollCoroutine;
+        bool m_ListeningToScrollEnd;
 
         // =================================================================================================
         // ACCESSORS (casted values)
@@ -35,18 +39,33 @@ namespace Menu.MainMenu
         #endregion
 
 
+        #region Init & End
+
+        protected override void InitTabsButtonContainer()
+        {
+            m_MainSelectionTab = Finder.Find("MainMenuSelection");
+            m_TabButtonsContainer = Finder.Find(m_MainSelectionTab, "Content");
+        }
+
+        #endregion
+
+
         #region Updates
 
         private void Update()
         {
-            if (Input.GetMouseButtonUp(0) && m_TabsContainerContent != null)
+            if (m_ListeningToScrollEnd && Input.GetMouseButtonUp(0) && m_TabsContainerContent != null)
             {
                 OnScrollEnd();
+                m_ListeningToScrollEnd = false;
             }
 
-            if (Input.GetMouseButtonDown(0) && m_ScrollCoroutine != null)
+            if (Input.GetMouseButtonDown(0) && ! UIHelper.IsMouseIn(m_MainSelectionTab))
             {
-                StopCoroutine(m_ScrollCoroutine);
+                m_ListeningToScrollEnd = true;
+
+                if (m_ScrollCoroutine != null)
+                    StopCoroutine(m_ScrollCoroutine);
             }
         }
 
@@ -124,7 +143,6 @@ namespace Menu.MainMenu
             // if not above threshold : reset the position of the window
             if (Math.Abs(movementX) / windowWidth < m_NewTabScrollThreshold)
             {
-                Debug.Log("SCROLL THRESHOLD : Threshold not reached - resetting");
                 DisplayCurrentTab();
                 return;
             }

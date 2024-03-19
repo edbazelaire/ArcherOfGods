@@ -1,4 +1,8 @@
-﻿using Tools;
+﻿using Data;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using Tools;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -7,6 +11,10 @@ namespace Game.Spells
     public class Aoe : Spell
     {
         #region Members
+
+        protected virtual float DELAY_END_DURATION => 1f;
+
+        AoeData m_SpellData => m_BaseSpellData as AoeData;
 
         protected NetworkVariable<float>  m_Radius    = new NetworkVariable<float>(0);
 
@@ -31,9 +39,14 @@ namespace Game.Spells
         /// <param name="radius"></param>
         /// <param name="damage"></param>
         /// <param name="duration"></param>
-        public override void Initialize(Vector3 target, string spellName)
+        public override void Initialize(Vector3 target, string spellName, int level)
         {
-            base.Initialize(target, spellName);
+            // handle size and position (before graphic initialization)
+            transform.position = new Vector3(target.x, 0f, 1f);
+
+            base.Initialize(target, spellName, level);
+
+            transform.localScale = new Vector3(m_SpellData.Size, m_SpellData.Size, 1f);
 
             if (!IsServer)
                 return;
@@ -42,9 +55,16 @@ namespace Game.Spells
             m_Radius.Value      = m_SpellData.Size;
             m_DurationTimer     = m_SpellData.Duration;
 
-            // handle size and position
-            transform.position = new Vector3(target.x, 0f, 1f);
-            transform.localScale = new Vector3(m_Radius.Value, m_Radius.Value, 1f);
+            CreateCollisionCircle();
+        }
+
+        protected override void End()
+        {
+            // visual ending effect
+            SpawnOnHitPrefab();
+
+            // destroy the spell game object (with delay if any)
+            StartCoroutine(DelayEndGraphics());
         }
 
         /// <summary>
@@ -59,7 +79,7 @@ namespace Game.Spells
         #endregion
 
 
-        #region Inherited Manipulators
+        #region Update
 
         /// <summary>
         /// 
@@ -73,30 +93,85 @@ namespace Game.Spells
 
             m_DurationTimer -= Time.deltaTime;
             if (m_DurationTimer <= 0f)
-                End();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="collision"></param>
-        protected void OnTriggerEnter2D(Collider2D collision)
-        {
-            if (!IsServer)
-                return;
-
-            if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
             {
-                OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
+                End();
+                return;
             }
         }
 
         #endregion
 
 
-        #region Private Manipulators
-        
-        void OnRadiusChanged(float oldRadius, float newRadius)
+        #region Collision Manipulators
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="collision"></param>
+        protected virtual void OnCollision(Collider2D collision)
+        {
+            if (!IsServer)
+                return;
+
+            if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
+            {
+                // check that players has controller 
+                var controller = Finder.FindComponent<Controller>(collision.gameObject);
+                if (controller == null)
+                {
+                    ErrorHandler.Error("Controller not found for player " + collision.gameObject.name);
+                    return;
+                }
+
+                OnCollisionController(controller);
+            }
+        }
+
+        protected virtual void OnCollisionController(Controller controller)
+        {
+            Debug.Log("OnHit() : " + m_SpellData.SpellName);
+            Debug.Log("     + Owner : " + OwnerClientId);
+            Debug.Log("     + LocalId : " + NetworkManager.Singleton.LocalClientId);
+
+            // hit the player
+            OnHitPlayer(controller);
+        }
+
+        protected void CreateCollisionCircle()
+        {
+            // Check for collisions within a circle with variableRadius radius
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, m_Radius.Value);
+
+            // Iterate through all colliders found
+            foreach (Collider2D collider in colliders)
+            {
+                OnCollision(collider);
+            }
+        }
+
+        #endregion
+
+
+        #region Graphics Manipulation
+
+        protected virtual IEnumerator DelayEndGraphics()
+        {
+            var timer = DELAY_END_DURATION;
+            while (timer > 0)
+            {
+                timer -= Time.deltaTime;
+                yield return null;
+            }
+
+            DestroySpell();
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        protected virtual void OnRadiusChanged(float oldRadius, float newRadius)
         {
             transform.localScale = new Vector3(newRadius, newRadius, 1f);
         }

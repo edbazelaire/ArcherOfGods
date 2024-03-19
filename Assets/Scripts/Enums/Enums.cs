@@ -6,6 +6,12 @@
 
         LoadingScreen,
         ChestOpeningScreen,
+        LevelUpScreen,
+        SpellInfoPopUp,
+        StateEffectPopUp,
+        RuneSelectionPopUp,
+
+        ErrorMessagePopUp,
     }
 
     public enum EGameMode
@@ -19,6 +25,8 @@
         Kahnan,
         Alexander,
         Srug,
+        Marcus,
+        Bruh,
 
         Count
     }
@@ -26,7 +34,7 @@
     public enum ESpell
     {
         Arrow,
-        StraightArrow,
+        Blazeburst,
         Fireball,
         FireBomb,
         Heal,
@@ -41,6 +49,16 @@
         ShadowRealm,
         Curse,
         Torment,
+        Sanctuary,
+        ScorchedEarth,
+        BerzerkerRage,
+        SmokeBomb,
+        ArcticToundra,
+        Blizzard,
+        FrozenOrb,
+        FrostbiteTouch,
+        Silence,
+        PyroBurst,
 
         Count
     }
@@ -52,6 +70,8 @@
         Aoe,
         Counter,
         Jump,
+        Zone,
+        Buff,
 
         Count
     }
@@ -62,6 +82,13 @@
         Rare,
         Epic,
         Legendary
+    }
+
+    public enum ERune
+    {
+        None,
+        Frost,
+        Fire,
     }
 
     public enum EAppState
@@ -102,6 +129,18 @@
         Straight,
 
         Count
+    }
+
+    public enum ESpellTarget
+    {
+        None,
+
+        EnemyZone,
+        AllyZone,
+        Free,
+        Self,
+        FirstAlly,
+        FirstEnemy,
     }
 
     public enum EJumpType
@@ -161,19 +200,44 @@
         Jump,
         IronSkin,
         Cursed,
+        Silence,
+        Scorched,
 
+    }
+
+    public enum EStateEffectProperty
+    {
+        None,
+
+        Duration,
+        MaxStacks,
+        SpeedBonus,
+        Shield,
+        ResistanceFix,
+        ResistancePerc,
+        BonusDamages,
+        BonusDamagesPerc,
+        LifeSteal,
+        MissingLifeFactor,
+        Damages,
+        Tick,
+        TickDamages,
+        TickHeal,
+        TickShield,
     }
 
     public enum EAnimation
     {
+        None,
         CastShootStraight,
         CastShoot,
         CancelCast,
         Counter,
         Jump,
         CastAOE,
-
-        Count
+        Win,
+        Loss,
+        CastBuff,
     }
 
     public enum ECounterType

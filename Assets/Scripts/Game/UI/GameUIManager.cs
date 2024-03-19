@@ -1,12 +1,18 @@
 using Enums;
 using Game;
+using Game.Spells;
 using Game.UI;
+using Menu.Common.Buttons;
+using Save;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameUIManager : MonoBehaviour
 {
+    #region Members
+
     static GameUIManager s_Instance;
 
     [SerializeField] private EndGameUI m_EndGameUI;
@@ -15,17 +21,40 @@ public class GameUIManager : MonoBehaviour
     const string        c_PlayerUIContainerPrefix   = "PlayerUIContainer_";
     const string        c_SpellsContainer           = "SpellsContainer";
     const int           NUM_TEAMS                   = 2;
-
+    
+    // ==============================================================================================================
+    // Templates
     /// <summary> Template of a PlayerUI to create on Character Instantiation </summary>
     public GameObject   m_PlayerUITemplate;
     /// <summary> Spell item template to instantiate on Character Instantiation </summary>
     public GameObject   SpellTemplate;
-
+    
+    // ==============================================================================================================
+    // Game Objects & Components
+    /// <summary> button that inputs a movement to the left </summary>
+    Button              m_LeftMovementButton;
+    /// <summary> button that inputs a movement to the right </summary>
+    Button              m_RightMovementButton;
+    /// <summary> container for SpellItemUI(s) </summary>
     GameObject          m_SpellContainer;
+    /// <summary> container for SpellItemUI(s) of linked spells </summary>
+    GameObject          m_LinkedSpellsContainer;
+    /// <summary> containers for PlayerUI(s) </summary>
     List<GameObject>    m_PlayerUIContainers;
-    List<SpellItemUI>   m_SpellItems;   
+    /// <summary> list of instantiated SpellItemUI(s) </summary>
+    List<SpellItemUI>   m_SpellItems;
 
-    public GameObject SpellContainer => m_SpellContainer;
+    // ==============================================================================================================
+    // Data
+    bool                m_LeftMovementButtonPressed;
+    bool                m_RightMovementButtonPressed;
+
+    // ==============================================================================================================
+    // Public Accessors
+    public static bool LeftMovementButtonPressed        => Instance.m_LeftMovementButtonPressed;
+    public static bool RightMovementButtonPressed       => Instance.m_RightMovementButtonPressed;
+   
+    #endregion
 
 
     #region Initialization
@@ -37,7 +66,8 @@ public class GameUIManager : MonoBehaviour
         m_EndGameUI.gameObject.SetActive(false);
 
         FindPlayerUIContainers();
-        FindSpellsContainer();
+        FindMovementButtons();
+        FindSpellsContainers();
     }
 
     /// <summary>
@@ -60,15 +90,34 @@ public class GameUIManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Get movement buttons
+    /// </summary>
+    void FindMovementButtons()
+    {
+        var container           = Finder.Find(gameObject, "MovementButtonsContainer");
+        m_LeftMovementButton    = Finder.FindComponent<Button>(container.gameObject, "LeftMovementButton");
+        m_RightMovementButton   = Finder.FindComponent<Button>(container.gameObject, "RightMovementButton");
+
+        // link pressed button bools to pressed envents
+        Finder.FindComponent<HoldOnButton>(m_LeftMovementButton.gameObject).PressedEvent += (bool pressed) => { m_LeftMovementButtonPressed = pressed; };
+        Finder.FindComponent<HoldOnButton>(m_RightMovementButton.gameObject).PressedEvent += (bool pressed) => { m_RightMovementButtonPressed = pressed; };
+    }
+
+    /// <summary>
     /// 
     /// </summary>
-    void FindSpellsContainer()
+    void FindSpellsContainers()
     {
-        m_SpellContainer = GameObject.Find(c_SpellsContainer);
-        if (!Checker.NotNull(m_SpellContainer))
-            return;
+        m_SpellContainer = Finder.Find(gameObject, c_SpellsContainer);
+        m_LinkedSpellsContainer = Finder.Find(gameObject, "LinkedSpellsContainer");
 
         ClearSpells();
+    }
+
+
+    void DeleteGameUI()
+    {
+        Destroy(gameObject);
     }
 
     #endregion
@@ -92,10 +141,22 @@ public class GameUIManager : MonoBehaviour
     /// </summary>
     /// <param name="owner"></param>
     /// <param name="spell"></param>
-    public void CreateSpellTemplate(ESpell spell)
+    public void CreateSpellTemplate(ESpell spell, int level)
     {
         SpellItemUI spellItem = Finder.FindComponent<SpellItemUI>(GameObject.Instantiate(SpellTemplate, m_SpellContainer.transform));
-        spellItem.Initialize(spell);
+        spellItem.Initialize(spell, level);
+        m_SpellItems.Add(spellItem);
+    }
+
+    /// <summary>
+    /// add a SpellItemUI to the spell container
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="spell"></param>
+    public void CreateLinkedSpellTemplate(ESpell spell, int level)
+    {
+        SpellItemUI spellItem = Finder.FindComponent<SpellItemUI>(GameObject.Instantiate(SpellTemplate, m_LinkedSpellsContainer.transform));
+        spellItem.Initialize(spell, level);
         m_SpellItems.Add(spellItem);
     }
 
@@ -104,10 +165,8 @@ public class GameUIManager : MonoBehaviour
     /// </summary>
     public void ClearSpells()
     {
-        foreach (Transform child in m_SpellContainer.transform)
-        {
-            Destroy(child.gameObject);
-        }
+        UIHelper.CleanContent(m_SpellContainer);
+        UIHelper.CleanContent(m_LinkedSpellsContainer);
     }
 
     /// <summary>
@@ -134,6 +193,9 @@ public class GameUIManager : MonoBehaviour
     {
         m_EndGameUI.gameObject.SetActive(true);
         m_EndGameUI.SetUpGameOver(win);
+
+        // destroy self
+        DeleteGameUI();
     }
 
     #endregion

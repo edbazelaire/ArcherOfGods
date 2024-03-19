@@ -9,24 +9,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4f7d0115edefaac40a924c0b246d24f9, type: 3}
+  m_Script: {fileID: 11500000, guid: 2413bf9bea7a81d44a0b645bca9d69f8, type: 3}
   m_Name: AxeThrow
   m_EditorClassIdentifier: 
-  SpellType: 0
+  Rarety: 0
+  Linked: 1
   Graphics: {fileID: 2272309172655654138, guid: aea2ab7d92a4e1a4b8d3d1e595e034e8, type: 3}
   Preview: {fileID: 7274605584167926077, guid: 0961e062c4a6d3b40b81e8e5e6da0eae, type: 3}
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
-  Trajectory: 1
+  SpellTarget: 1
   MaxHit: 1
   EnergyGain: 10
   EnergyCost: 0
   Damage: 12
   Heal: 0
-  Speed: 12
   Distance: -1
   Duration: 0
+  Delay: 0
   Size: 0.3
   TriggerPlayer: 1
   EnemyStateEffects: []
@@ -39,9 +40,10 @@ MonoBehaviour:
     OnCounterProc: 0
     ColorSwap: {r: 0, g: 0, b: 0, a: 0}
     CounterGraphics: {fileID: 0}
-  JumpType: 0
-  Animation: 1
+  Animation: 2
   IsCancellable: 1
   AnimationTimer: 0.7
-  CastAt: 0.5
+  CastAt: 0.7
   Cooldown: 0.4
+  Trajectory: 1
+  Speed: 8

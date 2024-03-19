@@ -1,7 +1,7 @@
 ﻿using Data;
+using Enums;
 using Game.Managers;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
@@ -13,19 +13,27 @@ namespace Game.Spells
     {
         #region Members
 
-        public Action OnSpellEndedEvent;
-
+        // ========================================================================================================
+        // Constants
         const string c_GraphicsContainer = "GraphicsContainer";
+        
 
+        // ========================================================================================================
+        // Data
+        protected SpellData m_BaseSpellData;
+        SpellData m_SpellData => m_BaseSpellData;
         protected Controller        m_Controller;
-        protected SpellData         m_SpellData;
         protected Vector3           m_Target;
         protected GameObject        m_GraphicsContainer;
-
+                
         /// <summary> counter of remaining number of target that this spell can hit </summary>
         protected List<ulong>       m_HittedPlayerId;
         /// <summary> on cast prefabs (spawn on cast) </summary>
         protected List<GameObject>  m_OnCastPrefabs;
+
+        // ========================================================================================================
+        // Events
+        public Action OnSpellEndedEvent;
 
 
         public SpellData SpellData => m_SpellData;
@@ -36,15 +44,20 @@ namespace Game.Spells
 
         #region Init & End
 
+        protected virtual void SetSpellData(string spellName, int level)
+        {
+            m_BaseSpellData = SpellLoader.GetSpellData(spellName, level);
+        }
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="target"></param>
         /// <param name="spellName"></param>
-        public virtual void Initialize(Vector3 target, string spellName)
+        public virtual void Initialize(Vector3 target, string spellName, int level)
         {
-            m_Controller        =  GameManager.Instance.GetPlayer(OwnerClientId);
-            m_SpellData         =  SpellLoader.GetSpellData(spellName);
+            m_Controller        = GameManager.Instance.GetPlayer(OwnerClientId);
+            SetSpellData(spellName, level);
             m_HittedPlayerId    = new List<ulong>();
 
             // set the target
@@ -52,7 +65,6 @@ namespace Game.Spells
 
             // initialize graphics of the spell (whith delay if has any)
             InitGraphics();
-
         }
 
         /// <summary>
@@ -65,7 +77,10 @@ namespace Game.Spells
                 m_GraphicsContainer = new GameObject(c_GraphicsContainer);
 
             if (m_SpellData.Graphics != null)
-                GameObject.Instantiate(m_SpellData.Graphics, m_GraphicsContainer.transform);
+            {
+                Debug.Log("InitGraphics() : " + m_SpellData.Graphics + " with size " + m_SpellData.Size);
+                Instantiate(m_SpellData.Graphics, m_GraphicsContainer.transform);
+            }
 
             transform.localScale = new Vector3(m_SpellData.Size, m_SpellData.Size, 1f);
         }
@@ -102,9 +117,11 @@ namespace Game.Spells
         /// <param name="target"></param>
         /// <param name="spellType"></param>
         [ClientRpc]
-        public void InitializeClientRpc(Vector3 target, string spellName)
+        public void InitializeClientRpc(Vector3 target, string spellName, int level)
         {
-            Initialize(target, spellName);
+            if (IsHost)
+                return;
+            Initialize(target, spellName, level);
         }
 
         [ClientRpc]
@@ -175,18 +192,28 @@ namespace Game.Spells
             if (controller.Team == m_Controller.Team)
                 return false;
 
-            if (m_SpellData.Damage <= 0 && m_SpellData.EnemyStateEffects.Count == 0)
+            if (m_SpellData.Damage <= 0 && m_SpellData.EnemyStateEffects.Count == 0 && m_SpellData.OnHit.Count == 0)
                 return false;
 
+            int damages = m_Controller.StateHandler.ApplyBonusDamages(m_SpellData.Damage);
             if (controller.CounterHandler.HasCounter)
             {
                 controller.CounterHandler.ProcCounter(this);
                 return false;
             }
-            else
-                controller.Life.Hit(m_SpellData.Damage);
+            
+            // get final damages after shields and resistances
+            int finalDamages = controller.Life.Hit(damages);
 
-            ApplyEnemyOnHitEffects(controller);
+            // apply lifesteal if any (remove 1 because floats values are always based on 1 as default value)
+            float lifeSteal = Mathf.Max(0f, m_Controller.StateHandler.GetFloat(EStateEffectProperty.LifeSteal) - 1);
+
+            if (lifeSteal > 0 && finalDamages > 0)
+            {
+                m_Controller.Life.Heal((int)Mathf.Round(lifeSteal * finalDamages));
+            }
+            
+            ApplyEnemyStateEffects(controller);
 
             return true;
         }
@@ -205,7 +232,7 @@ namespace Game.Spells
                 return false;
                         
             controller.Life.Heal(m_SpellData.Heal);
-            ApplyAllyOnHitEffects(controller);
+            ApplyAllyStateEffects(controller);
 
             return true;
         }
@@ -224,6 +251,10 @@ namespace Game.Spells
 
         #region Spell Effects
 
+        /// <summary>
+        /// Spawn prefabs that procs on hitting a target
+        /// </summary>
+        /// <param name="targetController"></param>
         protected virtual void SpawnOnHitPrefab()
         {
             if (! IsServer)
@@ -234,34 +265,97 @@ namespace Game.Spells
             m_SpellData.SpawnOnHitPrefab(OwnerClientId, position, position);
         }
 
-        protected virtual void ApplyEnemyOnHitEffects(Controller targetController)
+        protected virtual void ApplyStateEffects(Controller targetController, List<SStateEffectData> stateEffects)
         {
-            if (! IsServer)
+            if (!IsServer)
                 return;
 
             if (!targetController.Life.IsAlive)
                 return;
 
-            foreach (var effect in m_SpellData.EnemyStateEffects)
+            foreach (var effect in stateEffects)
             {
-                targetController.StateHandler.AddStateEffect(effect);
+                targetController.StateHandler.AddStateEffect(effect, m_SpellData.Level);
             }
         }
 
-        protected virtual void ApplyAllyOnHitEffects(Controller targetController)
+        /// <summary>
+        /// Apply on hit effects targetting enemies
+        /// </summary>
+        /// <param name="targetController"></param>
+        protected virtual void ApplyEnemyStateEffects(Controller targetController)
         {
-            if (! IsServer)
-                return;
+            ApplyStateEffects(targetController, m_SpellData.EnemyStateEffects);
+        }
 
-            if (!targetController.Life.IsAlive)
-                return;
+        /// <summary>
+        /// Apply on hit effects targetting allies
+        /// </summary>
+        /// <param name="targetController"></param>
+        protected virtual void ApplyAllyStateEffects(Controller targetController)
+        {
+            ApplyStateEffects(targetController, m_SpellData.AllyStateEffects);
+        }
 
-            foreach (var effect in m_SpellData.AllyStateEffects)
+        #endregion
+
+
+        #region Targetting
+
+        /// <summary>
+        /// Get Controller for the target
+        /// </summary>
+        /// <returns></returns>
+        protected virtual Controller GetTargetController()
+        {
+            if (! SpellData.IsAutoTarget)
+                return null;
+
+            switch (SpellData.SpellTarget)
             {
-                targetController.StateHandler.AddStateEffect(effect);
+                case ESpellTarget.Self:
+                    return GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId);
+
+                case ESpellTarget.FirstAlly:
+                    return GameManager.Instance.GetFirstAlly(GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team, NetworkManager.Singleton.LocalClientId);
+
+                case ESpellTarget.FirstEnemy:
+                    return GameManager.Instance.GetFirstEnemy(GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team);
+
+                default:
+                    ErrorHandler.Error("Unhandled case : " + SpellData.SpellTarget);
+                    return null;
             }
         }
 
+        protected virtual void RecalculateTarget(ref Transform baseTarget)
+        {
+            Controller targetController = GetTargetController();
+            if ( targetController != null )
+                baseTarget = targetController.transform;
+        }
+
+        #endregion
+
+
+        #region Tools
+
+        protected bool TryGetController(Collider2D collider, out Controller controller)
+        {
+            controller = null;
+            if (collider.gameObject.layer != LayerMask.NameToLayer("Player"))
+                return false;
+
+            // check that players has controller 
+            controller = Finder.FindComponent<Controller>(collider.gameObject);
+            if (controller == null)
+            {
+                ErrorHandler.Error("Controller not found for player " + collider.gameObject.name);
+                return false;
+            }
+
+            return true;
+        }
 
         #endregion
 

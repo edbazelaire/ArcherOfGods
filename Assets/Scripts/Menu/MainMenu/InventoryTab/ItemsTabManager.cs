@@ -6,21 +6,18 @@ namespace Menu
 {
     public enum EInvetoryItemTab
     {
-        Spells,
-        Characters,
+        SpellsTab,
+        CharactersTab,
     }
 
     public class ItemsTabManager: TabsManager
     {
-        protected Type m_TabEnumType { get; set; } = typeof(EInvetoryItemTab);
+        #region Members
 
-        GameObject m_TemplateSpellItem; 
-        GameObject m_TemplateCharacterItem; 
+        protected override Type m_TabEnumType { get; set; } = typeof(EInvetoryItemTab);
+        protected override Enum m_DefaultTab { get; set; } = EInvetoryItemTab.SpellsTab;
 
-        public void Initialize()
-        {
-            m_TemplateSpellItem     = AssetLoader.LoadTemplateItem("SpellItem");
-            m_TemplateCharacterItem = AssetLoader.LoadTemplateItem("CharacterButton");
-        }
+        #endregion
+
     }
 }

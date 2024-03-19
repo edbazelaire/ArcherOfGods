@@ -1,6 +1,6 @@
 ﻿using Enums;
 using Game.Managers;
-using System.Collections;
+using Menu.Common.Buttons;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
@@ -15,7 +15,7 @@ public class CharacterSelectionUI : MonoBehaviour
     GameObject m_TemplateCharacterButton;
     GameObject m_ButtonsContainer;
 
-    Dictionary<ECharacter, CharacterButtonUI> m_CharacterButtons;
+    Dictionary<ECharacter, TemplateCharacterItemUI> m_CharacterButtons;
 
     #endregion
 
@@ -24,8 +24,12 @@ public class CharacterSelectionUI : MonoBehaviour
 
     public void Initialize()
     {
-        m_ButtonsContainer = Finder.Find(gameObject, c_CharacterSelectionContainer);
-        m_TemplateCharacterButton = AssetLoader.Load<GameObject>("TemplateCharacterButton", AssetLoader.c_MainTab);
+        // check if a specific container for the buttons was provided, otherwise use this parent as container
+        m_ButtonsContainer = Finder.Find(gameObject, c_CharacterSelectionContainer, throwError: false);
+        if (m_ButtonsContainer == null)
+            m_ButtonsContainer = gameObject;
+
+        m_TemplateCharacterButton = AssetLoader.LoadTemplateItem("CharacterItem");
 
         CreateCharacterButtons();
     }
@@ -41,24 +45,15 @@ public class CharacterSelectionUI : MonoBehaviour
         UIHelper.CleanContent(m_ButtonsContainer);
 
         // reset dict
-        m_CharacterButtons = new Dictionary<ECharacter, CharacterButtonUI>();
+        m_CharacterButtons = new Dictionary<ECharacter, TemplateCharacterItemUI>();
 
         // create buttons for each characters
         foreach (ECharacter character in CharacterLoader.Instance.Characters.Keys)
         {
-            var characterButton = Instantiate(m_TemplateCharacterButton, m_ButtonsContainer.transform).GetComponent<CharacterButtonUI>();
+            var characterButton = Instantiate(m_TemplateCharacterButton, m_ButtonsContainer.transform).GetComponent<TemplateCharacterItemUI>();
             characterButton.Initialize(character);
             m_CharacterButtons.Add(character, characterButton);
         }
-    }
-
-    /// <summary>
-    /// Force selection of a specific character from the outside
-    /// </summary>
-    /// <param name="character"></param>
-    public void SelectCharacter(ECharacter character)
-    {
-        m_CharacterButtons[character].SelectCharacter();
     }
 
     #endregion

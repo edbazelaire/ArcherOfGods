@@ -1,10 +1,11 @@
 using Data;
+using Data.GameManagement;
 using Enums;
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using Tools;
-using Unity.VisualScripting;
 using UnityEngine;
+
 
 namespace Game.Managers
 {
@@ -16,11 +17,13 @@ namespace Game.Managers
 
         public GameObject PlayerPrefab;
 
-
-        [HideInInspector]
-        public Dictionary<ECharacter, CharacterData> Characters;
-
         CharacterData[] m_CharactersList;
+        Dictionary<ECharacter, CharacterData> m_Characters;
+        CharactersManagementData m_CharactersManagementData;
+
+        public Dictionary<ECharacter, CharacterData> Characters => m_Characters;
+        public CharacterData[] CharactersList => m_CharactersList;
+        public static CharactersManagementData CharactersManagementData => Instance.m_CharactersManagementData;
 
         #endregion
 
@@ -35,6 +38,7 @@ namespace Game.Managers
         void Initialize()
         {
             LoadCharacterData();
+            LoadCharacterManagementData();
         }
 
         void LoadCharacterData()
@@ -47,16 +51,21 @@ namespace Game.Managers
                 return;
             }
 
-            Characters = new Dictionary<ECharacter, CharacterData>();
+            m_Characters = new Dictionary<ECharacter, CharacterData>();
             foreach (CharacterData character in m_CharactersList)
             {
-                if (Characters.ContainsKey(character.Name))
+                if (Characters.ContainsKey(character.Character))
                 {
                     ErrorHandler.FatalError($"CharacterLoader : Characters list contains duplicate : {character}");
                     return;
                 }
-                Characters.Add(character.Name, character);
+                Characters.Add(character.Character, character);
             }
+        }
+
+        void LoadCharacterManagementData()
+        {
+            m_CharactersManagementData = AssetLoader.Load<CharactersManagementData>(AssetLoader.c_ManagementDataPath + "CharactersManagementData");
         }
 
         #endregion
@@ -64,7 +73,13 @@ namespace Game.Managers
 
         #region Public Static Manipulators
 
-        public static CharacterData GetCharacterData(ECharacter character)
+        /// <summary>
+        /// Get data of a character (updated with level if provided)
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="level"></param>
+        /// <returns></returns>
+        public static CharacterData GetCharacterData(ECharacter character, int level = 1)
         {
             if (!CharacterLoader.Instance.Characters.ContainsKey(character))
             {
@@ -72,7 +87,24 @@ namespace Game.Managers
                 return null;
             }
 
-            return Instance.Characters[character];
+            return Instance.Characters[character].Clone(level);
+        }
+
+        /// <summary>
+        /// Get the character that posses the provided spell
+        /// </summary>
+        /// <param name="spell"></param>
+        /// <returns></returns>
+        public static ECharacter? GetCharacterWithSpell(ESpell spell)
+        {
+            foreach (var item in Instance.m_Characters)
+            {
+                if (item.Value.Ultimate == spell || item.Value.AutoAttack == spell)
+                    return item.Key;
+            }
+
+            ErrorHandler.Error("Unable to find character linked to spell : " + spell);
+            return null;
         }
 
         #endregion

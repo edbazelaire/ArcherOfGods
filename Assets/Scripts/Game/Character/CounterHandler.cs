@@ -16,7 +16,7 @@ namespace Game.Character
         NetworkVariable<float>  m_CounterTimer      = new NetworkVariable<float>(0f);
 
         Controller m_Controller;
-        SCounterData m_CounterData;
+        CounterData m_CounterData;
         int m_HitCtr = 0;
         GameObject m_CounterGraphics;
 
@@ -52,7 +52,7 @@ namespace Game.Character
         void SetCounterGraphicsClientRPC(bool activate)
         {
             if (activate)
-                m_CounterGraphics = Instantiate(m_CounterData.CounterGraphics, m_Controller.transform);
+                m_CounterGraphics = Instantiate(m_CounterData.Graphics, m_Controller.transform);
             else
             {
                 Destroy(m_CounterGraphics);
@@ -97,7 +97,7 @@ namespace Game.Character
 
         #region Public Manipulators
 
-        public void SetCounter(SCounterData counterData)
+        public void SetCounter(CounterData counterData)
         {
             if (!IsServer)
                 return;
@@ -111,7 +111,7 @@ namespace Game.Character
                 m_Controller.AnimationHandler.ChangeColorClientRPC(m_CounterData.ColorSwap);
             }
 
-            if (m_CounterData.CounterGraphics != null)
+            if (m_CounterData.Graphics != null)
             {
                 SetCounterGraphicsClientRPC(true);
             }
@@ -125,7 +125,7 @@ namespace Game.Character
             var targetPosition = enemySpell.Controller.transform.position;
             SpellData spellData;
 
-            switch (m_CounterData.Type)
+            switch (m_CounterData.CounterType)
             {
                 // cast the counter spell on the enemy
                 case ECounterType.Proc:
@@ -144,7 +144,7 @@ namespace Game.Character
                     break;
 
                 default :
-                    Debug.LogError("Unhandled counter type : " + m_CounterData.Type);
+                    Debug.LogError("Unhandled counter type : " + m_CounterData.CounterType);
                     break;
             }
 

@@ -19,9 +19,6 @@ namespace Assets.Scripts.UI
         void Awake()
         {
             m_LoadingBar = Finder.FindComponent<Image>(gameObject, c_LoadingBar);
-
-            Debug.Log("Loading bar : " + m_LoadingBar);
-
             DontDestroyOnLoad(gameObject);
         }
 

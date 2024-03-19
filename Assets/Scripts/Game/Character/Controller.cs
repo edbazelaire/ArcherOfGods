@@ -1,9 +1,14 @@
+using Assets;
 using Data;
 using Enums;
 using Game;
 using Game.Character;
 using Game.Managers;
+using Game.Spells;
+using Managers;
+using System.Linq;
 using Tools;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -14,10 +19,15 @@ public class Controller : NetworkBehaviour
     // ===================================================================================
     // PRIVATE VARIABLES 
     // -- Network Variables
-    NetworkVariable<ECharacter>     m_Character     = new NetworkVariable<ECharacter>(ECharacter.Count);
-    NetworkVariable<int>            m_Team          = new NetworkVariable<int>(-1);
-    NetworkVariable<bool>           m_IsPlayer      = new NetworkVariable<bool>(true);
-    NetworkVariable<bool>           m_IsInitialized = new NetworkVariable<bool>(false);
+    NetworkVariable<FixedString64Bytes> m_PlayerName        = new NetworkVariable<FixedString64Bytes>("");
+    NetworkVariable<ECharacter>         m_Character         = new NetworkVariable<ECharacter>(ECharacter.Count);
+    NetworkVariable<int>                m_CharacterLevel    = new NetworkVariable<int>(1);
+    NetworkVariable<int>                m_Team              = new NetworkVariable<int>(-1);
+    NetworkVariable<bool>               m_IsPlayer          = new NetworkVariable<bool>(true);
+    NetworkVariable<bool>               m_IsInitialized     = new NetworkVariable<bool>(false);
+
+    // -- Server Variable
+    ERune m_Rune;
 
     // -- Components & GameObjects
     GameObject              m_CharacterPreview;
@@ -34,7 +44,10 @@ public class Controller : NetworkBehaviour
     // PUBLIC ACCESSORS
 
     // -- Data
+    public string           PlayerName          => m_PlayerName.Value.ToString();
     public ECharacter       Character           => m_Character.Value;
+    public int              CharacterLevel      => m_CharacterLevel.Value;
+    public ERune            Rune                => m_Rune;
     public int              Team                => m_Team.Value;
     public bool             IsPlayer            => m_IsPlayer.Value;
     public ulong            PlayerId            => IsPlayer ? OwnerClientId : GameManager.POUTCH_CLIENT_ID;
@@ -96,12 +109,11 @@ public class Controller : NetworkBehaviour
     /// <summary>
     /// Initialize the controller
     /// </summary>
-    public void Initialize(ECharacter character, int team, bool isPlayer = true)
+    public void Initialize(SPlayerData playerData, int team, bool isPlayer = true)
     {
         if (!IsServer)
             return;
 
-        m_Character.Value       = character;
         m_Team.Value            = team;
         m_IsPlayer.Value        = isPlayer;
 
@@ -110,7 +122,7 @@ public class Controller : NetworkBehaviour
         transform.position = ArenaManager.Instance.Spawns[team][0].position;
         transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
 
-        InitializeCharacterData(character);
+        InitializeCharacterData(playerData);
 
         m_IsInitialized.Value = true;
     }
@@ -127,7 +139,7 @@ public class Controller : NetworkBehaviour
         m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
 
         // setup local client position
-        transform.localScale = transform.localScale * characterData.Size;
+        transform.localScale = characterData.Size * Main.CharacterSizeFactor * transform.localScale;
 
         // get animator
         Animator animator       = Finder.FindComponent<Animator>(m_CharacterPreview);
@@ -150,24 +162,29 @@ public class Controller : NetworkBehaviour
         }
 
         // setup the seplls icons buttons
-        SetupSpellUI(character);
+        SetupSpellUI();
 
         // TODO
-        //m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
+        m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
     }
 
     /// <summary>
     /// Implement all data related to the Character
     /// </summary>
-    void InitializeCharacterData(ECharacter character)
+    void InitializeCharacterData(SPlayerData playerData)
     {
         if (! IsServer)
             return;
 
-        CharacterData characterData = CharacterLoader.GetCharacterData(character);
+        m_PlayerName.Value      = playerData.PlayerName;
+        m_Character.Value       = playerData.Character;
+        m_CharacterLevel.Value  = playerData.CharacterLevel;
+        m_Rune                  = playerData.Rune;
+
+        CharacterData characterData = CharacterLoader.GetCharacterData(playerData.Character, playerData.CharacterLevel);
 
         // initialize SpellHandler with character's spells
-        m_SpellHandler.Initialize(characterData.Spells);
+        m_SpellHandler.Initialize(characterData.AutoAttack, characterData.Ultimate, playerData.Spells.ToList(), playerData.SpellLevels.ToList());
 
         // initialize MovementSpeed with character's speed
         m_Movement.Initialize(characterData.Speed);
@@ -180,20 +197,29 @@ public class Controller : NetworkBehaviour
     /// <summary>
     /// Create the SpellItemUI for each spell of the character
     /// </summary>
-    public void SetupSpellUI(ECharacter character)
+    public void SetupSpellUI()
     {
         if (!IsOwner)
             return;
 
-        CharacterData characterData = CharacterLoader.GetCharacterData(character);
-
         // clear the spell container (in case any spell was already there)
         GameUIManager.Instance.ClearSpells();
 
+        // add linked spells
+        var characterData = CharacterLoader.GetCharacterData(m_Character.Value);
+        GameUIManager.Instance.CreateLinkedSpellTemplate(characterData.Ultimate, m_CharacterLevel.Value);
+        GameUIManager.Instance.CreateLinkedSpellTemplate(characterData.AutoAttack, m_CharacterLevel.Value);
+
         // create a SpellItemUI for each spell of the character
-        foreach (ESpell spell in characterData.Spells)
+        for (int i = 0; i < m_SpellHandler.Spells.Count; i++)
         {
-            GameUIManager.Instance.CreateSpellTemplate(spell);
+            ESpell spell = m_SpellHandler.Spells[i];
+            
+            // skip linked spells
+            if (spell == characterData.Ultimate || spell == characterData.AutoAttack)
+                continue;
+            
+            GameUIManager.Instance.CreateSpellTemplate(m_SpellHandler.Spells[i], m_SpellHandler.SpellLevels[i]);
         }
     }
 

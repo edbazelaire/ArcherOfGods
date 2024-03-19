@@ -18,6 +18,7 @@ namespace Game.Spells
 
         #endregion
 
+
         #region Initialization
 
         public virtual void Initialize(Transform targettableArea, float distance, float radius = 0)

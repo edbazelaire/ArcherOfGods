@@ -1,15 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using Assets;
+using Enums;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Tools;
 using Unity.Services.CloudSave;
 using Unity.Services.CloudSave.Models;
-using UnityEngine;
 
 namespace Save
 {
     public class CloudData
     {
+        public static CloudData Instance => Main.CloudSaveManager.GetCloudData(typeof(CloudData)) as CloudData;
+
         protected virtual Dictionary<string, object> m_Data { get; set; }
 
         /// <summary> list of remaining values to load</summary>
@@ -18,10 +22,13 @@ namespace Save
         public Dictionary<string, object> Data => m_Data;
         public bool LoadingCompleted => m_KeysToLoad != null && m_KeysToLoad.Count == 0;
 
+        public static Action<string> CloudDataLoadedEvent;
+
         #region Init & End 
 
         public CloudData() 
         {
+            CloudDataLoadedEvent += OnCloudDataLoaded;
             m_KeysToLoad = m_Data.Keys.ToList();
             Load();
         }
@@ -40,13 +47,12 @@ namespace Save
             }
         }
 
-        protected virtual async void LoadValue(string key)
+        protected async virtual void LoadValue(string key)
         {
             var cloudData = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { key });
             if (!cloudData.TryGetValue(key, out var item))
             {
-                SaveValue(key);
-                m_KeysToLoad.Remove(key);
+                CloudDataLoadedEvent?.Invoke(key);
                 return;
             }
 
@@ -55,7 +61,7 @@ namespace Save
                 return;
 
             SetData(key, value);
-            m_KeysToLoad.Remove(key);
+            CloudDataLoadedEvent?.Invoke(key);
         }
 
         public virtual void Save()
@@ -102,6 +108,11 @@ namespace Save
                 case "Float":
                     return item.Value.GetAs<float>();
 
+                case "ECharacter":
+                    return item.Value.GetAs<ECharacter>();
+                case "ESpell":
+                    return item.Value.GetAs<ESpell>();
+
                 default:
                     ErrorHandler.Error("Unhandled type : " + expectedType);
                     return null;
@@ -118,6 +129,17 @@ namespace Save
             }
 
             return false;
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        protected virtual void OnCloudDataLoaded(string key) 
+        { 
+            if (m_KeysToLoad.Contains(key))
+                m_KeysToLoad.Remove(key);
         }
 
         #endregion

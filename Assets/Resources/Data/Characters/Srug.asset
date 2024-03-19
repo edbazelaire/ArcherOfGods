@@ -15,8 +15,10 @@ MonoBehaviour:
   Name: 2
   Image: {fileID: -8395457575376822210, guid: aa22666ecee6efc40a098a7f5abb2d9d, type: 3}
   CharacterPreview: {fileID: 6158313493973241549, guid: f4ce31dce30c1724a88fc0aed77323de, type: 3}
-  Spells: 0e0000000f000000060000000d000000
+  AutoAttack: 14
+  Ultimate: 13
   Size: 1
   Speed: 1
+  AttackSpeed: 1
   MaxHealth: 100
   MaxEnergy: 100

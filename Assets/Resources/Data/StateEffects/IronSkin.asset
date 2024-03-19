@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bec91e441d966e438d35c0133adae84, type: 3}
+  m_Name: IronSkin
+  m_EditorClassIdentifier: 
+  m_VisualEffect: {fileID: 0}
+  m_ColorSwitch: {r: 0.3679245, g: 0.3679245, b: 0.3679245, a: 1}
+  m_Duration: 3
+  m_MaxStacks: 1
+  m_SpeedBonus: -0.2
+  m_Shield: 0
+  m_ResistanceFix: 5
+  m_ResistancePerc: 0.1
+  m_BonusDamages: 0
+  m_BonusDamagesPerc: 0
+  m_LifeSteal: 0
+  m_StateEffectScalingLevel:
+  - StateEffectProperty: 1
+    ScalingFactor: 0.1
+  - StateEffectProperty: 5
+    ScalingFactor: 0.1
+  - StateEffectProperty: 6
+    ScalingFactor: 0.1
+  m_StateEffectScalingStacks: []

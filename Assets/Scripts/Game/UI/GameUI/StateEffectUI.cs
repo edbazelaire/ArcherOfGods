@@ -1,6 +1,4 @@
-﻿using Enums;
-using Game.Managers;
-using TMPro;
+﻿using TMPro;
 using Tools;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,7 +38,7 @@ namespace Game.UI
             m_TimerFill.fillAmount = Mathf.Clamp01(m_Timer / m_Duration);
         }
 
-        public void Initialize(EStateEffect stateEffect, int stacks, float duration)
+        public void Initialize(string stateEffect, int stacks, float duration)
         {
             // Setup icon (if found)
             Sprite icon = AssetLoader.LoadStateEffectIcon(stateEffect);
@@ -58,6 +56,9 @@ namespace Game.UI
 
             m_Duration      = duration;
             m_Timer         = duration;             // reset timer
+
+            if (duration <= 0)
+                m_TimerFill.fillAmount = 0;
         }
     }
 }

@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using UnityEditor;
-using UnityEngine;
 
 namespace Tools
 {
@@ -12,15 +10,9 @@ namespace Tools
         /// <param name="obj"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static bool NotNull(object obj, string message = "")
+        public static bool NotNull(object obj)
         {
-            if (obj == null)
-            {
-                ErrorHandler.NullObject(message);
-                return false;
-            }
-
-            return true;
+            return obj != null;
         }
 
         /// <summary>
@@ -32,26 +24,12 @@ namespace Tools
         /// <param name="atLeast"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static bool CheckSize<T>(T[] array, int size, bool atLeast = false, string message = "")
+        public static bool CheckSize<T>(T[] array, int size, bool atLeast = false)
         {
             if (atLeast)
-            {
-                if (array.Length < size)
-                {
-                    ErrorHandler.ArraySize($"size of array ({array.Length}) is supposed to be at least {size} " + message);
-                    return false;
-                }
-            }
+                return array.Length >= size;
             else
-            {
-                if (array.Length != size)
-                {
-                    ErrorHandler.ArraySize($"size of array ({array.Length}) is supposed to be {size} " + message);
-                    return false;
-                }
-            }
-
-            return true;
+                return array.Length == size;
         }
 
         /// <summary>
@@ -63,16 +41,9 @@ namespace Tools
         /// <param name="atLeast"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static bool CheckEmpty<T>(T[] array, string message = "")
+        public static bool CheckEmpty<T>(T[] array)
         {
-           
-            if (array.Length == 0)
-            {
-                ErrorHandler.ArraySize($"array is empty " + message);
-                return false;
-            }
-
-            return true;
+            return array.Length != 0;
         }
 
         /// <summary>
@@ -84,9 +55,9 @@ namespace Tools
         /// <param name="atLeast"></param>
         /// <param name="message"></param>
         /// <returns></returns>
-        public static bool CheckEmpty<T>(List<T> array, string message = "")
+        public static bool CheckEmpty<T>(List<T> array)
         {
-            return CheckEmpty(array.ToArray(), message);
+            return CheckEmpty(array.ToArray());
         }
     }
 }

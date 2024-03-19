@@ -33,7 +33,7 @@ namespace Tools
             }
 
             if (throwError)
-                Debug.LogError("No child with name " + name + " found in " + parent.name);
+                ErrorHandler.Error("No child with name " + name + " found in " + parent.name);
 
             return null;
         }
@@ -67,8 +67,8 @@ namespace Tools
             }
 
             if (throwError && !Checker.CheckEmpty(list))
-                return list;
-            
+                ErrorHandler.Error("Unable to find any child named " + name + " in parent " + parent.name);
+
             return list;
         }
 
@@ -111,10 +111,16 @@ namespace Tools
 
                     if (child.childCount > 0)
                         component = FindComponent<T>(child.gameObject, "", false);        // deactivate error durring recursivity
+
+                    if (component != null && component.ToString() != "null")
+                        return component;
                 }
                 
                 if (throwError && !Checker.NotNull(component))
-                    return default(T);
+                {
+                    ErrorHandler.Error("Unable to find any game object with component " + typeof(T).ToString() + " in parent " + parent.name);
+                    return default;
+                }
 
                 return component;
             }
@@ -122,7 +128,11 @@ namespace Tools
             // Name provided : check all childs with requested name and find the one with the requested component
             else
             {
-                var childs = Finds(parent, name, throwError);       // already recusive
+                var childs = Finds(parent, name, throwError);       // already recusive & already handle error display
+
+                if (childs.Count == 0)
+                    return default;
+
                 foreach (GameObject child in childs)
                 {
                     var component = child.GetComponent<T>();
@@ -131,7 +141,10 @@ namespace Tools
                 }
             }
 
-            return default(T);
+            if (throwError)
+                ErrorHandler.Error("GameObject " + name + " had no component " + typeof(T).ToString() + " in parent " + parent.name);
+
+            return default;
         }
 
         /// <summary>

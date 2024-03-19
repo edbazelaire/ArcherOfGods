@@ -6,9 +6,9 @@ namespace Game.Spells
     [CreateAssetMenu(fileName = "ShieldEffect", menuName = "Game/StateEffects/Shields")]
     public class ShieldEffect : StateEffect
     {
-        public override void UpdateTimer()
+        public override void Update()
         {
-            base.UpdateTimer();
+            base.Update();
 
             if (m_RemainingShield == 0)
                 End();

@@ -12,8 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bec91e441d966e438d35c0133adae84, type: 3}
   m_Name: Cursed
   m_EditorClassIdentifier: 
+  m_Description: 
+  m_DescriptionVariables: 
+  m_VisualEffect: {fileID: 0}
+  m_ColorSwitch: {r: 0.6313726, g: 0.48584908, b: 0.85211474, a: 1}
   m_Duration: 5
   m_MaxStacks: 10
   m_SpeedBonus: -0.08
-  m_ResistanceFix: -2
-  m_ResistancePerc: 1
+  m_Shield: 0
+  m_ResistanceFix: -1
+  m_ResistancePerc: 0
+  m_BonusDamages: 0
+  m_BonusDamagesPerc: 0
+  m_LifeSteal: 0
+  m_StateEffectScalingLevel:
+  - StateEffectProperty: 5
+    ScalingFactor: 0.1
+  m_StateEffectScalingStacks: []

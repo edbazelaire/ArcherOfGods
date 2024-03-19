@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 namespace Tools
 {
-    public class ErrorHandler
+    public static class ErrorHandler
     {
         #region Members
 
@@ -16,24 +17,24 @@ namespace Tools
 
         #region Basic Errors
 
-        public static void Log(string message)
+        public static void Log(string message, int frame = 0)
         {
-            AddError(message, EError.Log);
+            AddError(message, EError.Log, frame + 1);
         }
 
-        public static void Warning(string message)
+        public static void Warning(string message, int frame = 0)
         {
-            AddError(message, EError.Warning);
+            AddError(message, EError.Warning, frame + 1);
         }
 
-        public static void Error(string message)
+        public static void Error(string message, int frame = 0)
         {
-            AddError(message, EError.Error);
+            AddError(message, EError.Error, frame + 1);
         }
 
-        public static void FatalError(string message)
+        public static void FatalError(string message, int frame=0)
         {
-            AddError(message, EError.FatalError);
+            AddError(message, EError.FatalError, frame + 1);
         }
 
         #endregion
@@ -68,9 +69,9 @@ namespace Tools
         /// Add an error to the stack
         /// </summary>
         /// <param name="error"></param>
-        static void AddError(string message, EError type = EError.Error)
+        static void AddError(string message, EError type = EError.Error, int frame = 0)
         {
-            Errors.Add(new Error(message, type));
+            Errors.Add(new Error(message, type, frame+1));
         }
 
         /// <summary>

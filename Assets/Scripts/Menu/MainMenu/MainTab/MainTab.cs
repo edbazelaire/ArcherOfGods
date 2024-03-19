@@ -1,9 +1,8 @@
 using Assets;
 using Enums;
-using Game.Managers;
-using Managers;
 using Menu.MainMenu;
 using Network;
+using Save;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,21 +18,16 @@ namespace Menu
     {
         #region Members
 
-        const string            c_CharacterPreviewContainer         = "CharacterPreviewContainer";
-        const string            c_CharacterSelection                = "CharacterSelection";
+        const string            c_CharacterPreviewSection           = "CharacterPreviewSection";
+        const string            c_CharacterSelectionPopUp           = "CharacterSelectionPopUp";
         const string            c_PlayButton                        = "PlayButton";
         const string            c_Dropdown                          = "Dropdown";
 
-        GameObject              m_CharacterPreviewContainer;
-        Button                  m_CharacterPreviewButton;
-        RectTransform           m_CharacterPreviewRectTransform;
-        CharacterSelectionUI    m_CharacterSelection;
-        Button                  m_PlayButton;
-        Image                   m_PlayButtonImage;
-        TMP_Dropdown            m_GameTypeDropDown;
-
-
-        public static Action<ECharacter> CharacterSelectedEvent;
+        CharacterPreviewSectionUI   m_CharacterPreviewSection;
+        CharacterSelectionUI        m_CharacterSelection;
+        Button                      m_PlayButton;
+        Image                       m_PlayButtonImage;
+        TMP_Dropdown                m_GameTypeDropDown;
 
         #endregion
 
@@ -51,13 +45,14 @@ namespace Menu
                 return;
             }
 
-            m_CharacterPreviewContainer         = Finder.Find(c_CharacterPreviewContainer);
-            m_CharacterPreviewButton            = Finder.FindComponent<Button>(m_CharacterPreviewContainer);
-            m_CharacterPreviewRectTransform     = Finder.FindComponent<RectTransform>(m_CharacterPreviewContainer);
-            m_CharacterSelection                = Finder.FindComponent<CharacterSelectionUI>(c_CharacterSelection);
-            m_PlayButton                        = Finder.FindComponent<Button>(c_PlayButton);
+            m_CharacterPreviewSection           = Finder.FindComponent<CharacterPreviewSectionUI>(gameObject, c_CharacterPreviewSection);
+            m_CharacterSelection                = Finder.FindComponent<CharacterSelectionUI>(gameObject, c_CharacterSelectionPopUp);
+            m_PlayButton                        = Finder.FindComponent<Button>(gameObject, c_PlayButton);
             m_PlayButtonImage                   = Finder.FindComponent<Image>(m_PlayButton.gameObject);
             m_GameTypeDropDown                  = Finder.FindComponent<TMP_Dropdown>(gameObject, c_Dropdown);
+
+            // initialize character preview section (with a delay to avoid issue with size)
+            CoroutineManager.DelayMethod(m_CharacterPreviewSection.Initialize);
 
             // create all buttons for characters
             m_CharacterSelection.Initialize();
@@ -67,41 +62,30 @@ namespace Menu
             SetUpDropDownButton();
 
             // register to events
-            CharacterSelectedEvent += OnCharacterSelected;
             m_PlayButton.onClick.AddListener(OnPlay);
-            m_CharacterPreviewButton.onClick.AddListener(ToggleCharacterSelection);
 
-            // init with Player Pref data
-            CoroutineManager.DelayMethod(SetupDefaultPlayerData);
+            // delay register method by one frame (to avoid issue with Awake() order)
+            CoroutineManager.DelayMethod(() => { m_CharacterPreviewSection.CharacterPreviewButton.onClick.AddListener(ToggleCharacterSelection); });
+        }
+
+        public override void Activate(bool activate)
+        {
+            base.Activate(activate);
+
+            m_CharacterPreviewSection.Activate(activate);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
 
-            CharacterSelectedEvent -= OnCharacterSelected;
             m_PlayButton.onClick.RemoveAllListeners();
-            m_CharacterPreviewButton.onClick.RemoveAllListeners();
         }
 
         #endregion
 
 
         #region Setup UI
-
-        /// <summary>
-        /// Set Menu with default player data
-        /// </summary>
-        private void SetupDefaultPlayerData()
-        {
-            m_CharacterSelection.SelectCharacter(PlayerData.Character);
-        }
-
-
-        void CleanPreview()
-        {
-            UIHelper.CleanContent(m_CharacterPreviewContainer);
-        }
 
         void SetUpDropDownButton()
         {
@@ -143,30 +127,6 @@ namespace Menu
         #region Event Listeners
 
         /// <summary>
-        /// When a character is seleted :
-        ///     - change PlayerData
-        ///     - setup new Preview 
-        /// </summary>
-        /// <param name="character"></param>
-        void OnCharacterSelected(ECharacter character)
-        {
-            // setup selected character in player data
-            PlayerData.Character = character;
-
-            // clean current preview
-            CleanPreview();
-
-            // get selected character preview
-            var characterData = CharacterLoader.GetCharacterData(PlayerData.Character);
-            var characterPreview = characterData.InstantiateCharacterPreview(m_CharacterPreviewContainer);
-
-            // display character preview
-            var baseScale = characterPreview.transform.localScale * characterData.Size;
-            float scaleFactor = 0.6f * m_CharacterPreviewRectTransform.rect.height / characterPreview.transform.localScale.y;
-            characterPreview.transform.localScale = new Vector3(baseScale.x * scaleFactor, baseScale.y * scaleFactor, 1f);
-        }
-
-        /// <summary>
         /// Activate / Deactivate character selection
         /// </summary>
         [Command(KeyCode.A)]
@@ -183,7 +143,12 @@ namespace Menu
         /// </summary>
         void OnPlay()
         {
-            // if L
+            if (!CharacterBuildsCloudData.IsCurrentBuildOk)
+            {
+                Main.ErrorMessagePopUp("Current build is not valid");
+                return;
+            }
+
             if (Main.State == EAppState.Lobby)
             {
                 LeaveLobby();

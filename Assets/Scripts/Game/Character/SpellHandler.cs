@@ -17,14 +17,16 @@ namespace Game.Character
         // ===================================================================================
         // CONSTANTS
         const string                        c_SpellSpawn            = "SpellSpawn";
-        const float                         c_GlobalCooldown        = 0.3f; 
+        const float                         c_GlobalCooldown        = 0f; 
 
         // ===================================================================================
-        // NETWORK VARIABLES
+        // NETWORK VARIABLES       
         /// <summary> list of cooldowns that links spellID to its cooldown <summary>
         NetworkList<float>                  m_CooldownsNet;
         /// <summary> list of spells that links spellID to spellValue <summary>
         NetworkList<int>                    m_SpellsNet;
+        /// <summary> list of spells that links spellID to spellValue <summary>
+        NetworkList<int>                    m_SpellLevelsNet;
         /// <summary> global cooldown when a spell is cast </summary>
         NetworkVariable<float>              m_GlobalCooldown        = new NetworkVariable<float>(0);
         /// <summary> currently selected spell </summary>
@@ -40,13 +42,17 @@ namespace Game.Character
         Controller                          m_Controller;
         /// <summary> base spawn position of the spell </summary>
         Transform                           m_SpellSpawn;
+        /// <summary> spell that will be selected at the end of the current one </summary>
+        ESpell                              m_NextSelectedSpell;
+        /// <summary> is the player currently casting a spell ? </summary>
+        bool                                m_IsCasting;     
 
         // ===================================================================================
         // PUBLIC ACCESSORS
         public NetworkVariable<int>         SelectedSpellNet        => m_SelectedSpellNet;
         public NetworkList<float>           CooldownsNet            => m_CooldownsNet;
         public NetworkVariable<float>       AnimationTimer          => m_AnimationTimer;
-        public bool                         IsCasting               => m_AnimationTimer.Value > 0f;
+        public bool                         IsCasting               => m_IsCasting;
         public ESpell                       SelectedSpell           => m_SelectedSpell;
         public Transform                    SpellSpawn              => m_SpellSpawn;
         public Vector3                      TargetPos               => m_TargetPos.Value;   
@@ -62,8 +68,9 @@ namespace Game.Character
 
         private void Awake()
         {
-            m_SpellsNet     = new NetworkList<int>(default);
-            m_CooldownsNet  = new NetworkList<float>(default);
+            m_SpellsNet         = new NetworkList<int>(default);
+            m_SpellLevelsNet    = new NetworkList<int>(default);
+            m_CooldownsNet      = new NetworkList<float>(default);
         }
 
         public override void OnNetworkSpawn()
@@ -84,6 +91,13 @@ namespace Game.Character
             CheckActionExectution();
         }
 
+        public override void OnNetworkDespawn()
+        {
+            //m_SpellsNet.Dispose();
+            //m_SpellLevelsNet.Dispose();
+            //m_CooldownsNet.Dispose();
+        }
+
         #endregion
 
 
@@ -93,16 +107,27 @@ namespace Game.Character
         /// Initialize the spell handler
         /// </summary>
         /// <param name="spells"></param>
-        public void Initialize(List<ESpell> spells)
+        public void Initialize(ESpell autoAttack, ESpell ultimate, List<ESpell> extraSpells, List<int> spellLevels)
         {
             if (!IsServer)
                 return;
 
-            foreach (ESpell spell in spells)
+            m_SpellsNet.Add((int)autoAttack);
+            m_SpellLevelsNet.Add(m_Controller.CharacterLevel);
+            m_CooldownsNet.Add(0);
+
+            m_SpellsNet.Add((int)ultimate);
+            m_SpellLevelsNet.Add(m_Controller.CharacterLevel);
+            m_CooldownsNet.Add(0);
+
+            for (int i=0; i < extraSpells.Count; i++)
             {
-                m_SpellsNet.Add((int)spell);
+                m_SpellsNet.Add((int)extraSpells[i]);
+                m_SpellLevelsNet.Add(spellLevels[i]);
                 m_CooldownsNet.Add(0);
             }
+
+            m_NextSelectedSpell = autoAttack;
         }
 
         #endregion
@@ -145,17 +170,25 @@ namespace Game.Character
         [ServerRpc]
         void CastServerRPC()
         {
-            SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
-            
-            // get spawn position and cast the spell
-            var spawnPosition = m_SpellSpawn.position + GetSpawnOffset(spellData.Trajectory);
-            StartCoroutine(spellData.CastDelay(m_Controller.OwnerClientId, m_TargetPos.Value, spawnPosition, m_SpellSpawn.rotation));
+            Debug.Log("CastServerRPC() - start");
+            SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell, m_SpellLevelsNet[GetSpellIndex(m_SelectedSpell)]);
 
+            // get spawn position and cast the spell
+            StartCoroutine(spellData.CastDelay(m_Controller.OwnerClientId, m_TargetPos.Value, m_SpellSpawn.position, m_SpellSpawn.rotation));
+
+            // cast spell on client side
             SpellCastedClientRPC(m_SelectedSpell);
 
             // only server can handle cooldowns and selected spell
             if (IsServer)
             {
+                // spend the energy of the spell
+                if (spellData.EnergyCost > 0)
+                    m_Controller.EnergyHandler.SpendEnergy(spellData.EnergyCost);
+
+                // inform that casting is done
+                m_IsCasting = false;
+
                 // setup global cooldown
                 m_GlobalCooldown.Value = c_GlobalCooldown;
 
@@ -163,8 +196,10 @@ namespace Game.Character
                 SetCooldown(m_SelectedSpell, spellData.Cooldown);
 
                 // reset spell selection
-                SelectSpell(Spells[0]);
+                SelectSpell(m_NextSelectedSpell);
             }
+
+            Debug.Log("CastServerRPC() - end");
         }
 
         #endregion
@@ -241,7 +276,14 @@ namespace Game.Character
             if (! IsServer)
                 return;
 
-            m_SelectedSpell = spellType;
+            if (IsCasting)
+                m_NextSelectedSpell = spellType;
+            else
+            {
+                // on spell selection, reset NextSelectedSpell to default auto attack
+                m_SelectedSpell = spellType;
+                m_NextSelectedSpell = (ESpell)m_SpellsNet[0];
+            }
         }
 
         /// <summary>
@@ -254,7 +296,7 @@ namespace Game.Character
                 return;
 
             SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
-            spellData.SpellPreview(TargettableArea, m_SpellSpawn, GetSpawnOffset(spellData.Trajectory));
+            spellData.SpellPreview(m_Controller);
         }
 
         /// <summary>
@@ -265,6 +307,8 @@ namespace Game.Character
         {
             if (m_SelectedSpell == ESpell.Count)
                 return;
+
+            Debug.Log("Casting Spell : " + m_SelectedSpell);
             StartCoroutine(StartCast(m_SelectedSpell));
         }
 
@@ -350,56 +394,41 @@ namespace Game.Character
 
             // set animation timer to 0
             m_AnimationTimer.Value = 0f;
+
+            // stop casting
+            m_IsCasting = false;
         }
 
         /// <summary>
-        /// Check if the given spell can be cast
+        /// Check if the given spell can be selected (no cooldown and enought energy)
         /// </summary>
-        /// <param name="spellType"></param>
+        /// <param name="spell"></param>
         /// <returns></returns>
-        public bool CanSelect(ESpell spellType)
+        public bool CanSelect(ESpell spell)
         {
-            return GetCooldown(spellType) <= 0f;
+            return GetCooldown(spell) <= 0f                         // spell not on cooldown 
+                && SpellLoader.GetSpellData(spell).EnergyCost <= m_Controller.EnergyHandler.Energy.Value;    // check enought energy
         }
 
         /// <summary>
-        /// Check if the given spell can be cast
+        /// Check if the given spell can be cast (no cooldown, enought energy, not doing a blocking action or in a state that prevents casts)
         /// </summary>
-        /// <param name="spellType"></param>
+        /// <param name="spell"></param>
         /// <returns></returns>
-        public bool CanCast(ESpell spellType)
+        public bool CanCast(ESpell spell)
         {
-            return GetCooldown(spellType) <= 0f                     // spell on cooldown 
-                && m_GlobalCooldown.Value <= 0f                     // global cooldown not done
-                && ! m_Controller.StateHandler.IsStunned            // is stunned
-                && ! m_Controller.CounterHandler.HasCounter         // is using a counter
-                && ! IsCasting;                                     // is casting an other spell
+            return CanSelect(spell)
+                && m_GlobalCooldown.Value <= 0f                                 // global cooldown done
+                && ! HasStateBlockingCast()                                     // check state effect blocking the cast
+                && ! IsCasting;                                                 // is not casting an other spell
         }
 
-        /// <summary>
-        /// Calculate offset of the spawn position depending on the trajectory
-        /// </summary>
-        /// <param name="trajectory"></param>
-        /// <returns></returns>
-        Vector3 GetSpawnOffset(ESpellTrajectory trajectory)
+        public bool HasStateBlockingCast()
         {
-            int rotationFactor = m_Controller.transform.rotation.y > 0 ? 1 : -1;
-
-            switch (trajectory)
-            {
-                case ESpellTrajectory.Straight:
-                    return new Vector3(0, 0, 0);
-
-                case ESpellTrajectory.Curve:
-                    return new Vector3(rotationFactor * 0.1f, 0.25f, 0);
-
-                case ESpellTrajectory.Hight:
-                    return new Vector3(rotationFactor * m_SpellSpawn.transform.position.x, 1f, 0); ;
-
-                default:
-                    ErrorHandler.FatalError($"Trajectory {trajectory} not implemented");
-                    return new Vector3(0, 0, 0);
-            }
+            return m_Controller.StateHandler.IsStunned                        // is stunned
+                && m_Controller.StateHandler.HasState(EStateEffect.Frozen)    // is frozen 
+                && m_Controller.StateHandler.HasState(EStateEffect.Silence)   // is silenced 
+                && m_Controller.CounterHandler.HasCounter;                     // is using a counter
         }
 
         #endregion
@@ -422,10 +451,10 @@ namespace Game.Character
             if (IsCasting)
                 CancelCast();
 
+            m_IsCasting = true;
+
             // SETUP : get spell data and set animation to motion
             SpellData spellData = SpellLoader.GetSpellData(spellType);
-
-            bool castDone = false;  
 
             // cancel current movement
             m_Controller.Movement.CancelMovement(true);
@@ -434,21 +463,21 @@ namespace Game.Character
             m_AnimationTimer.Value = spellData.AnimationTimer;
             
             // wait for animation to finish (if not already)
-            while (m_AnimationTimer.Value > 0f || ! castDone)
+            while (m_AnimationTimer.Value > 0f || m_IsCasting)
             {
                 // if the spell is launched before the end of the cast : cast it
-                if (m_AnimationTimer.Value <= spellData.AnimationTimer * (1 - spellData.CastAt) && ! castDone)
+                if (m_AnimationTimer.Value <= spellData.AnimationTimer * (1 - spellData.CastAt) && m_IsCasting)
                 {
                     // ask server to cast the spell
                     CastServerRPC();
-                    castDone = true;
                     m_Controller.Movement.CancelMovement(false);
+                    m_IsCasting = false;
                 }
 
                 m_AnimationTimer.Value -= Time.deltaTime;
 
                 // if player is moving, cancel the spell
-                if (m_Controller.Movement.IsMoving || m_Controller.StateHandler.IsStunned)
+                if ((spellData.IsCancellable && m_Controller.Movement.IsMoving) || HasStateBlockingCast())
                 {
                     // reset Animator
                     CancelCast();
@@ -457,6 +486,8 @@ namespace Game.Character
 
                 yield return null;
             }
+
+            m_IsCasting = false;
         }
 
         #endregion
@@ -475,10 +506,29 @@ namespace Game.Character
             get
             {
                 List<ESpell> spells = new List<ESpell>();
-                foreach (int spellId in m_SpellsNet)
-                    spells.Add((ESpell)spellId);
+
+                try
+                {
+                    foreach (int spellId in m_SpellsNet)
+                        spells.Add((ESpell)spellId);
+                } catch (Exception ex) 
+                {
+                    ex.Equals(null);
+                }
                 
                 return spells;
+            }
+        }
+
+        public List<int> SpellLevels
+        {
+            get
+            {
+                List<int> levels = new List<int> ();
+                foreach (int level in m_SpellLevelsNet)
+                    levels.Add(level);
+                
+                return levels;
             }
         }
 
@@ -488,7 +538,9 @@ namespace Game.Character
             {
                 SpellData spellData = SpellLoader.GetSpellData(m_SelectedSpell);
                 return spellData.SpellType == ESpellType.InstantSpell
-                    || spellData.SpellType == ESpellType.Counter;
+                    || spellData.SpellTarget == ESpellTarget.Self
+                    || spellData.SpellTarget == ESpellTarget.FirstAlly
+                    || spellData.SpellTarget == ESpellTarget.FirstEnemy;
             }
         }
 

@@ -97,8 +97,6 @@ namespace Game
 
             if (m_Spawns.Count < c_NumTeams)
                 ErrorHandler.FatalError("Not enough spawns for each teams");
-
-            Checker.CheckEmpty(m_Spawns);
         }
 
         /// <summary>

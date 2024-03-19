@@ -1,8 +1,12 @@
-﻿using Assets.Scripts.Menu.MainMenu.MainTab.Chests;
+﻿using Assets.Scripts.Menu.Common.Buttons.TemplateItemButtons;
+using Assets.Scripts.Menu.MainMenu.MainTab.Chests;
 using Data;
 using Enums;
 using Game.Managers;
 using Inventory;
+using Menu.Common;
+using Menu.Common.Buttons;
+using Menu.MainMenu;
 using Save;
 using System;
 using System.Collections;
@@ -19,22 +23,16 @@ namespace Menu.PopUps
     {
         #region Members
 
-        const string        CHEST_OPENING_ANIMATION     = "ChestJump";
-
         const string        c_ChestContainer            = "ChestContainer";
-        const string        c_ChestPreview              = "ChestPreview";
         const string        c_RewardDisplayContainer    = "RewardDisplayContainer";
 
         GameObject          m_ChestContainer;
         ChestUI             m_ChestUI;
         GameObject          m_RewardDisplayContainer;
-        Image               m_RewardIcon;
-        TMP_Text            m_RewardQty;
+        GameObject          m_RewardIconSection;
         TMP_Text            m_RewardTitle;
-        TMP_Text            m_Level;
-        GameObject          m_QuantityBarContainer;
-        Image               m_QuantityFill;
-        TMP_Text            m_QuantityCounter;
+        CollectionFillBar   m_CollectionFillBar;
+        TMP_Text            m_CollectionQty;
 
         // SPECIFIC DATA
         ChestRewardData     m_ChestRewardData;
@@ -100,13 +98,10 @@ namespace Menu.PopUps
         void SetupRewardsUI()
         {
             m_RewardDisplayContainer    = Finder.Find(gameObject, c_RewardDisplayContainer);
-            m_RewardIcon                = Finder.FindComponent<Image>(m_RewardDisplayContainer, "RewardIcon");
-            m_RewardQty                 = Finder.FindComponent<TMP_Text>(m_RewardDisplayContainer, "RewardQty");
+            m_RewardIconSection         = Finder.Find(m_RewardDisplayContainer, "RewardIconSection");
             m_RewardTitle               = Finder.FindComponent<TMP_Text>(m_RewardDisplayContainer, "RewardTitle");
-            m_Level                     = Finder.FindComponent<TMP_Text>(m_RewardDisplayContainer, "Level");
-            m_QuantityBarContainer      = Finder.Find(gameObject, "QuantityBarContainer");
-            m_QuantityFill              = Finder.FindComponent<Image>(m_QuantityBarContainer, "Fill");
-            m_QuantityCounter           = Finder.FindComponent<TMP_Text>(m_QuantityBarContainer, "Counter");
+            m_CollectionFillBar         = Finder.FindComponent<CollectionFillBar>(m_RewardDisplayContainer, "CollectionFillbar");
+            m_CollectionQty             = Finder.FindComponent<TMP_Text>(m_RewardDisplayContainer, "CollectionQty");
 
             // hide before displaying rewards
             m_RewardDisplayContainer.SetActive(false);
@@ -131,39 +126,41 @@ namespace Menu.PopUps
             }
 
             string title = "";
-            Sprite icon = null;
-            int nextRequestedValue = 1;
             int currentlyOwnValue = 1;
-            int level = 0;
-
             SReward reward = m_Rewards[m_RewardIndex];
             int qty = reward.Qty;
+            int maxCollection = 1;
 
+            // init default template and clean previous content
+            UIHelper.CleanContent(m_RewardIconSection);
+            TemplateItemButton template = default;
+            
             if (InventoryManager.CURRENCIES.Contains(reward.RewardType))
             {
+                template = Instantiate(AssetLoader.LoadTemplateItem("CurrencyIcon"), m_RewardIconSection.transform).GetComponent<TemplateCurrencyIcon>();
+                (template as TemplateCurrencyIcon).Initialize(reward.RewardType);
+
                 // setup icon and values
                 title = reward.RewardType.ToString();
-                icon = AssetLoader.LoadCurrencyIcon(reward.RewardType);
-                currentlyOwnValue = InventoryManager.GetCurrency(reward.RewardType) - qty;
-                nextRequestedValue = currentlyOwnValue;
-                m_Level.gameObject.SetActive(false);
+                currentlyOwnValue = InventoryManager.GetCurrency(reward.RewardType);
+                maxCollection = currentlyOwnValue + qty;
             } 
             else
             {
                 switch (reward.RewardType)
                 {
                     case (ERewardType.Spell):
-                        // get data from cloud manager
                         ESpell spell = (ESpell)reward.Metadata[SReward.METADATA_KEY_SPELL_TYPE];
+                        template = Instantiate(AssetLoader.LoadTemplateItem("SpellItem"), m_RewardIconSection.transform).GetComponent<TemplateSpellItemUI>();
+                        (template as TemplateSpellItemUI).Initialize(spell);
+
+                        // get data from cloud manager
                         SSpellCloudData spellCloudData = InventoryManager.GetSpellData(spell);
 
                         // setup infos
                         title = spell.ToString();                       // title is the name of the spell
-                        icon = AssetLoader.LoadSpellIcon(spell);        // load icon from ressources
-                        nextRequestedValue = 1;                         // TODO     -------------------------------------------------------
-                        currentlyOwnValue = spellCloudData.Qty - qty;   // quantity is collected before display so retrieve the qty to the current value to know how much the player used to own
-                        level = spellCloudData.Level;                   // get level from cloud data
-                        m_Level.gameObject.SetActive(true);             // make sure that level TMP is active
+                        currentlyOwnValue = spellCloudData.Qty;         // quantity is collected before display so retrieve the qty to the current value to know how much the player used to own
+                        maxCollection = SpellLoader.GetSpellLevelData(spell).RequiredCards;
                         break;
 
                     default:
@@ -173,16 +170,18 @@ namespace Menu.PopUps
             
             }
 
-            m_RewardIcon.sprite         = icon;
-            m_RewardQty.text            = qty.ToString();
-            m_RewardTitle.text          = title;
-            m_QuantityCounter.text      = string.Format("{0} / {1}", currentlyOwnValue, nextRequestedValue);
-            m_QuantityFill.fillAmount   = Mathf.Clamp(currentlyOwnValue / nextRequestedValue, 0, 1);
+            // remove button and collection fillbar from item
+            template.AsIconOnly();
 
-            if (m_Level.isActiveAndEnabled) 
-            {
-                m_Level.text = TextLocalizer.LocalizeText("Level ") + level.ToString();
-            }
+            m_CollectionQty.text        = "+ " + qty.ToString();
+            m_RewardTitle.text          = title;
+
+            // -- setup collection fill bar
+            m_CollectionFillBar.Initialize(currentlyOwnValue, maxCollection);
+            m_CollectionFillBar.AddCollectionAnimation(qty);
+            
+            // add reward to collection of rewards
+            InventoryManager.CollectReward(reward);
 
             m_RewardIndex++;
         }
@@ -233,8 +232,6 @@ namespace Menu.PopUps
             m_ChestContainer.gameObject.SetActive(false);
             m_RewardDisplayContainer.gameObject.SetActive(true);
 
-            // collect chest rewards and remove it from database if is in 
-            InventoryManager.CollectRewards(m_Rewards);
             if (m_ChestIndex >= 0)
                 InventoryManager.RemoveChestAtIndex(m_ChestIndex);
 

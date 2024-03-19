@@ -6,12 +6,17 @@ using Menu.PopUps;
 using Save;
 using System;
 using System.Collections;
-using System.Linq;
 using System.Threading.Tasks;
 using Tools;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using UnityEngine;
+using Data;
+
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Assets
 {
@@ -23,17 +28,22 @@ namespace Assets
 
         [SerializeField] Canvas m_Canvas;
         [SerializeField] CloudSaveManager m_CloudSaveManager;
+        [SerializeField] float m_CharacterSizeFactor = 1.0f;
+        [SerializeField] float m_SpellSizeFactor = 0.3f;    
 
         public static event Action<EAppState>   StateChangedEvent;
         public static event Action              InitializationCompletedEvent;
+        public static event Action              ApplicationQuitEvent;
 
         EAppState       m_State                 = EAppState.Release;
         bool            m_SignedIn              = false;
         
-        public static Main Instance => s_Instance;
+        public static Main Instance                     => s_Instance;
         public static CloudSaveManager CloudSaveManager => Instance.m_CloudSaveManager;
-        public static EAppState State => Instance.m_State;
-        public static Canvas Canvas => Instance.m_Canvas;
+        public static EAppState State                   => Instance.m_State;
+        public static Canvas Canvas                     => Instance.m_Canvas;
+        public static float CharacterSizeFactor         => Instance.m_CharacterSizeFactor;
+        public static float SpellSizeFactor             => Instance.m_SpellSizeFactor;
 
         #endregion
 
@@ -53,21 +63,35 @@ namespace Assets
 
         async Task Initialize()
         {
-            // register to state changes 
-            StateChangedEvent += OnStateChanged;
+            try
+            {
+                // register to state changes 
+                StateChangedEvent += OnStateChanged;
 
-            // register on initliazitation completed check by the Coroutine
-            InitializationCompletedEvent += OnInitializationCompleted;
+                // register on initliazitation completed check by the Coroutine
+                InitializationCompletedEvent += OnInitializationCompleted;
 
-            StartCoroutine(CheckInitialization());
+                StartCoroutine(CheckInitialization());
 
-            // initialize UnituServices
-            await UnityServices.InitializeAsync();
+                // initialize UnituServices
+                await UnityServices.InitializeAsync();
 
-            // listen to Auth Service and try to signe in anonymously
-            AuthenticationService.Instance.SignedIn += OnSignedIn;
-            AuthenticationService.Instance.SignedIn += m_CloudSaveManager.LoadSave;
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+                // listen to Auth Service and try to signe in anonymously
+                AuthenticationService.Instance.SignedIn += OnSignedIn;
+                AuthenticationService.Instance.SignedIn += m_CloudSaveManager.LoadSave;
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+
+            } catch (Exception ex)
+            {
+                ErrorHandler.Error(ex.Message);
+            }
+
+#if UNITY_EDITOR
+                Debug.Log("UNITY EDITOR MODE");
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+
+            ApplicationQuitEvent += m_CloudSaveManager.OnApplicationQuit;
+#endif
         }
 
         /// <summary>
@@ -119,8 +143,27 @@ namespace Assets
 
         public static void SetPopUp(EPopUpState popUpState, params object[] args)
         {
+            var popUpPath = "";
+            Transform parent = Instance.m_Canvas.transform;
+            if (popUpState.ToString().EndsWith("Screen"))
+            {
+                popUpPath = AssetLoader.c_OverlayPath;
+            } else if (popUpState.ToString().EndsWith("PopUp"))
+            {
+                popUpPath = AssetLoader.c_PopUpsPath;
+                parent = null;
+            } else
+            {
+                ErrorHandler.Error("Unknown PopUp type " + popUpState.ToString() + " : unable to find adequate path");
+            }
+
             // instantiate object in the canvas
-            var obj = Instantiate(AssetLoader.Load<GameObject>(AssetLoader.c_OverlayPath + popUpState.ToString()), Instance.m_Canvas.transform);
+            var obj = Instantiate(AssetLoader.Load<GameObject>(popUpPath + popUpState.ToString()), parent);
+            if (obj == null)
+            {
+                ErrorHandler.Error("Unable to find popup : " + popUpState.ToString());
+                return;
+            }
 
             // setup initalization depending on the popup state
             switch (popUpState) {
@@ -130,10 +173,43 @@ namespace Assets
                     obj.GetComponent<ChestOpeningScreen>().Initialize(chestType, chestIndex);
                     break;
 
+                case EPopUpState.LevelUpScreen:
+                    ECharacter character = (ECharacter)args[0];
+                    obj.GetComponent<LevelUpScreen>().Initialize(character);
+                    break;
+
+                case EPopUpState.SpellInfoPopUp:
+                    ESpell spell = (ESpell)args[0];
+                    int level = (int)args[1];
+                    obj.GetComponent<SpellInfoPopUp>().Initialize(spell, level);
+                    break;
+
+                case EPopUpState.StateEffectPopUp:
+                    obj.GetComponent<StateEffectPopUp>().Initialize((SStateEffectData)args[0], (int)args[1]);
+                    break;
+
+                case EPopUpState.RuneSelectionPopUp:
+                    obj.GetComponent<RuneSelectionPopUp>().Initialize();
+                    break;
+
                 default:
                     obj.GetComponent<OverlayScreen>().Initialize();
                     break;
             }
+        }
+
+        public static void ErrorMessagePopUp(string message)
+        {
+            // TODO : error animation
+
+            // TODO : error message
+            Debug.LogWarning(message);
+            //SetPopUp(EPopUpState.ErrorMessagePopUp, message);
+        }
+
+        public static void StateEffectPopUp(SStateEffectData stateEffectData, int level)
+        {
+            SetPopUp(EPopUpState.StateEffectPopUp, stateEffectData, level);
         }
 
         #endregion
@@ -144,16 +220,15 @@ namespace Assets
         void OnSignedIn()
         {
             m_SignedIn = true;
-            PlayerData.PlayerName = AuthenticationService.Instance.PlayerName;
+            StaticPlayerData.PlayerName = AuthenticationService.Instance.PlayerName ?? "SheepRapist";
         }
 
         private void OnInitializationCompleted()
         {
-            Debug.Log("Main.OnInitializationCompleted()");
-
             if (SceneLoader.Instance == null)
                 Debug.Log("SceneLoader is null");
 
+            Debug.Log("Initialization of the data completed : loading MainMenu");
             SceneLoader.Instance.LoadScene("MainMenu");
         }
 
@@ -162,6 +237,14 @@ namespace Assets
             Debug.Log("New state : " + state.ToString());
         }
 
+#if UNITY_EDITOR
+        void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            // call manual event that the application is quitting
+            if (state == PlayModeStateChange.ExitingPlayMode)
+                ApplicationQuitEvent?.Invoke();
+        }
+#endif
         #endregion
     }
 }

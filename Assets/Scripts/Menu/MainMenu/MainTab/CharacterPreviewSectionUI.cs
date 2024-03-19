@@ -1,0 +1,265 @@
+﻿using Menu.Common;
+using Enums;
+using Game.Managers;
+using Managers;
+using Save;
+using TMPro;
+using Tools;
+using UnityEngine;
+using UnityEngine.UI;
+using Inventory;
+using System.Collections;
+using UnityEngine.TextCore.Text;
+using Assets;
+using Menu.Common.Buttons;
+
+namespace Menu.MainMenu
+{
+    public class CharacterPreviewSectionUI : MonoBehaviour
+    {
+        #region Members
+
+        bool m_Activated;
+
+        GameObject          m_CharacterPreviewContainer;
+        Button              m_CharacterPreviewButton;
+        RectTransform       m_CharacterPreviewRectTransform;
+        GameObject          m_CharacterSpellsContainer;
+        TMP_Text            m_CharacterName; 
+        CollectionFillBar   m_XpBar;
+        TMP_Text            m_CharacterLevel;
+        // -- left side
+        GameObject          m_LeftSide;
+        TemplateRuneButton  m_TemplateRuneButton;
+        Button              m_InfoSubButton;
+
+        public Button CharacterPreviewButton => m_CharacterPreviewButton;
+
+        #endregion
+
+
+        #region Init & End
+
+        public void Initialize()
+        {
+            m_CharacterPreviewContainer         = Finder.Find(gameObject, "CharacterPreviewContainer");
+            m_CharacterPreviewButton            = Finder.FindComponent<Button>(m_CharacterPreviewContainer);
+            m_CharacterPreviewRectTransform     = Finder.FindComponent<RectTransform>(m_CharacterPreviewContainer);
+            m_CharacterSpellsContainer          = Finder.Find(gameObject, "CharacterSpellsContainer", false);       // can be null, if not set or inactive, it will not be used
+            m_CharacterName                     = Finder.FindComponent<TMP_Text>(gameObject, "CharacterName");
+            m_XpBar                             = Finder.FindComponent<CollectionFillBar>(gameObject, "CharacterExperienceFillbar");
+            m_CharacterLevel                    = Finder.FindComponent<TMP_Text>(m_XpBar.gameObject, "LevelValue");
+           
+            SetUpLeftSideUI();
+
+            // register listeners
+            CharacterBuildsCloudData.SelectedCharacterChangedEvent  += OnSelectedCharacterChanged;
+            CharacterBuildsCloudData.CurrentBuildIndexChangedEvent  += OnCurrentRuneChanged;
+            CharacterBuildsCloudData.CurrentRuneChangedEvent        += OnCurrentRuneChanged;
+            InventoryManager.CharacterLeveledUpEvent                += OnCharacterLeveledUp;
+            InventoryManager.CharacterGainedXpEvent                 += OnCharacterGainedXp;
+            // setup ui of current selected character
+            OnSelectedCharacterChanged();
+        }
+
+        public void Activate(bool activate)
+        {
+            m_Activated = activate;
+        }
+
+        private void OnDestroy()
+        {
+            m_CharacterPreviewButton.onClick.RemoveAllListeners();
+            CharacterBuildsCloudData.SelectedCharacterChangedEvent -= OnSelectedCharacterChanged;
+
+            if (m_TemplateRuneButton != null)
+                m_TemplateRuneButton.Button.onClick.RemoveAllListeners();
+
+            if (m_InfoSubButton != null)
+                m_InfoSubButton.onClick.RemoveAllListeners();   
+        }
+
+        #endregion
+
+
+        #region GUI Manipulators
+
+        void SetUpLeftSideUI()
+        {
+            m_LeftSide = Finder.Find(gameObject, "LeftSide", false);
+            if (m_LeftSide == null)
+                return;
+
+            m_TemplateRuneButton = Finder.FindComponent<TemplateRuneButton>(m_LeftSide);
+            m_InfoSubButton = Finder.FindComponent<Button>(m_LeftSide, "InfosSubButton");
+
+            m_TemplateRuneButton.Initialize(CharacterBuildsCloudData.CurrentRune);
+
+            m_TemplateRuneButton.Button.onClick.AddListener(OnRuneIconButtonClicked);
+            m_InfoSubButton.onClick.AddListener(OnInfoButtonClicked);
+        }
+
+        /// <summary>
+        /// Refresh icon of the rune to display current one
+        /// </summary>
+        void RefreshRuneIcon()
+        {
+            if (m_TemplateRuneButton == null)
+                return;
+
+            m_TemplateRuneButton.RefreshRune(CharacterBuildsCloudData.CurrentRune);
+        }
+
+        /// <summary>
+        /// Update the name, level, xpbar of the currently selected character
+        /// </summary>
+        void UpdateCharInfos()
+        {
+            m_CharacterName.text = CharacterBuildsCloudData.SelectedCharacter.ToString();
+            RefreshXpBarUI();
+        }
+
+        /// <summary>
+        /// Display spells of the character (if container exists)
+        /// </summary>
+        void UpdateCharSpells()
+        {
+            // if does not exists or is not active : skip
+            if (m_CharacterSpellsContainer == null || ! m_CharacterSpellsContainer.gameObject.activeInHierarchy)
+                return;
+
+            // get current character data
+            var charData = CharacterLoader.GetCharacterData(CharacterBuildsCloudData.SelectedCharacter);
+
+            // init ultimate button
+            var ultimateButton = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "UltimateSpellItem");
+            ultimateButton.Initialize(charData.Ultimate);
+
+            // init auto attack
+            var aaButton = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "AutoAttackSpellItem");
+            aaButton.Initialize(charData.AutoAttack);
+        }
+
+        void RefreshXpBarUI()
+        {
+            var charData = InventoryCloudData.Instance.GetCharacter(CharacterBuildsCloudData.SelectedCharacter);
+
+            // update char level display
+            m_CharacterLevel.text = charData.Level.ToString();
+
+            // refresh xp bar with new xp and max required xp
+            m_XpBar.UpdateCollection(charData.Xp, CharacterLoader.CharactersManagementData.GetCharacterLevelData(charData.Level).RequiredXp);
+        }
+
+        /// <summary>
+        /// Spawn character preview in the container
+        /// </summary>
+        void SpawnCharPreview()
+        {
+            // clean current preview
+            UIHelper.CleanContent(m_CharacterPreviewContainer);
+
+            // get selected character preview
+            var characterData = CharacterLoader.GetCharacterData(StaticPlayerData.Character);
+            var characterPreview = characterData.InstantiateCharacterPreview(m_CharacterPreviewContainer);
+
+            // display character preview
+            var baseScale = characterPreview.transform.localScale;
+            float scaleFactor = m_CharacterPreviewRectTransform.rect.height / characterPreview.transform.localScale.y;
+            characterPreview.transform.localScale = new Vector3(baseScale.x * scaleFactor, baseScale.y * scaleFactor, 1f);
+        }
+
+        #endregion
+
+
+        #region Coroutines
+
+        IEnumerator CharacterLevelUpCoroutine(ECharacter character)
+        {
+            // wait gain xp animation over
+            while (m_XpBar.IsAnimated)
+            {
+                yield return null;
+            }
+
+            // display level up
+            if (character == CharacterBuildsCloudData.SelectedCharacter)
+                RefreshXpBarUI();
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        /// <summary>
+        /// When a character is seleted :
+        ///     - change info
+        ///     - setup new Preview 
+        /// </summary>
+        /// <param name="character"></param>
+        void OnSelectedCharacterChanged()
+        {
+            // update infos : name, xpbar, level, ...
+            UpdateCharInfos();
+
+            // update character spells
+            UpdateCharSpells();
+
+            // refresh rune icon of current build
+            RefreshRuneIcon();
+
+            // spawn preview
+            SpawnCharPreview();
+        }
+
+        void OnCurrentRuneChanged()
+        {
+            if (m_TemplateRuneButton == null)
+                return;
+
+            RefreshRuneIcon();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="xp"></param>
+        void OnCharacterGainedXp(ECharacter character, int xp)
+        {
+            if (character != CharacterBuildsCloudData.SelectedCharacter)
+                return;
+
+            if (m_Activated)
+                m_XpBar.AddCollectionAnimation(xp);
+            else
+                m_XpBar.Add(xp);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        void OnCharacterLeveledUp(ECharacter character)
+        {
+            if (m_Activated)
+                // wait for xp animation to end before displaying level up
+                StartCoroutine(CharacterLevelUpCoroutine(character));
+            else
+                // instant refresh xp bar
+                RefreshXpBarUI();
+        }
+
+        void OnRuneIconButtonClicked()
+        {
+            Main.SetPopUp(EPopUpState.RuneSelectionPopUp);
+        }
+
+        void OnInfoButtonClicked()
+        {
+            Debug.Log("CLICKED CHARACTER INFO BUTTON");
+        }
+
+        #endregion
+    }
+}

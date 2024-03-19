@@ -11,10 +11,10 @@ namespace Game.Spells
 
         #region Members
 
-        [SerializeField] protected float m_Tick;
-        [SerializeField] protected int m_TickDamage;
-        [SerializeField] protected int m_TickHeal;
-        [SerializeField] protected int m_TickShield;
+        [SerializeField] protected float    m_Tick;
+        [SerializeField] protected int      m_TickDamages;
+        [SerializeField] protected int      m_TickHeal;
+        [SerializeField] protected int      m_TickShield;
 
         private float m_TickTimer;
 
@@ -23,14 +23,16 @@ namespace Game.Spells
 
         #region Inherited Manipulators
 
-        public override void Initialize(Controller controller, SStateEffectData stateEffect)
+        public override bool Initialize(Controller controller, SStateEffectData? stateEffect)
         {
-            base.Initialize(controller, stateEffect);
+            if (!base.Initialize(controller, stateEffect))
+                return false;
 
             m_TickTimer = m_Tick;
+            return true;
         }
 
-        public override void UpdateTimer()
+        public override void Update()
         {
             m_TickTimer -= Time.deltaTime;
 
@@ -40,12 +42,12 @@ namespace Game.Spells
                 m_TickTimer = m_Tick;
             }
 
-            base.UpdateTimer();
+            base.Update();
         }
 
         protected virtual void ApplyTickEffects()
         {
-            m_Controller.Life.Hit(m_TickDamage * m_Stacks, true);
+            m_Controller.Life.Hit(m_TickDamages * m_Stacks, true);
             m_Controller.Life.Heal(m_TickHeal * m_Stacks);
 
             // add bonus tick shield

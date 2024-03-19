@@ -11,14 +11,14 @@ namespace Game.Spells
 
         #region Protected Manipulators
         
-        protected override void ApplyEnemyOnHitEffects(Controller targetController)
+        protected override void ApplyEnemyStateEffects(Controller targetController)
         {
             Debug.Log("Torment.ApplyEnemyOnHitEffects()");
 
             // if has no cursed effect, apply it 
             if (! targetController.StateHandler.HasState(EStateEffect.Cursed))
             {
-                base.ApplyEnemyOnHitEffects(targetController);
+                base.ApplyEnemyStateEffects(targetController);
                 return;
             }
 

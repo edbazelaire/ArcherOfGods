@@ -1,6 +1,8 @@
 ﻿using Data;
+using Data.GameManagement;
 using Enums;
 using Game.Spells;
+using Inventory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +17,14 @@ namespace Game.Managers
 
         static SpellLoader s_Instance;
 
+        SpellsManagementData m_SpellsManagementData;
         Dictionary<string, GameObject> m_SpellsPrefabs;
         Dictionary<ESpell, SpellData> m_Spells;
         Dictionary<string, SpellData> m_OnHitSpellData;
         Dictionary<string, StateEffect> m_StateEffects;
 
         public static List<ESpell> Spells => Instance.m_Spells.Keys.ToList();
+        public static SpellsManagementData SpellsManagementData => Instance.m_SpellsManagementData;
 
         #endregion
 
@@ -29,11 +33,17 @@ namespace Game.Managers
 
         void Initialize()
         {
+            InitializeSpellsManagementData();
             InitializeSpellPrefabs();
             InitializeSpells();
             InitializeStateEffects();
 
             DontDestroyOnLoad(s_Instance.gameObject);
+        }
+
+        void InitializeSpellsManagementData()
+        {
+            m_SpellsManagementData = AssetLoader.Load<SpellsManagementData>(AssetLoader.c_ManagementDataPath + "SpellsManagementData");
         }
 
         void InitializeSpellPrefabs()
@@ -103,6 +113,21 @@ namespace Game.Managers
         #endregion
 
 
+        #region Data Management Accessors
+
+        public static SRaretyData GetRaretyData(ESpell spell)
+        {
+            return Instance.m_SpellsManagementData.GetRaretyData(Instance.m_Spells[spell].Rarety);
+        }
+
+        public static SSpellLevelData GetSpellLevelData(ESpell spell)
+        {
+            return Instance.m_SpellsManagementData.GetSpellLevelData(InventoryManager.GetSpellData(spell).Level, Instance.m_Spells[spell].Rarety);
+        }
+
+        #endregion
+
+
         #region Static Manipulators
 
         /// <summary>
@@ -153,7 +178,7 @@ namespace Game.Managers
         /// </summary>
         /// <param name="spell"></param>
         /// <returns></returns>
-        public static SpellData GetSpellData(ESpell spell)
+        public static SpellData GetSpellData(ESpell spell, int level = 1)
         {
             if (!Instance.m_Spells.ContainsKey(spell))
             {
@@ -161,7 +186,7 @@ namespace Game.Managers
                 return null;
             }
 
-            return Instance.m_Spells[spell];
+            return Instance.m_Spells[spell].Clone(level);
         }
 
         /// <summary>
@@ -169,20 +194,20 @@ namespace Game.Managers
         /// </summary>
         /// <param name="spell"></param>
         /// <returns></returns>
-        public static SpellData GetSpellData(string spellName)
+        public static SpellData GetSpellData(string spellName, int level = 1)
         {
             if (Enum.TryParse(spellName, out ESpell spell))
             {
-                return GetSpellData(spell);
+                return GetSpellData(spell, level);
             }
 
-            if (!Instance.m_OnHitSpellData.ContainsKey(spellName))
+            if (Instance.m_OnHitSpellData.ContainsKey(spellName))
             {
-                ErrorHandler.Error($"SpellLoader : Spell {spellName} not found");
-                return null;
+                return Instance.m_OnHitSpellData[spellName].Clone(level);
             }
 
-            return Instance.m_OnHitSpellData[spellName];
+            ErrorHandler.Error($"SpellLoader : Spell {spellName} not found");
+            return null;
         }
 
         /// <summary>
@@ -195,7 +220,7 @@ namespace Game.Managers
             List<SpellData> spells = new List<SpellData>();
             foreach (var spellData in Instance.m_Spells.Values)
             {
-                if (spellData.Rarety != rarety)
+                if (spellData.Linked || spellData.Rarety != rarety)
                     continue;
                 spells.Add(spellData);
             }
@@ -206,12 +231,10 @@ namespace Game.Managers
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="stateEffect"></param>
+        /// <param name="stateEffectName"></param>
         /// <returns></returns>
-        public static StateEffect GetStateEffect(EStateEffect stateEffect)
+        public static StateEffect GetStateEffect(string stateEffectName, int level = 1)
         {
-            string stateEffectName = stateEffect.ToString();
-
             if (! Instance.m_StateEffects.ContainsKey(stateEffectName))
             {
                 StateEffect state = ScriptableObject.CreateInstance<StateEffect>();
@@ -219,7 +242,19 @@ namespace Game.Managers
                 return state;
             }
 
-            return Instance.m_StateEffects[stateEffectName];
+            var clone = Instance.m_StateEffects[stateEffectName].Clone(level);
+            clone.name = stateEffectName;
+            return clone;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="stateEffect"></param>
+        /// <returns></returns>
+        public static StateEffect GetStateEffect(EStateEffect stateEffect, int level)
+        {
+            return GetStateEffect(stateEffect.ToString(), level);
         }
 
         #endregion

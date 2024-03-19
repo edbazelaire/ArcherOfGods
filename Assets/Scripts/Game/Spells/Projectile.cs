@@ -1,4 +1,5 @@
-﻿using Enums;
+﻿using Data;
+using Enums;
 using System;
 using Tools;
 using UnityEditor;
@@ -9,6 +10,7 @@ namespace Game.Spells
     public class Projectile : Spell
     {
         #region Members
+        ProjectileData m_SpellData => m_BaseSpellData as ProjectileData;
 
         protected float m_MaxHeight;
         protected float m_MaxDistance;
@@ -19,10 +21,10 @@ namespace Game.Spells
 
         #region Init & End
 
-        public override void Initialize(Vector3 target, string spellName)
+        public override void Initialize(Vector3 target, string spellName, int level)
         {
             target.y = 0;
-            base.Initialize(target, spellName);
+            base.Initialize(target, spellName, level);
 
             m_OriginalPosition = transform.position;
 
@@ -68,8 +70,9 @@ namespace Game.Spells
                 End();
 
             // if spell hits a player, hit it and end the spell
-            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player") && m_SpellData.TriggerPlayer)
-                OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
+            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
+                if (m_SpellData.TriggerPlayer)
+                    OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
         }
 
         /// <summary>

@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: 0d9dd11f3b2cbfc4cbe958b071a80cc3
+guid: a3f8034f9e16e9140a33cd5ef710f181
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6844848005806148368
-    second: FireBomb_icon_0
-  - first:
-      213: 7027280194205528803
-    second: FireBomb_icon_1
+      213: -6913123267119080169
+    second: Ic_FireBomb 1_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -49,7 +46,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 2
+  spriteMode: 1
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -129,13 +126,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: FireBomb_icon_0
+      name: Ic_FireBomb 1_0
       rect:
         serializedVersion: 2
-        x: 24
-        y: 21
-        width: 185
-        height: 195
+        x: 0
+        y: 0
+        width: 1024
+        height: 1024
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -143,29 +140,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 01bcd97eef8cdfe50800000000000000
-      internalID: 6844848005806148368
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: FireBomb_icon_1
-      rect:
-        serializedVersion: 2
-        x: 198
-        y: 160
-        width: 14
-        height: 17
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3e232c0ca1ae58160800000000000000
-      internalID: 7027280194205528803
+      spriteID: 71d11ee0407af00a0800000000000000
+      internalID: -6913123267119080169
       vertices: []
       indices: 
       edges: []
@@ -173,7 +149,7 @@ TextureImporter:
     outline: []
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -181,8 +157,7 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      FireBomb_icon_0: 6844848005806148368
-      FireBomb_icon_1: 7027280194205528803
+      Ic_FireBomb 1_0: -6913123267119080169
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,4 +1,5 @@
-﻿using Unity.Netcode;
+﻿using Tools;
+using Unity.Netcode;
 using UnityEditor;
 using UnityEngine;
 
@@ -65,6 +66,25 @@ namespace Game.Character
 
             // apply energy (min maxed between 0 and max energy)    
             m_Energy.Value = Mathf.Clamp(m_Energy.Value + energy, 0, m_MaxEnergy.Value);
+        }
+
+        /// <summary>
+        /// Apply damage to the character
+        /// </summary>
+        /// <param name="damage"> amount of damages </param>
+        public void SpendEnergy(int energy)
+        {
+            // only server can apply energy changes
+            if (!IsServer)
+                return;
+
+            if (m_Energy.Value < energy)
+            {
+                ErrorHandler.Error("energy (" + m_Energy.Value + ") is inf to Energy cost of the spell " + energy);
+            }
+
+            // apply energy (min maxed between 0 and max energy)    
+            m_Energy.Value = Mathf.Clamp(m_Energy.Value - energy, 0, m_MaxEnergy.Value);
         }
 
         #endregion

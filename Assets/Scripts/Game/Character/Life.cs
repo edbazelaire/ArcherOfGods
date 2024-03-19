@@ -77,29 +77,32 @@ public class Life : NetworkBehaviour
     /// Apply damage to the character
     /// </summary>
     /// <param name="damage"> amount of damages </param>
-    public void Hit(int damage, bool ignoreRes = false)
+    public int Hit(int damage, bool ignoreRes = false)
     {
         // only server can apply damages
         if (!IsServer)
-            return;
+            return 0;
 
+        if (m_Controller.StateHandler.HasState(EStateEffect.Invulnerable))
+            return 0;
+
+        // calculate damages after resistance
         damage = ignoreRes ? damage : m_Controller.StateHandler.ApplyResistance(damage);
 
         // check provided value
         if (damage < 0)
         {
             Debug.LogError($"Damages ({damage}) < 0");
-            return;
+            return 0;
         }
 
-        if (m_Controller.StateHandler.HasState(EStateEffect.Invulnerable))
-            return;
+        // calculate damages after shield
+        damage = m_Controller.StateHandler.HitShield(damage);
 
-        if (m_Controller.StateHandler.Shield > 0)
-            damage = m_Controller.StateHandler.HitShield(damage);
-
-        // apply damages
+        // apply damages (after shield)
         m_Hp.Value -= damage;
+
+        return damage;
     }
 
     /// <summary>
