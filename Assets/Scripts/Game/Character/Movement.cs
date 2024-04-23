@@ -1,3 +1,4 @@
+using Data.GameManagement;
 using Enums;
 using System;
 using Unity.Netcode;
@@ -9,40 +10,23 @@ namespace Game.Character
     {
         #region Members
 
-        public float BASE_PLAYER_SPEED = 3f;
-
         Controller                  m_Controller;
 
-        NetworkVariable<int>        m_MoveX                 = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
-        NetworkVariable<bool>       m_MovementCancelled     = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        NetworkVariable<int>        m_MoveX                 = new(0);
+        NetworkVariable<bool>       m_MovementCancelled     = new(false);
+        NetworkVariable<bool>       m_MovementBlocked       = new(false);
 
         float m_InitialSpeed;
 
         #endregion
 
 
-        #region Inherited Manipulators
+        #region Init & End
 
         void Awake()
         {
             m_Controller = GetComponent<Controller>();
-        }   
-
-        void Update()
-        {
-            if (IsOwner)
-                CheckInputs();
-
-            if (!IsServer)
-                return;
-            
-            UpdateMovement();
         }
-
-        #endregion
-
-
-        #region Private Manipulators
 
         /// <summary>
         /// Initialize player movement speed
@@ -53,10 +37,39 @@ namespace Game.Character
             if (!IsServer)
                 return;
 
-            m_InitialSpeed = BASE_PLAYER_SPEED * characterSpeed;
+            m_InitialSpeed = characterSpeed;
+        }
 
-            // register movement methods to UI movement buttons
+        void Update()
+        {
+            CheckInputs();
 
+            if (!IsServer)
+                return;
+            
+            UpdateMovement();
+        }
+
+        #endregion
+
+
+        #region ServerRPC Methods
+
+        [ServerRpc]
+        public void SetMovementServerRPC(int moveX)
+        {
+            SetMovement(moveX);
+        }
+
+        public void SetMovement(int moveX)
+        {
+            if (!IsServer)
+                return;
+
+            if (!CanMove)
+                moveX = 0;
+
+            m_MoveX.Value = moveX;
         }
 
         #endregion
@@ -93,7 +106,8 @@ namespace Game.Character
         /// </summary>
         void CheckInputs()
         {
-            m_MoveX.Value = 0;
+            if (!IsOwner)
+                return;
 
             if (! CanMove || ! m_Controller.IsPlayer)
                 return;
@@ -106,14 +120,18 @@ namespace Game.Character
                 return;
             }
 
+            int moveX = 0;
+
             if (Input.GetKey(KeyCode.Q) || GameUIManager.LeftMovementButtonPressed)
             {
-                m_MoveX.Value = -1;
+                moveX = -1;
             }
             else if (Input.GetKey(KeyCode.D) || GameUIManager.RightMovementButtonPressed)
             {
-                m_MoveX.Value = 1;
-            } 
+                moveX = 1;
+            }
+
+            SetMovementServerRPC(moveX);
         }
 
         void ResetRotation()
@@ -129,35 +147,42 @@ namespace Game.Character
 
         #region Public Manipulators
 
+        /// <summary>
+        /// Add a little bit of movement and a reset rotation on server side to be sure that the clients synchronized properly
+        /// </summary>
+        public void Shake()
+        {
+            if (!IsServer)
+                return;
+
+            transform.position += new Vector3(0.01f, 0, 0);
+            transform.rotation = Quaternion.Euler(0f, 0f, 0.01f);
+
+            ResetRotation();
+        }
+
         public void CancelMovement(bool cancel)
         {
-            if (cancel)
-            {
-                // reset rotation locally
-                ResetRotation();
+            if (!IsServer)
+                return;
 
-                // reset rotation on server side
-                ResetRotationServerRPC();
-            }
+            if (cancel)
+                ResetRotation();
 
             if (cancel && ! IsMoving)
                 return;
 
             m_MovementCancelled.Value = cancel;
-
-            if (cancel)
-            {
-                m_MoveX.Value = 0;
-            }
+            m_MoveX.Value = 0;
         }
 
-        [ServerRpc]
-        public void ResetRotationServerRPC()
+        public void ForceBlockMovement(bool block)
         {
-            if (!IsServer)
+            if (! IsServer)
                 return;
 
-            ResetRotation();
+            CancelMovement(block);
+            m_MovementBlocked.Value = block;
         }
 
         #endregion
@@ -167,7 +192,7 @@ namespace Game.Character
 
         public float Speed
         {
-            get { return Math.Max(0, m_InitialSpeed * m_Controller.StateHandler.SpeedBonus.Value); }
+            get { return Math.Max(0, Settings.CharacterSpeedFactor * m_InitialSpeed * m_Controller.StateHandler.SpeedBonus.Value); }
         }
 
         public bool IsMoving
@@ -181,8 +206,11 @@ namespace Game.Character
             {
                 return
                     ! m_Controller.StateHandler.IsStunned 
+                    && ! m_MovementBlocked.Value
+                    && ! m_MovementCancelled.Value
                     && ! m_Controller.StateHandler.HasState(EStateEffect.Frozen) 
-                    && ! m_Controller.CounterHandler.HasCounter
+                    && ! m_Controller.StateHandler.HasState(EStateEffect.Scorched) 
+                    && ! m_Controller.CounterHandler.IsBlockingMovement.Value
                     && ! m_Controller.StateHandler.HasState(EStateEffect.Jump);
             }
         }

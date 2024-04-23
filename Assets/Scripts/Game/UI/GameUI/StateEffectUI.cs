@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using Enums;
+using TMPro;
 using Tools;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,8 +18,11 @@ namespace Game.UI
         TMP_Text        m_Stacks;
         Image           m_TimerFill;
 
+        string          m_StateEffectName;
         float           m_Duration;
         float           m_Timer;
+
+        #region Init & End
 
         void Awake()
         {
@@ -27,6 +31,20 @@ namespace Game.UI
             m_Stacks            = Finder.FindComponent<TMP_Text>(gameObject, c_Stacks);
             m_TimerFill         = Finder.FindComponent<Image>(gameObject, c_TimerFill);
         }
+
+        public void Initialize(string stateEffect, int stacks, float duration)
+        {
+            m_StateEffectName = stateEffect;
+
+            // Setup icon (if found)
+            Sprite icon = AssetLoader.LoadStateEffectIcon(stateEffect);
+            if (icon != null)
+                m_Icon.sprite = icon;
+
+            Refresh(duration, stacks);
+        }
+
+        #endregion  
 
         // Update is called once per frame
         void Update()
@@ -38,13 +56,10 @@ namespace Game.UI
             m_TimerFill.fillAmount = Mathf.Clamp01(m_Timer / m_Duration);
         }
 
-        public void Initialize(string stateEffect, int stacks, float duration)
+        public void Refresh(float duration, int stacks)
         {
-            // Setup icon (if found)
-            Sprite icon = AssetLoader.LoadStateEffectIcon(stateEffect);
-            if (icon != null)
-                m_Icon.sprite   = icon;
-            
+            ErrorHandler.Log("Refresh " + m_StateEffectName + " : with " + stacks + " stacks", ELogTag.Spells);
+
             // Setup stacks (if any)
             if (stacks <= 1)
                 m_StacksContainer.SetActive(false);
@@ -54,8 +69,8 @@ namespace Game.UI
                 m_Stacks.text = stacks.ToString();
             }
 
-            m_Duration      = duration;
-            m_Timer         = duration;             // reset timer
+            m_Duration = duration;
+            m_Timer = duration;             // reset timer
 
             if (duration <= 0)
                 m_TimerFill.fillAmount = 0;

@@ -66,7 +66,7 @@ namespace Game.Spells
 
         void UpdateColor()
         {
-            m_Color.a = c_ColorOpacity + (1 - c_ColorOpacity) * (1 - m_SpellHandler.AnimationTimer.Value / m_AnimationTimer);
+            m_Color.a = c_ColorOpacity + (1 - c_ColorOpacity) * (1 - m_SpellHandler.AnimationTimer / m_AnimationTimer);
             m_Graphics.color = m_Color;
         }
 

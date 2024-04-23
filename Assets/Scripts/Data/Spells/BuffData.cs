@@ -1,5 +1,5 @@
 ﻿using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Game.Spells;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace Data
 
         public StateEffect GetStateEffect()
         {
-            return SpellLoader.GetStateEffect(SpellName, Level);
+            return SpellLoader.GetStateEffect(Name, Level);
         }
 
         #endregion

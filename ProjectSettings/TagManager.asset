@@ -16,8 +16,8 @@ TagManager:
   - Wall
   - InvisibleWall
   - Spell
-  - 
-  - 
+  - SpellSpawn
+  - Ground
   - 
   - 
   - 
@@ -38,6 +38,9 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Arena
+    uniqueID: 3487587833
+    locked: 0
   - name: Default
     uniqueID: 0
     locked: 0

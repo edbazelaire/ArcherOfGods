@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace Tools
 {
-    public class ConsoleUI : OvMonoBehavior
+    public class ConsoleUI : MObject
     {
         #region Members
 
@@ -35,7 +35,7 @@ namespace Tools
         /// <summary>
         /// Initialize components & listeners
         /// </summary>
-        void Initialize()
+        public override void Initialize()
         {
             // Init Components
             m_ScrollViewButton = Finder.FindComponent<Button>(c_ScrollView);

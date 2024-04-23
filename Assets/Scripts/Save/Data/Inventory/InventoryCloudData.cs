@@ -1,43 +1,130 @@
 ﻿using Assets;
+using Data.GameManagement;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Tools;
 using Unity.Services.CloudSave.Models;
+using Unity.VisualScripting;
 
 namespace Save
 {
     [Serializable]
-    public struct SSpellCloudData
+    public struct SCollectableCloudData
     {
-        public ESpell Spell;
-        public int Level;
-        public int Qty;
+        public string   CollectableName;
+        public int      Level;
+        public int      Qty;
 
-        public SSpellCloudData(ESpell spell, int level, int qty)
+        [NonSerialized]
+        private Enum m_Collectable;
+               
+        public SCollectableCloudData(string collectableName, int value, int level = 1, int qty = 0)
         {
-            Spell = spell;
-            Level = level;
-            Qty = qty;
+            CollectableName = collectableName;
+            Level           = level;
+            Qty             = qty;
+
+            m_Collectable = null;
+            SetCollectable();
+        }
+
+        public SCollectableCloudData(Enum collectable, int level = 1, int qty = 0)
+        {
+            CollectableName = collectable.ToString();
+            Level           = level;
+            Qty             = qty;
+
+            m_Collectable   = collectable;
+        }
+
+        public void SetCollectable()
+        {
+            if (CollectableName == "")
+            {
+                ErrorHandler.Error("Unable to set collectable : name is empty");
+                return;
+            }
+
+            if (Enum.TryParse(CollectableName, out ECharacter temp1))
+            {
+                m_Collectable = temp1;
+                return;
+            }
+
+            if (Enum.TryParse(CollectableName, out ESpell temp2))
+            {
+                m_Collectable = temp2;
+                return;
+            }
+
+            if (Enum.TryParse(CollectableName, out ERune temp3))
+            {
+                m_Collectable = temp3;
+                return;
+            }
+
+            ErrorHandler.Error("Unknown CollectableName : " + CollectableName);
+        }
+
+        public Enum GetCollectable()
+        {
+            if (m_Collectable == null)
+                SetCollectable();
+                
+            return m_Collectable;
+        }
+
+        public TEnum GetCollectable<TEnum>() where TEnum : Enum
+        {
+            return (TEnum)GetCollectable();  
+        }
+        
+        public bool IsMaxLevel()
+        {
+            return Level >= CollectablesManagementData.GetMaxLevel(m_Collectable);
+        }
+
+        public bool HasEnoughQty()
+        {
+            return Qty >= CollectablesManagementData.GetLevelData(GetCollectable(), Level).RequiredQty;
+        }
+
+        public bool IsUpgradable()
+        {
+            return !IsMaxLevel() && HasEnoughQty();
+        }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("SCollectableCloudData : { \n");
+            sb.Append("     Collectable : " + TextHandler.ToString(GetCollectable()) + ",\n");
+            sb.Append("     Level : " + TextHandler.ToString(Level) + ",\n");
+            sb.Append("     Qty : " + TextHandler.ToString(Qty) + ",\n");
+            sb.Append("}\n");
+
+            return sb.ToString();
         }
     }
+
 
     [Serializable]
-    public struct SCharacterCloudData
+    public struct SInfoCollectable
     {
-        public ECharacter Character;
-        public int Level;
-        public int Xp;
+        public string Key;
+        public Enum[] DefaultData;
 
-        public SCharacterCloudData(ECharacter character, int level = 1, int xp = 0)
+        public SInfoCollectable(string Key, Enum[] DefaultData)
         {
-            Character = character;
-            Level = level;
-            Xp = xp;
+            this.Key = Key;
+            this.DefaultData = DefaultData;
         }
     }
+
 
     public class InventoryCloudData : CloudData
     {
@@ -49,27 +136,47 @@ namespace Save
         // ===============================================================================================
         // CONSTANTS
         // -- Values
-        public ESpell[] DEFAULT_UNLOCKED_SPELLS => new ESpell[4] { ESpell.Arrow, ESpell.Heal, ESpell.Counter, ESpell.SmokeBomb };
+        public Type[] COLLECTABLE_TYPES                     => new Type[] { typeof(ECharacter), typeof(ESpell), typeof(ERune) };
+        public Enum[] IGNORED_COLLECTABLES                  => new Enum[] { ESpell.Count, ECharacter.Count };
 
         // -- Keys
         public const string KEY_GOLDS       = "Golds";
-        public const string KEY_SPELL       = "Spell";
+        public const string KEY_GEMS        = "Gems";
+        public const string KEY_SPELLS      = "Spells";
         public const string KEY_CHARACTERS  = "Characters";
+        public const string KEY_RUNES       = "Runes";
+
+        // -- Informations
+        public Dictionary<Type, SInfoCollectable> InfoCollectables = new Dictionary<Type, SInfoCollectable>
+        {
+            { typeof(ECharacter),   new SInfoCollectable(KEY_CHARACTERS,  new Enum[] { ECharacter.Alexander } ) },
+            { typeof(ESpell),       new SInfoCollectable(KEY_SPELLS,      new Enum[] { ESpell.RockShower, ESpell.Heal, ESpell.Counter, ESpell.IronSkin } ) },
+            { typeof(ERune),        new SInfoCollectable(KEY_RUNES,       new Enum[] { ERune.None } ) }
+        };
 
         // ===============================================================================================
         // EVENTS
         /// <summary> action fired when the amount of gold changed </summary>
-        public static Action<int> GoldChangedEvent;
-        public static Action<SSpellCloudData> SpellDataChangedEvent;
-        public static Action<SCharacterCloudData> CharacterDataChangedEvent;
+        public static Action<ECurrency, int>        CurrencyChangedEvent;
+        /// <summary> event fired when a collectable data has changed </summary>
+        public static Action<SCollectableCloudData> CollectableDataChangedEvent;
+        /// <summary> event fired when a collectable data has been upgraded </summary>
+        public static Action<SCollectableCloudData> CollectableUnlockedEvent;
+
+        /// <summary> SPECIFIC EVENT : for collectable data changed of type "Spell" : (remove ?) </summary>
+        public static Action<SCollectableCloudData> SpellDataChangedEvent;
+        /// <summary> SPECIFIC EVENT : for collectable data changed of type "Character" : (remove ?) </summary>
+        public static Action<SCollectableCloudData> CharacterDataChangedEvent;
 
         // ===============================================================================================
         // DATA
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
-            { KEY_GOLDS, 0 },
-            { KEY_CHARACTERS, new List<SCharacterCloudData>() },
-            { KEY_SPELL, new List<SSpellCloudData>() },
+            { KEY_GOLDS,        0                                   },
+            { KEY_GEMS,         0                                   },
+            { KEY_CHARACTERS,   new List<SCollectableCloudData>()   },
+            { KEY_SPELLS,       new List<SCollectableCloudData>()   },
+            { KEY_RUNES,        new List<SCollectableCloudData>()   },
         };
 
         #endregion
@@ -77,106 +184,121 @@ namespace Save
 
         #region Data Manipulators
 
-        public override void SetData(string key, object value)
+        public override void SetData(string key, object value, bool save = false)
         {
-            base.SetData(key, value);
+            base.SetData(key, value, save);
 
-            if (Enum.TryParse(key, out ERewardType reward) && reward == ERewardType.Golds)
+            if (Enum.TryParse(key, out ECurrency currency))
             {
-                GoldChangedEvent?.Invoke(System.Convert.ToInt32(value));
+                CurrencyChangedEvent?.Invoke(currency, System.Convert.ToInt32(value));
             }
-                
         }
 
-        public void SetData(ERewardType reward, object value)
+        public void SetData(ECurrency currency, object value)
         {
-            SetData(reward.ToString(), value);
+            SetData(currency.ToString(), value);
         }
 
         protected override object Convert(Item item)
         {
-            if (m_Data[item.Key].GetType() == typeof(List<SSpellCloudData>))
-                return item.Value.GetAs<SSpellCloudData[]>().ToList();
-
-            if (m_Data[item.Key].GetType() == typeof(List<SCharacterCloudData>))
-                return item.Value.GetAs<SCharacterCloudData[]>().ToList();
-
+            if (m_Data[item.Key].GetType() == typeof(List<SCollectableCloudData>))
+            {
+                return item.Value.GetAs<SCollectableCloudData[]>().ToList();
+            }
+   
             return base.Convert(item);
         }
 
         #endregion
 
 
-        #region Characters
+        #region Collectables 
 
-        /// <summary>
-        /// Get SSPellCloudData of a requested ESpell
-        /// </summary>
-        /// <param name="spell"></param>
-        /// <returns></returns>
-        public SCharacterCloudData GetCharacter(ECharacter character)
+        public SCollectableCloudData GetCollectable(Enum collectable)
         {
-            int index = GetCharacterIndex(character);
-            if (index == -1)
+            if (collectable.GetType() == typeof(ESpell))
             {
-                ErrorHandler.FatalError("Unable to find character " + character + " in character cloud data");
-                return new SCharacterCloudData();
+                return GetSpell((ESpell)collectable);
             }
 
-            return ((List<SCharacterCloudData>)m_Data[KEY_CHARACTERS])[index];
+            string key = GetCollectableKey(collectable);
+            if (key == "")
+                return default;
+
+            int index = GetCollectableIndex(collectable);
+            if (index == -1)
+            {
+                ErrorHandler.FatalError("Unable to find collectable " + collectable + " in collectables cloud data");
+                return default;
+            }
+
+            return (m_Data[key] as List<SCollectableCloudData>)[index];
         }
 
         /// <summary>
-        /// Set the value of a SSpellCloudData
+        /// Set the value of a SCollectableCloudData
         /// </summary>
         /// <param name="characterCloudData"></param>
-        public void SetCharacter(SCharacterCloudData characterCloudData)
+        public void SetCollectable(SCollectableCloudData collectableData, bool save = true)
         {
-            int index = GetCharacterIndex(characterCloudData.Character);
-            if (index >= 0)
-                ((List<SCharacterCloudData>)m_Data[KEY_CHARACTERS])[index] = characterCloudData;
-            else
-                ((List<SCharacterCloudData>)m_Data[KEY_CHARACTERS]).Add(characterCloudData);
+            string key = GetCollectableKey(collectableData.GetCollectable());
+            int index = GetCollectableIndex(collectableData.GetCollectable());
 
-            CharacterDataChangedEvent?.Invoke(characterCloudData);
+            if (index >= 0)
+                ((List<SCollectableCloudData>)m_Data[key])[index] = collectableData;
+            else
+            {
+                ((List<SCollectableCloudData>)m_Data[key]).Add(collectableData);
+                CollectableUnlockedEvent?.Invoke(collectableData);  
+            }
+
+            // Save & Fire event of the change
+            if (save)
+                Instance.SaveValue(key);
+            CollectableDataChangedEvent?.Invoke(collectableData);
+
+            // Specific versions of this event
+            if (key == KEY_CHARACTERS)
+                CharacterDataChangedEvent?.Invoke(collectableData);
+            else if (key == KEY_SPELLS)
+                SpellDataChangedEvent?.Invoke(collectableData);
         }
 
         /// <summary>
-        /// Get index of a spell in the list of SSpellCloudData
+        /// Get index of a collectable (Character, Spell, ...) in the list of SCollectableCloudData
         /// </summary>
         /// <param name="character"></param>
         /// <returns></returns>
-        public int GetCharacterIndex(ECharacter character)
+        public int GetCollectableIndex(Enum collectable)
         {
-            var data = (List<SCharacterCloudData>)m_Data[KEY_CHARACTERS];
+            string key = GetCollectableKey(collectable);
+            if (key == "")
+                return -1;
+
+            var data = (List<SCollectableCloudData>)m_Data[key];
             for (int i = 0; i < data.Count; i++)
             {
-                if (data[i].Character != character)
-                    continue;
-
-                return i;
+                if (data[i].GetCollectable().Equals(collectable))
+                    return i;
             }
 
             return -1;
         }
 
         /// <summary>
-        /// Check if any spell is missing : if any, create it and save spells data
+        /// Get key matching type of collectable 
         /// </summary>
+        /// <param name="collectable"></param>
         /// <returns></returns>
-        void CheckMissingCharacters()
+        public string GetCollectableKey(Enum collectable)
         {
-            foreach (ECharacter character in CharacterLoader.Instance.Characters.Keys)
+            if (! InfoCollectables.ContainsKey(collectable.GetType()))
             {
-                if (character == ECharacter.Count)
-                    continue;
-
-                if (GetCharacterIndex(character) >= 0)
-                    continue;
-
-                // add new empty spell data, set save to false as we save the batch at the end
-                SetCharacter(new SCharacterCloudData(character, 1, 0));
+                ErrorHandler.Error("Unable to match collectable " + collectable + " with any key");
+                return "";
             }
+
+            return InfoCollectables[collectable.GetType()].Key;
         }
 
         #endregion
@@ -189,80 +311,102 @@ namespace Save
         /// </summary>
         /// <param name="spell"></param>
         /// <returns></returns>
-        public SSpellCloudData GetSpell(ESpell spell)
+        public SCollectableCloudData GetSpell(ESpell spell)
         {
             if (SpellLoader.GetSpellData(spell).Linked)
             {
                 var character = CharacterLoader.GetCharacterWithSpell(spell);
-                return new SSpellCloudData(spell, GetCharacter(character.Value).Level, 0);
+                return new SCollectableCloudData(spell, GetCollectable(character.Value).Level, 0);
             }
 
-            int index = GetSpellIndex(spell);
+            int index = GetCollectableIndex(spell);
             if (index == -1)
             {
-                ErrorHandler.FatalError("Unable to find spell " + spell + " in spell cloud data");
-                return new SSpellCloudData();
+                ErrorHandler.Error("Unable to find spell " + spell + " in spell cloud data");
+                return new SCollectableCloudData();
             }
 
-            return ((List<SSpellCloudData>)m_Data[KEY_SPELL])[index];
+            return ((List<SCollectableCloudData>)m_Data[KEY_SPELLS])[index];
         }
 
-        /// <summary>
-        /// Set the value of a SSpellCloudData
-        /// </summary>
-        /// <param name="spellCloudData"></param>
-        public void SetSpell(SSpellCloudData spellCloudData)
-        {
-            int index = GetSpellIndex(spellCloudData.Spell);
-            if (index >= 0)
-                ((List<SSpellCloudData>)m_Data[KEY_SPELL])[index] = spellCloudData;
-            else
-                ((List<SSpellCloudData>)m_Data[KEY_SPELL]).Add(spellCloudData);
+        #endregion
 
-            SpellDataChangedEvent?.Invoke(spellCloudData); 
-        }
 
-        /// <summary>
-        /// Get index of a spell in the list of SSpellCloudData
-        /// </summary>
-        /// <param name="spell"></param>
-        /// <returns></returns>
-        public int GetSpellIndex(ESpell spell)
+        #region Checkers
+
+        void CheckCurrencies()
         {
-            var allSpells = (List<SSpellCloudData>)m_Data[KEY_SPELL];
-            for (int i = 0; i < allSpells.Count; i++)
+            if ((int)m_Data[KEY_GOLDS] < 0)
             {
-                if (allSpells[i].Spell != spell)
+                ErrorHandler.Error("Golds (" + (int)m_Data[KEY_GOLDS] + ") < 0 : reseting back to 0");
+                m_Data[KEY_GOLDS] = 0;
+            }
+
+            if ((int)m_Data[KEY_GEMS] < 0)
+            {
+                ErrorHandler.Error("Golds (" + (int)m_Data[KEY_GEMS] + ") < 0 : reseting back to 0");
+                m_Data[KEY_GEMS] = 0;
+            }
+        }
+
+        void CheckAllMissingCollectables()
+        {
+            foreach (Type collectableType in COLLECTABLE_TYPES)
+            {
+                CheckMissingCollectable(collectableType);                
+            }
+        }
+
+        /// <summary>
+        /// Check if any collectable is missing (fix & save if any)
+        /// </summary>
+        /// <param name="collectableType"></param>
+        /// <returns></returns>
+        void CheckMissingCollectable(Type collectableType)
+        {
+            bool hasMissing = false;
+
+            foreach (Enum collectable in Enum.GetValues(collectableType))
+            {
+                if (IGNORED_COLLECTABLES.Contains(collectable))
                     continue;
 
-                return i;
-            }
-
-            return -1;
-        }
-
-        /// <summary>
-        /// Check if any spell is missing : if any, create it and save spells data
-        /// </summary>
-        /// <returns></returns>
-        void CheckMissingSpells()
-        {
-            foreach (ESpell spell in SpellLoader.Spells)
-            {
                 // linked spell : level is dependent on the character
-                if (SpellLoader.GetSpellData(spell).Linked)
+                if (collectableType == typeof(ESpell) && SpellLoader.GetSpellData((ESpell)collectable).Linked)
                     continue;
 
                 // already in data : skip
-                if (GetSpellIndex(spell) >= 0)
+                if (GetCollectableIndex(collectable) >= 0)
                     continue;
 
-                // check if should be unlocked (either a default spell or a character spell)
-                int startLevel = DEFAULT_UNLOCKED_SPELLS.Contains(spell) ? 1 : 0;
+                ErrorHandler.Warning("Unable to find " + collectable + " in cloud data : adding it manually");
+                hasMissing = true;
+
+                // if unlocked by default check start level, otherwise start level is 0
+                int startLevel = GetInfos(collectable).DefaultData.Contains(collectable) ? CollectablesManagementData.GetStartLevel(collectable) : 0;
 
                 // add new empty spell data, set save to false as we save the batch at the end
-                SetSpell(new SSpellCloudData(spell, startLevel, 0));
+                SetCollectable(new SCollectableCloudData(collectable, startLevel, 0), false);
             }
+
+            if (hasMissing)
+                SaveValue(InfoCollectables[collectableType].Key);
+        }
+
+        #endregion
+
+
+        #region Infos
+
+        public SInfoCollectable GetInfos(Enum collectable)
+        {
+            if (! InfoCollectables.ContainsKey(collectable.GetType()))
+            {
+                ErrorHandler.Error("Unable to find SInfoCollectable for collectale " + collectable + " of type " + collectable.GetType());
+                return default;
+            }
+
+            return InfoCollectables[collectable.GetType()];
         }
 
         #endregion
@@ -270,21 +414,10 @@ namespace Save
 
         #region Listeners
 
-        protected override void OnCloudDataLoaded(string key)
+        protected override void CheckData() 
         {
-            base.OnCloudDataLoaded(key);
-
-            // CHECKERS : check that data is conform to the expected data, add default data if some data is missing
-            switch (key)
-            {
-                case KEY_CHARACTERS:
-                    CheckMissingCharacters();
-                    return;
-
-                case KEY_SPELL:
-                    CheckMissingSpells();
-                    return;
-            }
+            CheckCurrencies();
+            CheckAllMissingCollectables();
         }
 
         #endregion

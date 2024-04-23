@@ -3,6 +3,7 @@ using Assets.Scripts.Network;
 using Enums;
 using Game;
 using Managers;
+using Menu.MainMenu.MainTab;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -57,7 +58,8 @@ namespace Network
         private Lobby m_HostLobby;
         private Lobby m_JoinedLobby;
 
-        private EGameMode m_GameMode = EGameMode.Solo;
+        private EGameMode   m_GameMode = EGameMode.Solo;
+        
 
         private float m_HeartbeatTimer    = 0.0f;
         private float m_UpdateLobbyTimer  = 0.0f;
@@ -78,9 +80,11 @@ namespace Network
 
         private void Initialize()
         {
+            PlayerPrefsHandler.GameModeChangedEvent += OnGameModeChanged;
             DontDestroyOnLoad(gameObject);
         }
 
+        
         /// <summary>
         /// Leave current lobby and reset parameterss
         /// </summary>
@@ -555,6 +559,16 @@ namespace Network
             {
                 Debug.Log("Player: " + player.Id + " with name " + player.Data["PlayerName"].Value);
             }
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        void OnGameModeChanged(EGameMode gameMode)
+        {
+            Instance.GameMode = gameMode;
         }
 
         #endregion

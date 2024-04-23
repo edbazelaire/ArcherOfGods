@@ -23,7 +23,7 @@ namespace Menu.Common.Infos
 
         #region Init & End
 
-        void Awake()
+        void FindComponents()
         {
             var iconContainer   = Finder.Find(gameObject, "IconContainer");
             m_Icon              = Finder.FindComponent<Image>(iconContainer, "Icon");
@@ -35,8 +35,10 @@ namespace Menu.Common.Infos
         }
 
 
-        public void Initialize(string name, object value, float? newValue = null, bool isPerc = false)
+        public void Initialize(string name, object value, object newValue = null, bool isPerc = false)
         {
+            FindComponents();
+
             // set name of the row
             m_Name.text = TextLocalizer.SplitCamelCase(TextLocalizer.LocalizeText(name));
             // by default, deactivate bonus value
@@ -55,13 +57,7 @@ namespace Menu.Common.Infos
 
             m_Icon.sprite = AssetLoader.LoadUIElementIcon(name);
 
-            if (! float.TryParse(value.ToString(), out float floatValue))
-            {
-                ErrorHandler.Error("Unable to parse value (" + value  + ") of property " + name + " into a float");
-                return;
-            }
-
-            RefreshValue(floatValue, newValue);
+            RefreshValue(value, newValue);
         }
 
         #endregion
@@ -69,8 +65,27 @@ namespace Menu.Common.Infos
 
         #region GUI Manipulators
 
+        public void RefreshValue(object value, object newValue = null)
+        {
+            // not a float : skip
+            if (!float.TryParse(value.ToString(), out float floatValue))
+                return;
+
+            // try and parse newValue into a float if provided
+            float? floatNewValue = null;
+            if (newValue != null)
+            {
+                if (!float.TryParse(newValue.ToString(), out float temp))
+                    ErrorHandler.Error("Unable to parse new value (" + newValue.ToString() + ") of property " + name + " into a float");
+                else
+                    floatNewValue = temp;
+            }
+
+            RefreshValue(floatValue, floatNewValue);
+        }
+
         public void RefreshValue(float value, float? newValue = null)
-        { 
+        {
             if (m_IsPerc)
                 m_Value.text = Mathf.Round(value * 100).ToString("0") + "%";
             else 

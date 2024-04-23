@@ -120,6 +120,14 @@ PrefabInstance:
       propertyPath: m_FillMethod
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6268364296351463354, guid: c26d4191c06a6b24d968a2a1ff63ab35, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: -7.0194
+      objectReference: {fileID: 0}
+    - target: {fileID: 6268364296351463354, guid: c26d4191c06a6b24d968a2a1ff63ab35, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -3.5097046
+      objectReference: {fileID: 0}
     - target: {fileID: 8647394251227598337, guid: c26d4191c06a6b24d968a2a1ff63ab35, type: 3}
       propertyPath: m_SizeDelta.x
       value: 0

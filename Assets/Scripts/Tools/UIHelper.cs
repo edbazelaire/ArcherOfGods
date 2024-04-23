@@ -12,6 +12,12 @@ namespace Tools
         /// <param name="gameObject"></param>
         public static void CleanContent(GameObject gameObject)
         {
+            if (gameObject == null)
+            {
+                ErrorHandler.Warning("Provided game object is null");
+                return;
+            }    
+
             foreach (Transform child in gameObject.transform)
             {
                 GameObject.Destroy(child.gameObject);

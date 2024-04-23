@@ -12,8 +12,8 @@ namespace Menu
         const string c_ChestsContainer = "ChestsContainer";
 
         GameObject m_ChestsContainer;
-        GameObject m_TempalteChestItem;
-        List<TemplateChestItem> m_ChestItems;
+        GameObject m_ChestUnlockPrefab;
+        List<ChestUnlock> m_ChestItems;
 
         #endregion
 
@@ -23,7 +23,7 @@ namespace Menu
         private void Awake()
         {
             m_ChestsContainer = Finder.Find(gameObject, c_ChestsContainer);
-            m_TempalteChestItem = AssetLoader.Load<GameObject>("TemplateChestItem", AssetLoader.c_MainTab);
+            m_ChestUnlockPrefab = AssetLoader.Load<GameObject>("ChestUnlock", AssetLoader.c_MainTabPath);
 
             SetupChestItems();
         }
@@ -40,8 +40,8 @@ namespace Menu
 
             for (int i = 0; i < InventoryManager.Chests.Length; i++)
             {
-                TemplateChestItem chestItem = Instantiate(m_TempalteChestItem, m_ChestsContainer.transform).GetComponent<TemplateChestItem>();
-                chestItem.Initialize(InventoryManager.Chests[i], i);
+                ChestUnlock chestItem = Instantiate(m_ChestUnlockPrefab, m_ChestsContainer.transform).GetComponent<ChestUnlock>();
+                chestItem.Initialize(i);
                 m_ChestItems.Add(chestItem);
             }
         }

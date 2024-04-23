@@ -1,4 +1,8 @@
-﻿using Enums;
+﻿using Assets;
+using Data.GameManagement;
+using Enums;
+using Menu.PopUps;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -7,15 +11,22 @@ namespace Tools
 {
     public struct SRewardCalculator
     {
+        public int Xp;
         public int MinGolds;
         public int MaxGolds;
         public List<SChestDropPercentage> Chests;
 
-        public SRewardCalculator(int minGolds, int maxGolds, List<SChestDropPercentage> chests)
+        public SRewardCalculator(int xp, int minGolds, int maxGolds, List<SChestDropPercentage> chests)
         {
+            Xp          = xp;
             MinGolds    = minGolds;
             MaxGolds    = maxGolds;
             Chests      = chests;
+        }
+
+        public int GetXp()
+        {
+            return Xp;
         }
 
         public int GetGolds()
@@ -23,9 +34,9 @@ namespace Tools
             return Random.Range(MinGolds, MaxGolds);
         }
 
-        public List<EChestType> GetChests()
+        public List<EChest> GetChests()
         {
-            var chests = new List<EChestType>();
+            var chests = new List<EChest>();
             foreach (var chestDropPercentage in Chests)
             {
                 chests.Add(chestDropPercentage.GetRandomChest());
@@ -37,9 +48,9 @@ namespace Tools
 
     public struct SChestDropPercentage
     {
-        public Dictionary<EChestType, float> ChestsPercentageThresholds;
+        public Dictionary<EChest, float> ChestsPercentageThresholds;
 
-        public SChestDropPercentage(Dictionary<EChestType, float> percentageThresholds)
+        public SChestDropPercentage(Dictionary<EChest, float> percentageThresholds)
         {
             ChestsPercentageThresholds = percentageThresholds;
         }
@@ -48,7 +59,7 @@ namespace Tools
         /// Get a random chest from provided percentages
         /// </summary>
         /// <returns></returns>
-        public EChestType GetRandomChest()
+        public EChest GetRandomChest()
         {
             float rand = Random.Range(0.0f, 1.0f);
             foreach (var item in ChestsPercentageThresholds)
@@ -68,23 +79,67 @@ namespace Tools
 
         /// <summary> reward when the game is won </summary>
         public static SRewardCalculator WinGameReward = new SRewardCalculator(
-            30, 55, 
-            new List<SChestDropPercentage>() { 
-                new SChestDropPercentage(new Dictionary<EChestType, float>
+            xp: 25,
+            minGolds: 30, maxGolds: 55,
+            chests: new List<SChestDropPercentage>() {
+                new SChestDropPercentage(new Dictionary<EChest, float>
                 {
-                    { EChestType.Common,        0.9f        },
-                    { EChestType.Rare,          0.99f       },
-                    { EChestType.Epic,          0.999f      },
-                    { EChestType.Legendary,     1f          },
-                }) 
+                    { EChest.Common,        0.85f        },
+                    { EChest.Rare,          0.99f       },
+                    { EChest.Epic,          0.999f      },
+                    { EChest.Legendary,     1f          },
+                })
             }
         );
 
         /// <summary> reward when the game is lost </summary>
         public static SRewardCalculator LossGameReward = new SRewardCalculator(
-            10, 15, 
-            new List<SChestDropPercentage>() {}
+            xp: 5,
+            minGolds: 10, maxGolds: 15,
+            chests: new List<SChestDropPercentage>() {}
         );
+
+        #endregion
+
+
+        #region Display Rewards
+
+        /// <summary>
+        /// Call the coroutine that displays "ChestOpeningScreen" for each chests in the "SRewards" struct
+        /// </summary>
+        /// <param name="rewards"></param>
+        public static void DisplayRewards(SRewardsData rewards)
+        {
+            Main.Instance.StartCoroutine(ChestsDisplayCoroutine(rewards.Chests));
+        }
+
+        //public static void DisplayListOfSubRewards(List<object> rewards)
+        //{
+        //    Main.Instance.StartCoroutine(ChestsDisplayCoroutine(rewards.Chests));
+        //}
+
+        /// <summary>
+        /// Display "ChestOpeningScreen" for each chests in the "SRewards" struct
+        /// </summary>
+        static IEnumerator ChestsDisplayCoroutine(List<EChest> chests)
+        {
+            for  (int i = 0; i < chests.Count; i++)
+            {
+                Main.SetPopUp(EPopUpState.RewardsScreen, chests[i]);
+
+                // wait for ChestOpeningScreen to be displayed
+                while (Finder.FindComponent<RewardsScreen>(Main.Canvas.gameObject, throwError: false) == null)
+                {
+                    yield return null;
+                }
+
+                // wait for ChestOpeningScreen to not be diplayed anymore
+                while (Finder.FindComponent<RewardsScreen>(Main.Canvas.gameObject, throwError: false) != null)
+                {
+                    yield return null;
+                }
+            }
+        }
 
         #endregion
     }

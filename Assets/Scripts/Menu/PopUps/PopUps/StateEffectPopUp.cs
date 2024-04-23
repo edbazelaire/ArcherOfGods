@@ -1,9 +1,7 @@
 ﻿using Data;
-using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Game.Spells;
 using Menu.Common.Infos;
-using System.Collections;
 using TMPro;
 using Tools;
 using UnityEngine;
@@ -24,12 +22,6 @@ namespace Menu.PopUps
         GameObject  m_PropertiesContainer;
         Image       m_Icon;
         TMP_Text    m_Description;
-
-        #endregion
-
-
-        #region Constructor
-        public StateEffectPopUp() : base(EPopUpState.StateEffectPopUp) { }
 
         #endregion
 

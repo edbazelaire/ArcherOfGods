@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bec91e441d966e438d35c0133adae84, type: 3}
   m_Name: Cursed
   m_EditorClassIdentifier: 
-  m_Description: 
-  m_DescriptionVariables: 
+  m_Description: Reduces direct damages by {0} for each "Cursed" stacks
+  m_DescriptionVariables: 05000000
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 0.6313726, g: 0.48584908, b: 0.85211474, a: 1}
   m_Duration: 5

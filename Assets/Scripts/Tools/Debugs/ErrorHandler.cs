@@ -1,8 +1,5 @@
-﻿using System;
+﻿using Enums;
 using System.Collections.Generic;
-using UnityEditor;
-using UnityEngine;
-using static TMPro.SpriteAssetUtilities.TexturePacker_JsonArray;
 
 namespace Tools
 {
@@ -17,9 +14,9 @@ namespace Tools
 
         #region Basic Errors
 
-        public static void Log(string message, int frame = 0)
+        public static void Log(string message, ELogTag logTag = ELogTag.None, int frame = 0)
         {
-            AddError(message, EError.Log, frame + 1);
+            AddError(message, EError.Log, frame + 1, logTag);
         }
 
         public static void Warning(string message, int frame = 0)
@@ -69,9 +66,9 @@ namespace Tools
         /// Add an error to the stack
         /// </summary>
         /// <param name="error"></param>
-        static void AddError(string message, EError type = EError.Error, int frame = 0)
+        static void AddError(string message, EError type = EError.Error, int frame = 0, ELogTag logTag = ELogTag.None)
         {
-            Errors.Add(new Error(message, type, frame+1));
+            Errors.Add(new Error(message, type, frame+1, logTag));
         }
 
         /// <summary>

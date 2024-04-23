@@ -1,5 +1,5 @@
 ﻿using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Menu.Common.Buttons;
 using System.Collections.Generic;
 using Tools;
@@ -15,7 +15,7 @@ public class CharacterSelectionUI : MonoBehaviour
     GameObject m_TemplateCharacterButton;
     GameObject m_ButtonsContainer;
 
-    Dictionary<ECharacter, TemplateCharacterItemUI> m_CharacterButtons;
+    Dictionary<ECharacter, TemplateCollectableItemUI> m_CharacterButtons;
 
     #endregion
 
@@ -45,13 +45,14 @@ public class CharacterSelectionUI : MonoBehaviour
         UIHelper.CleanContent(m_ButtonsContainer);
 
         // reset dict
-        m_CharacterButtons = new Dictionary<ECharacter, TemplateCharacterItemUI>();
+        m_CharacterButtons = new Dictionary<ECharacter, TemplateCollectableItemUI>();
 
         // create buttons for each characters
         foreach (ECharacter character in CharacterLoader.Instance.Characters.Keys)
         {
-            var characterButton = Instantiate(m_TemplateCharacterButton, m_ButtonsContainer.transform).GetComponent<TemplateCharacterItemUI>();
+            var characterButton = Instantiate(m_TemplateCharacterButton, m_ButtonsContainer.transform).GetComponent<TemplateCollectableItemUI>();
             characterButton.Initialize(character);
+            characterButton.SetUpCollectionFillBar(false);
             m_CharacterButtons.Add(character, characterButton);
         }
     }

@@ -12,35 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b3ab460364119c408209877f7ac86d5, type: 3}
   m_Name: LegendaryChest
   m_EditorClassIdentifier: 
-  ChestType: 3
-  Image: {fileID: 21300000, guid: 5ffe5b1ffe60b5d4992caca3d1702876, type: 3}
   UnlockTime: 10
-  Golds: e8030000dc050000
+  Currencies:
+  - Currency: 0
+    Min: 10000
+    Max: 15000
+  ExtraCardData:
+    ExtraCards: 10
+    RaretyPercData:
+    - Rarety: 0
+      Percentage: 0
+    - Rarety: 1
+      Percentage: 0
+    - Rarety: 2
+      Percentage: 100
+    - Rarety: 3
+      Percentage: 2.5
   SpellsDistribution:
   - Rarety: 0
-    MinAmount: 50
-    MaxAmount: 100
-  - Rarety: 0
-    MinAmount: 50
-    MaxAmount: 100
+    Qty: 75
+    Splits: 3
   - Rarety: 1
-    MinAmount: 50
-    MaxAmount: 100
-  - Rarety: 1
-    MinAmount: 50
-    MaxAmount: 100
+    Qty: 40
+    Splits: 2
   - Rarety: 2
-    MinAmount: 5
-    MaxAmount: 15
-  - Rarety: 2
-    MinAmount: 5
-    MaxAmount: 15
-  - Rarety: 2
-    MinAmount: 5
-    MaxAmount: 15
-  - Rarety: 2
-    MinAmount: 5
-    MaxAmount: 15
+    Qty: 15
+    Splits: 2
   - Rarety: 3
-    MinAmount: 1
-    MaxAmount: 1
+    Qty: 1
+    Splits: 1
+  StateEffectFilter: 

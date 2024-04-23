@@ -1,8 +1,6 @@
 ﻿using Data;
 using System.Collections.Generic;
 using System.Linq;
-using Tools;
-using Unity.Netcode;
 using UnityEngine;
 
 namespace Game.Spells
@@ -41,12 +39,12 @@ namespace Game.Spells
         /// <param name="radius"></param>
         /// <param name="damage"></param>
         /// <param name="duration"></param>
-        public override void Initialize(Vector3 target, string spellName, int level)
+        public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
             m_PlayersAffected = new Dictionary<ulong, float>();
             m_CollisionCheckRefreshTimer = 0;
 
-            base.Initialize(target, spellName, level);
+            base.Initialize(clientId, target, spellName, level);
         }
 
         /// <summary>
@@ -68,6 +66,9 @@ namespace Game.Spells
         /// </summary>
         protected override void Update()
         {
+            if (m_IsOver)
+                return;
+
             base.Update();
 
             if (!IsServer)
@@ -177,8 +178,11 @@ namespace Game.Spells
             if (m_SpellData.GrowSizeFactor == 0)
                 return;
 
-            float timeFactor = Mathf.Clamp(m_SpellData.Duration <= 0 || m_SpellData.MaxSizeAt <= 0 ? 1 : ((m_SpellData.Duration - m_DurationTimer) / m_SpellData.Duration) / m_SpellData.MaxSizeAt, 0, 1);
-            m_Radius.Value = timeFactor * (1 + m_SpellData.GrowSizeFactor) * m_SpellData.Size;
+            // percentage of time completion 
+            float timeFactor = Mathf.Clamp(m_SpellData.Duration <= 0 || m_SpellData.MaxSizeAt <= 0 ? 1 : (m_SpellData.Duration - m_DurationTimer) / (m_SpellData.Duration * m_SpellData.MaxSizeAt), 0, 1);
+            
+            // value of the radius
+            m_Radius.Value = (1 + timeFactor * m_SpellData.GrowSizeFactor) * m_SpellData.Size / 2;
         }
 
         #endregion

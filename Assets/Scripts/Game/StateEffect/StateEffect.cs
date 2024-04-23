@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using Tools;
 using UnityEngine;
-using UnityEngine.VFX;
 
 namespace Game.Spells
 {
@@ -32,12 +31,13 @@ namespace Game.Spells
 
         // =========================================================================================
         // SERIALIZED DATA
-        [SerializeField] protected      string                      m_Description;
-        [SerializeField] protected      List<EStateEffectProperty>  m_DescriptionVariables;
+        [SerializeField] protected      string                      m_Description = "";
+        [SerializeField] protected      List<EStateEffectProperty>  m_DescriptionVariables = new List<EStateEffectProperty>();
 
         [Header("Graphics")]
         [SerializeField] protected      GameObject                  m_VisualEffect;
-        [SerializeField] protected      Color                       m_ColorSwitch = Color.white;    
+        [SerializeField] protected      Color                       m_ColorSwitch = Color.white;
+        [SerializeField] protected      EAnimation                  m_Animation;
 
         [Header("General Stats")]
         [SerializeField] protected      float                       m_Duration;
@@ -45,6 +45,8 @@ namespace Game.Spells
 
         [Header("General Boosts")]
         [SerializeField] protected      float                       m_SpeedBonus        = 0f;
+        [SerializeField] protected      float                       m_CastSpeed         = 0f;
+        [SerializeField] protected      float                       m_AttackSpeed       = 0f;
 
         [Header("Resistance & Shields")]
         [SerializeField] protected      int                         m_Shield            = 0;
@@ -69,18 +71,20 @@ namespace Game.Spells
         protected int                   m_Level;
         protected EStateEffect          m_Type;
 
-        protected                       int                     m_Stacks;   
-        protected                       int                     m_RemainingShield;
-        protected                       float                   m_Timer;
+        protected int                   m_Stacks;   
+        protected int                   m_RemainingShield;
+        protected float                 m_Timer;
 
         // =========================================================================================
         // DEPENDENT MEMBERS  
-        public GameObject           VisualEffect        => m_VisualEffect;
-        public EStateEffect         Type                => Enum.TryParse(name, out EStateEffect type) ? type : m_Type ;
-        public virtual int          Stacks              => m_Stacks;
-        public virtual bool         IsInfinite          => m_Duration <= 0;
-        public int                  RemainingShield     => m_RemainingShield;
-        public virtual int          MaxStacks           => m_MaxStacks;
+        public GameObject               VisualEffect        => m_VisualEffect;
+        public Color                    ColorSwitch         => m_ColorSwitch;
+        public EAnimation               Animation           => m_Animation;
+        public EStateEffect             Type                => Enum.TryParse(name, out EStateEffect type) ? type : m_Type ;
+        public virtual int              Stacks              => m_Stacks;
+        public virtual bool             IsInfinite          => m_Duration <= 0;
+        public int                      RemainingShield     => m_RemainingShield;
+        public virtual int              MaxStacks           => m_MaxStacks;
 
         public string StateEffectName
         {
@@ -113,7 +117,6 @@ namespace Game.Spells
 
             m_RemainingShield = GetInt(EStateEffectProperty.Shield);
 
-            StartGraphics();
             RefreshStats();
 
             return true;
@@ -124,15 +127,11 @@ namespace Game.Spells
             m_Controller.StateHandler.RemoveState(StateEffectName);
         }
 
-        protected virtual void OnDestroy()
-        {
-            EndGraphics();
-        }
 
         #endregion
 
 
-        #region At Init
+        #region At Init 
 
         /// <summary>
         /// Method that allows children to make a verification before instantiating this
@@ -174,13 +173,18 @@ namespace Game.Spells
                 End();
         }
 
-        public virtual void Refresh(int stacks = 0)
+        public virtual void Refresh(int stacks = 1)
         {
             if (m_MaxStacks <= 1)
                 m_Stacks = 1;
 
             else if (m_Stacks < m_MaxStacks)
+            {
+                if (stacks == 0)
+                    stacks = 1;
+
                 m_Stacks = Math.Min(m_MaxStacks, m_Stacks + stacks);
+            }
 
             RefreshStats();
         }
@@ -188,38 +192,6 @@ namespace Game.Spells
         protected virtual void RefreshStats()
         {
             m_Timer = m_Duration;
-        }
-
-        #endregion
-
-
-        #region Graphic Management
-
-        void StartGraphics()
-        {
-            if (m_Controller == null)
-            {
-                ErrorHandler.Warning("Controller not found when starting graphics of " + name);
-                return;
-            }
-
-            if (m_VisualEffect != null)
-                m_Controller.AnimationHandler.SpawnSpellEffectGraphicsClientRPC(StateEffectName);
-
-            if (m_ColorSwitch != Color.white)
-                m_Controller.AnimationHandler.ChangeColorClientRPC(m_ColorSwitch);
-        }
-
-        void EndGraphics()
-        {
-            if (m_Controller == null)
-                return;
-
-            if (m_VisualEffect != null)
-                m_Controller.AnimationHandler.RemoveSpellEffectGraphicsClientRPC(StateEffectName);
-
-            if (m_ColorSwitch != Color.white)
-                m_Controller.AnimationHandler.ChangeColorClientRPC(Color.white);
         }
 
         #endregion
@@ -408,7 +380,7 @@ namespace Game.Spells
             if (stateEffectScaling.StateEffectProperty != property || stateEffectScaling.ScalingFactor == 0)
                 return GetProperty<int>(property);
 
-            return (int)Mathf.Round( GetProperty<int>(property) * Stacks * (1f + stateEffectScaling.ScalingFactor) );
+            return (int)Mathf.Round(GetProperty<int>(property) * Stacks * (1f + stateEffectScaling.ScalingFactor));
         }
 
         public virtual float GetFloat(EStateEffectProperty property) 
@@ -419,7 +391,7 @@ namespace Game.Spells
             if (stateEffectScaling.StateEffectProperty != property || stateEffectScaling.ScalingFactor == 0)
                 return GetProperty<float>(property);
 
-            return GetProperty<float>(property) * Stacks * (1f + stateEffectScaling.ScalingFactor);
+            return Mathf.Round(100 * GetProperty<float>(property) * Stacks * (1f + stateEffectScaling.ScalingFactor)) / 100;
         }
 
         #endregion

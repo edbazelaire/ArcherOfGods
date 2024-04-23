@@ -4,20 +4,39 @@
     {
         None = 0,   
 
+        // -- screens
         LoadingScreen,
-        ChestOpeningScreen,
+        RewardsScreen,
         LevelUpScreen,
+        ArenaPathScreen,
+
+        // -- info PopUps
         SpellInfoPopUp,
+        CharacterInfoPopUp,
         StateEffectPopUp,
         RuneSelectionPopUp,
 
+        // -- menu PopUps
+        ProfilePopUp,
+
+        // -- message PopUps
+        MessagePopUp,
         ErrorMessagePopUp,
+        ConfirmBuyPopUp,
+        ConfirmBuyItemPopUp,
+        ConfirmBuyBundlePopUp,
     }
 
     public enum EGameMode
     {
         Solo,
         Multi
+    }
+
+    public enum EArenaType
+    {
+        FireArena,
+        FrostArena,
     }
 
     public enum ECharacter
@@ -33,7 +52,7 @@
 
     public enum ESpell
     {
-        Arrow,
+        RockShower,
         Blazeburst,
         Fireball,
         FireBomb,
@@ -59,6 +78,9 @@
         FrostbiteTouch,
         Silence,
         PyroBurst,
+        FrostVenomBarrage,
+        PyrotoxinMist,
+        FireBarrage,
 
         Count
     }
@@ -84,11 +106,21 @@
         Legendary
     }
 
+    public enum ECollectableType
+    {
+        None,
+        Character,
+        Spell,
+        Rune
+    }
+
     public enum ERune
     {
         None,
-        Frost,
-        Fire,
+        FrostRune,
+        FireRune,
+        PoisonRune,
+        CurseRune,
     }
 
     public enum EAppState
@@ -101,6 +133,7 @@
         MainMenu,
         /// <summary> setting up a lobby before the game starts</summary>
         Lobby,
+        /// <summary> Game started </summary>
         InGame,
 
         Count
@@ -138,9 +171,23 @@
         EnemyZone,
         AllyZone,
         Free,
+        
         Self,
         FirstAlly,
         FirstEnemy,
+
+        EnemyZoneStart,
+        AllyZoneStart,
+        EnemyZoneCenter,
+        AllyZoneCenter,
+    }
+
+    public enum EMultiProjectileType
+    {
+        None,
+
+        Line,
+        Random,
     }
 
     public enum EJumpType
@@ -205,6 +252,14 @@
 
     }
 
+    public enum ESpellProperty
+    {
+        Non,
+
+        Heal,
+        Damages,
+    }
+
     public enum EStateEffectProperty
     {
         None,
@@ -224,6 +279,8 @@
         TickDamages,
         TickHeal,
         TickShield,
+        AttackSpeed,
+        CastSpeed,
     }
 
     public enum EAnimation
@@ -250,6 +307,12 @@
         ApplyStateEffect
     }
 
+    public enum ECounterActivation
+    {
+        OnHitPlayer,        // activated when the player gets hit
+        SelfTrigger,        // activated when the CounterSpell gets triggered
+    }
+
     public enum ELogType
     {
         None = 0,
@@ -266,28 +329,118 @@
 
         System, 
         Network,
-        Gameplay,
         Debug,
+
+        Gameplay,
+        Spells,
+        Rewards,
+
+        // AI
+        AI,
+        AIFinalDecision,
+        AICheckers,
+        AITaskAttack,
+        AITaskMove,
+
     }
 
     public enum ERewardType
     {
-        Golds,
-        Spell,
+        Currency,
+        Chest, 
+        Collectable
     }
 
-    public enum EChestType
+    public enum ECurrency
     {
+        Golds,
+        Gems,
+        Dollars
+    }
+
+    public enum EChest
+    {
+        // classics
         Common,
         Rare,
         Epic,
-        Legendary
+        Legendary,
+
+        // fire chests
+        Ember,
+        Scorchstone,
+        PyroMaster,
+
+        // frost chests
+        WintersBreath,
+        Iceforged,
+        FrostMaster,
     }
 
-    public enum EChestState
+    public enum EChestAnimState
     {
         Idle,
         Ready,
         Opening,
+    }
+
+    public enum EChestLockState
+    {
+        Empty,
+        Locked,
+        Unlocking,
+        Ready
+    }
+
+    public enum EAnimationUI
+    {
+        None,
+
+        Pulse,
+    }
+
+    public enum EOrdering
+    {
+        None,
+
+        Ascending,
+        Descending,
+    }
+
+
+    public enum ELeague
+    {
+        None = 0,
+
+        Bronze,
+        Silver,
+        Gold,
+        Platinium,
+        Diamond,
+        Champion
+    }
+
+    public enum EStatData
+    {
+        None,
+
+        PlayedGames,
+        Wins,
+    }
+
+    public enum EBadge
+    {
+        None = 0,
+
+        PlayedGame,
+    }
+
+    public enum EAchievementReward
+    {
+        None, 
+
+        Title,
+        Avatar,
+        Border
     }
 }

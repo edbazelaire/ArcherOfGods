@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace Data
 {
-    public class RuneData : ScriptableObject
+    [CreateAssetMenu(fileName = "RuneData", menuName = "Game/Runes/Default")]
+    public class RuneData : CollectionData
     {
         [Description("Description informations of the Rune")]
         public string Description;

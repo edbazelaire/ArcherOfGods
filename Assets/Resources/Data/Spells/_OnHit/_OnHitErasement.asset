@@ -23,7 +23,7 @@ MonoBehaviour:
   MaxHit: 0
   EnergyGain: 0
   EnergyCost: 0
-  Damage: 15
+  Damage: 25
   Heal: 0
   Distance: -1
   Duration: 0
@@ -36,6 +36,7 @@ MonoBehaviour:
     Duration: 3
     SpeedBonus: 0
   AllyStateEffects: []
+  PersistanceAfterEnd: 1.5
   Animation: 0
   IsCancellable: 1
   AnimationTimer: 0

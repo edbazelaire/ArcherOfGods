@@ -7,22 +7,18 @@ using Enums;
 using Unity.Netcode;
 using System.Collections.Generic;
 using Unity.VisualScripting;
-using Game.Managers;
-using MyBox;
+using Game.Loaders;
 using System;
 using System.Collections;
-using static UnityEngine.GraphicsBuffer;
-using Game.Character;
 using System.Linq;
-using Assets;
+using Data.GameManagement;
+using System.Reflection;
 
 namespace Data
 {
     [CreateAssetMenu(fileName = "Spell", menuName = "Game/Spells/Default")]
-    public class SpellData : ScriptableObject
-    {
-        [Description("Rarety of the spell")]
-        public ERarety              Rarety;
+    public class SpellData : CollectionData
+    {      
         [Description("Is this spell linked to a specific character")]
         public bool                 Linked;
 
@@ -71,6 +67,10 @@ namespace Data
         [Description("List of effects that proc on hitting an ally")]
         public List<SStateEffectData> AllyStateEffects;
 
+        [Header("Graphics")]
+        [Description("Delay for the spell visual to be deleted after end of the spell")]
+        public float PersistanceAfterEnd = 0f;
+
         [Header("Animation & Cooldowns")]
         [Description("Name of the animation to use")]
         public EAnimation Animation;
@@ -83,52 +83,32 @@ namespace Data
         [Description("Cooldown to be able to re-use that ability")]
         public float Cooldown;
 
+        // ===========================================================================
+        // Dependent Members
         public virtual ESpellType SpellType => ESpellType.InstantSpell;
-        public float Size => m_Size * Main.SpellSizeFactor;
-
-        private int m_Level = 1;
-        public int Level => m_Level;
-
-        public string SpellName
-        {
-            get
-            {
-                string spellName = name;
-                if (spellName.EndsWith("(Clone)"))
-                    spellName = spellName[..^"(Clone)".Length];
-
-                return spellName;
-            }
-        }
-
-        public ESpell Spell 
-        { 
-            get
-            {
-                if (Enum.TryParse(SpellName, out ESpell spell))
-                    return spell;
-                else
-                    ErrorHandler.FatalError($"Spell {SpellName} not found");
-
-                return ESpell.Count;
-            }
-        }
+        public float Size => m_Size * Settings.SpellSizeFactor;
+        protected override Type m_EnumType => typeof(ESpell);
+        public ESpell Spell => (ESpell)Id;
 
 
-        #region Public Manipualtors
+        #region Instantiate & Spawns
 
         /// <summary>
-        /// Cast a the spell by instantiating the prefab, initializing it and spawning in the network
+        /// Cast a the spell with a delay
         /// </summary>
         /// <param name="clientId">     caster of the spell                         </param>
         /// <param name="target">       position targetted                          </param>
         /// <param name="position">     position where to spawn the spell prefab    </param>
         /// <param name="rotation">     rotation of the prefab                      </param>
         /// <returns></returns>
-        public IEnumerator CastDelay(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default, float? delay = null)
+        public IEnumerator CastDelay(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default, float? delay = null, bool recalculateTarget = true)
         {
             if (delay == null)
                 delay = Delay;
+
+            // recalculate target depending on spell type
+            if (recalculateTarget)
+                CalculateTarget(ref target, clientId);
 
             while (delay > 0f)
             {
@@ -136,15 +116,23 @@ namespace Data
                 yield return null;
             }
 
-            Cast(clientId, target, position, rotation);
+            Cast(clientId, target, position, rotation, recalculateTarget: false);
         }
 
-        public virtual void Cast(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default)
+        /// <summary>
+        /// Cast a the spell by instantiating the prefab, initializing it and spawning in the network
+        /// </summary>
+        /// <param name="clientId"></param>
+        /// <param name="target"></param>
+        /// <param name="position"></param>
+        /// <param name="rotation"></param>
+        /// <param name="recalculateTarget"></param>
+        public virtual void Cast(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default, bool recalculateTarget = true)
         {
-            // recalculate target depending on spell type
-            CalculateTarget(ref target, clientId);
+            ErrorHandler.Log("Casting spell : " + Name, ELogTag.Spells);
 
-            Debug.Log("Casting spell : " + SpellName);
+            if (recalculateTarget)
+                CalculateTarget(ref target, clientId);
 
             // instantiate the prefab of the spell
             GameObject spellGO = GameObject.Instantiate(GetSpellPrefab(), position, rotation);
@@ -152,12 +140,17 @@ namespace Data
             // spawn in network
             Finder.FindComponent<NetworkObject>(spellGO).SpawnWithOwnership(clientId);
 
+            // reparent if any
+            Transform parent = FindParent(clientId);
+            if (parent != null)
+                spellGO.transform.SetParent(FindParent(clientId));
+
             // initialize the spell
             var spell = Finder.FindComponent<Spell>(spellGO);
-            spell.Initialize(target, SpellName, m_Level);
+            spell.Initialize(clientId, target, Name, m_Level);
 
             // backpropagate the spell intialization to the client (for the preview)
-            spell.InitializeClientRpc(target, SpellName, m_Level);
+            spell.InitializeClientRpc(clientId, target, Name, m_Level);
         }
 
         /// <summary>
@@ -194,7 +187,7 @@ namespace Data
             foreach(SpellData spellData in OnHit)
             {
                 // setup spell data to level of this spell
-                spellData.Clone(m_Level).Cast(clientId, target, position, rotation);
+                spellData.Clone(m_Level).Cast(clientId, target, position, rotation, false);
             }   
         }
 
@@ -225,10 +218,10 @@ namespace Data
 
         protected virtual GameObject GetSpellPrefab()
         {
-            return SpellLoader.GetSpellPrefab(SpellName, SpellType);
+            return SpellLoader.GetSpellPrefab(Name, SpellType);
         }
 
-        void CalculateTarget(ref Vector3 target, ulong clientId)
+        protected void CalculateTarget(ref Vector3 target, ulong clientId) 
         {
             if (!IsAutoTarget)
                 return;
@@ -247,35 +240,148 @@ namespace Data
                     target = GameManager.Instance.GetFirstEnemy(GameManager.Instance.GetPlayer(clientId).Team).transform.position;
                     return;
 
+                case ESpellTarget.AllyZoneCenter:
+                case ESpellTarget.EnemyZoneCenter:
+                    target = new Vector3(GameManager.Instance.GetPlayer(clientId).SpellHandler.TargettableArea.position.x, target.y, target.z);
+                    return;
+
+                case ESpellTarget.AllyZoneStart:
+                case ESpellTarget.EnemyZoneStart:
+                    var controller = GameManager.Instance.GetPlayer(clientId);
+                    var centerPos = controller.SpellHandler.TargettableArea.position.x;
+
+                    // direction usless ??
+                    int direction = ArenaManager.GetAreaMovementDirection(controller.Team, SpellTarget == ESpellTarget.EnemyZoneStart);
+                    target = new Vector3(centerPos - direction * ArenaManager.Instance.TargettableAreaSize / 2, target.y, target.z);
+                    return;
+
                 default:
                     ErrorHandler.Error("Unhandled case : " + SpellTarget);
                     return;
             }
         }
 
+        /// <summary>
+        /// Method for children to change parent spawning if need be
+        /// </summary>
+        /// <returns></returns>
+        protected virtual Transform FindParent(ulong clientId)
+        {
+            return null;
+        }
+
         #endregion
 
 
-        #region Dependent Members
+        #region Properties by Reflection
 
-        public bool IsAutoTarget
+        /// <summary>
+        /// Get Reflection PropertyInfo of desire StateEffect property
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        protected bool TryGetPropertyInfo(ESpellProperty property, out FieldInfo propertyInfo, bool throwError = true)
         {
-            get
+            // Get the type of MyClass
+            Type myType = this.GetType();
+
+            // Get the PropertyInfo object for the provided property
+            propertyInfo = myType.GetField(property.ToString(), BindingFlags.Public | BindingFlags.Instance);
+           
+            // check if the property exists
+            if (propertyInfo == null)
             {
-                return SpellTarget == ESpellTarget.Self
-                || SpellTarget == ESpellTarget.FirstAlly
-                || SpellTarget == ESpellTarget.FirstEnemy;
+                if (throwError)
+                    ErrorHandler.Error("Unknown property " + property + " for Spell " + name);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Set the value of a property by Reflection
+        /// </summary>
+        /// <param name="property"></param>
+        /// <param name="value"></param>
+        protected virtual void SetProperty(ESpellProperty property, object value)
+        {
+            if (!TryGetPropertyInfo(property, out FieldInfo propertyInfo))
+                return;
+
+            propertyInfo.SetValue(this, value);
+        }
+
+        /// <summary>
+        /// Get the value of a property by Reflection
+        /// </summary>
+        /// <param name="property"></param>
+        /// <returns></returns>
+        public virtual object GetProperty(ESpellProperty property)
+        {
+            if (!TryGetPropertyInfo(property, out FieldInfo propertyInfo))
+                return null;
+
+            return propertyInfo.GetValue(this);
+        }
+
+        public virtual float GetFloat(ESpellProperty property)
+        {
+            object value = GetProperty(property);
+            if (value == null)
+                return default;
+
+            if (! float.TryParse(value.ToString(), out float result))
+            {
+                ErrorHandler.Error("Unable to parse in FLOAT value " + value + " of property " + property + " of spell " + name);
+                return default;
+            }
+
+            return result;
+        }
+
+        public virtual int GetInt(ESpellProperty property)
+        {
+            object value = GetProperty(property);
+            if (value == null)
+                return default;
+
+            if (! int.TryParse(value.ToString(), out int result))
+            {
+                ErrorHandler.Error("Unable to parse in FLOAT value " + value + " of property " + property + " of spell " + name);
+                return default;
+            }
+
+            return result;
+        }
+
+        public virtual T GetProperty<T>(ESpellProperty property)
+        {
+            object value = GetProperty(property);
+            if (value == null)
+                return default;
+
+            try
+            {
+                return (T)value;
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.Error(ex.Message);
+                ErrorHandler.Error("Unable to parse value " + value + " of property " + property + " of spell " + name);
+                return default;
             }
         }
+
 
         #endregion
 
 
         #region Infos Display
 
-        public virtual Dictionary<string, object> GetInfos()
+        public override Dictionary<string, object> GetInfos()
         {
-            var infosDict = new Dictionary<string, object>();
+            var infosDict = base.GetInfos();
             
             infosDict.Add("Type", GetTypeInfo());
             infosDict.Add("Energy", EnergyGain);
@@ -365,22 +471,20 @@ namespace Data
 
         #region Level management
 
-        public SpellData Clone(int level = 0)
+        public new SpellData Clone(int level = 0)
         {
-            var cloneSpellData = ScriptableObject.Instantiate(this);
-
-            if (level > 0)
-                cloneSpellData.SetLevel(level);
-
-            return cloneSpellData;
+            return (SpellData)base.Clone(level);
         }
 
-        public void SetLevel(int level)
+        protected override void SetLevel(int level)
         {
+            // TODO : factor management 
+            var scaleFactor = 1.1f;
+
             // factor of current level
-            float currentFactor = (float)Math.Pow(SpellLoader.SpellsManagementData.SpellLevelFactor, m_Level - 1);
+            float currentFactor = (float)Math.Pow(scaleFactor, m_Level - 1);
             // factor of the level we are setting
-            float newFactor = (float)Math.Pow(SpellLoader.SpellsManagementData.SpellLevelFactor, level - 1);
+            float newFactor = (float)Math.Pow(scaleFactor, level - 1);
             
             // cooldown cant be below base cooldown
             if (Cooldown > 0)
@@ -388,8 +492,55 @@ namespace Data
             Damage      = (int)Math.Round(Damage    * newFactor / currentFactor );
             Heal        = (int)Math.Round(Heal      * newFactor / currentFactor);
 
-            m_Level = level;
+            base.SetLevel(level);
         }
+
+        #endregion
+
+
+        #region Public Dependent Accessors
+
+        public void ForceAutoTarget()
+        {
+            if (IsAutoTarget)
+                return;
+
+            switch (SpellTarget)
+            {
+                case (ESpellTarget.None):
+                case (ESpellTarget.Free):
+                case (ESpellTarget.EnemyZone):
+                    SpellTarget = ESpellTarget.FirstEnemy;
+                    break;
+
+                case (ESpellTarget.AllyZone):
+                    SpellTarget = ESpellTarget.FirstAlly;
+                    break;
+            }
+        }
+
+        public bool IsAutoTarget
+        {
+            get
+            {
+                return SpellTarget != ESpellTarget.None
+                    && SpellTarget != ESpellTarget.EnemyZone
+                    && SpellTarget != ESpellTarget.AllyZone
+                    && SpellTarget != ESpellTarget.Free;
+            }
+        }
+
+        public bool IsEnemyTarget => SpellTarget == ESpellTarget.FirstEnemy
+            || SpellTarget == ESpellTarget.EnemyZone
+            || SpellTarget == ESpellTarget.EnemyZoneStart
+            || SpellTarget == ESpellTarget.EnemyZoneCenter;
+            
+
+        public bool IsAllyTarget => SpellTarget == ESpellTarget.FirstAlly
+            || SpellTarget == ESpellTarget.Self
+            || SpellTarget == ESpellTarget.AllyZone
+            || SpellTarget == ESpellTarget.AllyZoneStart
+            || SpellTarget == ESpellTarget.AllyZoneCenter;
 
         #endregion
     }

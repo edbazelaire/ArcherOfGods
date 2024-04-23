@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4432beee0d69afc48b7fbea82ba61e89, type: 3}
+  m_Name: CollectablesManagementData
+  m_EditorClassIdentifier: 
+  RaretyData:
+  - Rarety: 0
+    Color: {r: 0.2830189, g: 0.2830189, b: 0.2830189, a: 1}
+    StartLevel: 1
+  - Rarety: 1
+    Color: {r: 0.24964403, g: 0.5051683, b: 0.9622642, a: 1}
+    StartLevel: 3
+  - Rarety: 2
+    Color: {r: 0.73006016, g: 0.19157171, b: 0.990566, a: 1}
+    StartLevel: 6
+  - Rarety: 3
+    Color: {r: 0.99215686, g: 0.60159343, b: 0.19215685, a: 1}
+    StartLevel: 9
+  CharacterLevelData:
+  - RequiredGolds: 50
+    RequiredQty: 50
+  - RequiredGolds: 200
+    RequiredQty: 150
+  - RequiredGolds: 800
+    RequiredQty: 300
+  - RequiredGolds: 2000
+    RequiredQty: 750
+  - RequiredGolds: 5000
+    RequiredQty: 1500
+  - RequiredGolds: 10000
+    RequiredQty: 3500
+  - RequiredGolds: 25000
+    RequiredQty: 7500
+  - RequiredGolds: 50000
+    RequiredQty: 15000
+  - RequiredGolds: 100000
+    RequiredQty: 30000
+  - RequiredGolds: 150000
+    RequiredQty: 50000
+  SpellLevelData:
+  - RequiredGolds: 5
+    RequiredQty: 2
+  - RequiredGolds: 20
+    RequiredQty: 4
+  - RequiredGolds: 50
+    RequiredQty: 10
+  - RequiredGolds: 150
+    RequiredQty: 20
+  - RequiredGolds: 400
+    RequiredQty: 50
+  - RequiredGolds: 1000
+    RequiredQty: 100
+  - RequiredGolds: 2000
+    RequiredQty: 200
+  - RequiredGolds: 4000
+    RequiredQty: 400
+  - RequiredGolds: 8000
+    RequiredQty: 800
+  - RequiredGolds: 15000
+    RequiredQty: 1000
+  - RequiredGolds: 35000
+    RequiredQty: 1500
+  - RequiredGolds: 50000
+    RequiredQty: 3000
+  - RequiredGolds: 100000
+    RequiredQty: 5000

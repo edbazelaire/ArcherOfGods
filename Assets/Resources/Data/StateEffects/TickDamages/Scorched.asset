@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Scorched
   m_EditorClassIdentifier: 
   m_Description: Apply a burn effect. If player already has a burn effect,  stun
-    him for {0} seconds and apply extra {1} damages every {2} seconds
-  m_DescriptionVariables: 
+    him for {0} seconds  and apply {1} damages each {2} seconds
+  m_DescriptionVariables: 010000000d0000000c000000
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 1, g: 1, b: 1, a: 1}
   m_Duration: 2

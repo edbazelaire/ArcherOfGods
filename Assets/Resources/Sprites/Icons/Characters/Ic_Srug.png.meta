@@ -129,10 +129,10 @@ TextureImporter:
       name: Ic_Srug_0
       rect:
         serializedVersion: 2
-        x: 20
-        y: 12
-        width: 298
-        height: 341
+        x: 0
+        y: 0
+        width: 752
+        height: 1024
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -156,8 +156,7 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable:
-      Ic_Srug_0: -8395457575376822210
+    nameFileIdTable: {}
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

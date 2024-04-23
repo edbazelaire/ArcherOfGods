@@ -1,6 +1,6 @@
 ﻿using Data;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System.Linq;
 using Tools;
 using UnityEngine;
@@ -11,29 +11,52 @@ namespace Game.Spells
     {
         #region Members
 
-        ESpellType[] COUNTER_PROCABLE_SPELLTYPE = { ESpellType.Projectile };
+        public static ESpellType[] COUNTER_PROCABLE_SPELLTYPE = { ESpellType.Projectile };
 
         CounterData m_SpellData => m_BaseSpellData as CounterData;
+        public new CounterData SpellData => m_SpellData;
+
+        float m_CounterTimer;
 
         #endregion
 
 
-        #region Inherited Manipulators
+        #region Init & End
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="target"></param>
         /// <param name="spellName"></param>
-        public override void Initialize(Vector3 target, string spellName, int level)
+        public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
-            base.Initialize(target, spellName, level);
+            base.Initialize(clientId, target, spellName, level);
+
+            transform.position = new Vector3(transform.position.x, 0, 0);
+            if (m_SpellData.ColorSwap != default)
+                m_Controller.AnimationHandler.AddColorClientRPC(m_SpellData.ColorSwap);
 
             if (!IsServer)
                 return;
 
-            m_Controller.CounterHandler.SetCounter(m_SpellData);
+            m_CounterTimer = m_SpellData.Duration;
+            m_Controller.CounterHandler.AddCounter(this);
         }
+
+        protected override void End()
+        {
+            if (m_SpellData.ColorSwap != default)
+                m_Controller.AnimationHandler.RemoveColorClientRPC(m_SpellData.ColorSwap);
+
+            m_Controller.CounterHandler.RemoveCounter(this);
+
+            base.End();
+        }
+
+        #endregion
+
+
+        #region Update 
 
         /// <summary>
         /// 
@@ -44,10 +67,12 @@ namespace Game.Spells
 
             transform.position = m_Controller.transform.position;
 
-            if (! IsServer)
+            if (!IsServer)
                 return;
 
-            CheckCounterUpdate();
+            m_CounterTimer -= Time.deltaTime;
+            if (m_CounterTimer <= 0)
+                End();
         }
 
         /// <summary>
@@ -58,7 +83,11 @@ namespace Game.Spells
         {
             if (!IsServer)
                 return;
-  
+
+            // has to be type of SelfTrigger to be able to trigger itself
+            if (m_SpellData.CounterActivation != ECounterActivation.SelfTrigger) 
+                return;
+
             // check if is spell
             if (collision.gameObject.layer != LayerMask.NameToLayer("Spell"))
                 return;
@@ -69,25 +98,66 @@ namespace Game.Spells
             // check that this is not a spell from the same team
             if (spell.Controller.Team == m_Controller.Team)
                 return;
-                
-            // check that spell can proc counter
-            if (!COUNTER_PROCABLE_SPELLTYPE.Contains(spell.SpellData.SpellType))
-                return;
 
-            m_Controller.CounterHandler.ProcCounter(spell);
+            ProcCounter(spell);
         }
 
         #endregion
 
 
-        #region Protected Manipulators
+        #region Counter Proc 
 
-        protected virtual void CheckCounterUpdate()
+        public bool CanBeProc(Spell spell)
         {
-            if (!m_Controller.CounterHandler.HasCounter)
+            return COUNTER_PROCABLE_SPELLTYPE.Contains(spell.SpellData.SpellType);
+        }
+
+        public bool ProcCounter(Spell enemySpell)
+        {
+            if (!IsServer)
+                return false;
+
+            // check if type of spell can proc counter
+            if (! CanBeProc(enemySpell))
+                return false;
+
+            var targetPosition = enemySpell.Controller.transform.position;
+            SpellData spellData;
+
+            switch (m_SpellData.CounterType)
+            {
+                // cast the counter spell on the enemy
+                case ECounterType.Proc:
+                    spellData = SpellLoader.GetSpellData(m_SpellData.OnCounterProc);
+                    spellData.Cast(OwnerClientId, targetPosition, transform.position);
+                    break;
+
+                // block the spell : do nothing
+                case ECounterType.Block:
+                    // todo : block animation
+                    break;
+
+                // Recast the spell to the enemy
+                case ECounterType.Reflect:
+                    enemySpell.SpellData.Cast(OwnerClientId, targetPosition, transform.position);
+                    break;
+
+                default:
+                    Debug.LogError("Unhandled counter type : " + m_SpellData.CounterType);
+                    break;
+            }
+
+            enemySpell.DestroySpell();
+
+            m_HittedPlayerId.Add(0);
+            if (m_SpellData.MaxHit > 0 && m_HittedPlayerId.Count >= m_SpellData.MaxHit)
                 End();
+
+            return true;
         }
 
         #endregion
+
+
     }
 }

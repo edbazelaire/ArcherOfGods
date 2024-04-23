@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5160776450752759746}
   - component: {fileID: 6858108682728369384}
   - component: {fileID: 7508078291356203134}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: DarkSparks
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4852,7 +4852,8 @@ GameObject:
   - component: {fileID: 4872880205755815702}
   - component: {fileID: -6301170084138335894}
   - component: {fileID: 8666060685050223988}
-  m_Layer: 0
+  - component: {fileID: -7583597363664919188}
+  m_Layer: 11
   m_Name: OnCast_Magic
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4899,6 +4900,52 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 610942752557020422}
   m_CullTransparentMesh: 1
+--- !u!61 &-7583597363664919188
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 610942752557020422}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0.5}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0, y: 0}
+    oldSize: {x: 0, y: 0}
+    newSize: {x: 0, y: 0}
+    adaptiveTilingThreshold: 0
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
 --- !u!1 &1076363335393669098
 GameObject:
   m_ObjectHideFlags: 0
@@ -4908,7 +4955,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3345007367438403702}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: GraphicsPreview
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4943,7 +4990,7 @@ GameObject:
   - component: {fileID: 7559472685756131696}
   - component: {fileID: 1705412743628919871}
   - component: {fileID: 7352895454507472493}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Sparks
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9784,7 +9831,7 @@ GameObject:
   - component: {fileID: 3879991783543518416}
   - component: {fileID: 6673819838212572535}
   - component: {fileID: 8740375010380159502}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Sides
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14615,7 +14662,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2060077182738499470}
   - component: {fileID: 2739518179900601102}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: BaseArea
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14703,7 +14750,7 @@ GameObject:
   - component: {fileID: 7377904494693993973}
   - component: {fileID: 7393125751928447366}
   - component: {fileID: 1571143364026213433}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Light
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19715,7 +19762,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1903135747129207682}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: GrowingArea
   m_TagString: Untagged
   m_Icon: {fileID: 0}

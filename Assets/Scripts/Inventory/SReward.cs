@@ -1,4 +1,4 @@
-﻿using Enums;
+﻿using System;
 using System.Collections.Generic;
 
 
@@ -8,15 +8,22 @@ namespace Inventory
     {
         public const string METADATA_KEY_SPELL_TYPE = "SpellType";
 
-        public ERewardType RewardType;
+        public Type RewardType;
+        public string RewardName;
         public int Qty;
         public Dictionary<string, object> Metadata;
 
-        public SReward(ERewardType type, int count, Dictionary<string, object> metadata = default)
+        public SReward(Type rewardType, string name, int count, Dictionary<string, object> metadata = default)
         {
-            RewardType = type;
-            Qty = count;
-            Metadata = metadata;
+            RewardType  = rewardType;
+            RewardName  = name;
+            Qty         = count;
+            Metadata    = metadata;
+        }
+
+        public void AddQty(int qty)
+        {
+            Qty += qty;
         }
     }
 }

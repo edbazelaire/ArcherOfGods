@@ -1,11 +1,7 @@
 ﻿using Data;
-using NUnit.Framework;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using TMPro;
 using Tools;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Menu.Common.Infos
 {

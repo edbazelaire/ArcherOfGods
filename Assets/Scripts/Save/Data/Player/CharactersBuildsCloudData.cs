@@ -2,6 +2,7 @@
 using Enums;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Tools;
 using Unity.Services.CloudSave.Models;
 using Unity.VisualScripting;
@@ -31,6 +32,17 @@ namespace Save
 
         [DoNotSerialize]
         public readonly ESpell[] CurrentBuild => Builds[CurrentBuildIndex];
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("SCharacterBuildData : { \n");
+            sb.Append("     CurrentBuildIndex : "  + TextHandler.ToString(CurrentBuildIndex) + ",\n");
+            sb.Append("     Builds : "          + TextHandler.ToString(Builds) + ",\n");
+            sb.Append("     Runes : "           + TextHandler.ToString(Runes) + ",\n");
+            sb.Append("}");
+            return sb.ToString();
+        }
     }
 
     public class CharacterBuildsCloudData : CloudData
@@ -45,9 +57,9 @@ namespace Save
         /// <summary> number of spells in one build </summary>
         public const    int                 N_SPELLS_IN_BUILDS      = 4;
         /// <summary> default build if none was created by the player </summary>
-        public static readonly ESpell[]     DEFAULT_BUILD           = new ESpell[N_SPELLS_IN_BUILDS]    { ESpell.Arrow, ESpell.Heal, ESpell.Fireball, ESpell.FireBomb }; 
+        public static ESpell[]              DEFAULT_BUILD           => new ESpell[N_SPELLS_IN_BUILDS]    { ESpell.RockShower, ESpell.Heal, ESpell.Counter, ESpell.IronSkin }; 
         /// <summary> defualt list of None runes when initializing a new character data </summary>
-        public static readonly ERune[]      DEFAULT_RUNES           = new ERune[N_BUILDS]               { ERune.None, ERune.None, ERune.None }; 
+        public static ERune[]               DEFAULT_RUNES           => new ERune[N_BUILDS]               { ERune.None, ERune.None, ERune.None }; 
 
         // KEYS ------------------------------------
         public const    string              KEY_SELECTED_CHARACTER  = "SelectedCharacter";
@@ -109,6 +121,8 @@ namespace Save
         {
             Instance.m_Data[KEY_SELECTED_CHARACTER] = character;
 
+            // Save & Fire event of the change
+            Instance.SaveValue(KEY_SELECTED_CHARACTER);
             SelectedCharacterChangedEvent?.Invoke();
         }
 
@@ -133,7 +147,8 @@ namespace Save
             characterBuildData.CurrentBuildIndex = index;
             Builds[SelectedCharacter] = characterBuildData;
 
-            // fire event of the change
+            // Save & Fire event of the change
+            Instance.SaveValue(KEY_BUILDS);
             CurrentBuildIndexChangedEvent?.Invoke();
         }
 
@@ -145,11 +160,13 @@ namespace Save
         public static void SetSpellInCurrentBuild(ESpell? spell, int index)
         {
             CurrentBuild[index] = spell.HasValue ? spell.Value : ESpell.Count;
+
+            Instance.SaveValue(KEY_BUILDS);
             CurrentBuildValueChangedEvent?.Invoke();
         }
 
         /// <summary>
-        /// Set current rune
+        /// Set Rune of the current build
         /// </summary>
         /// <param name="rune"></param>
         public static void SetCurrentRune(ERune rune)
@@ -159,27 +176,9 @@ namespace Save
             characterBuildData.Runes[characterBuildData.CurrentBuildIndex] = rune;
             Builds[SelectedCharacter] = characterBuildData;
 
+            Instance.SaveValue(KEY_BUILDS);
             CurrentRuneChangedEvent?.Invoke();  
         }
-
-        /// <summary>
-        /// Check if current build is not missing any spell
-        /// </summary>
-        /// <returns></returns>
-        public static bool IsCurrentBuildOk
-        {
-            get
-            {
-                foreach (ESpell spell in CurrentBuild)
-                {
-                    if (spell == ESpell.Count)
-                        return false;
-                }
-
-                return true;
-            }
-        }
-        
 
         #endregion
 
@@ -226,7 +225,7 @@ namespace Save
                 {
                     ErrorHandler.Warning("Character " + character + " does not have exactly " + N_BUILDS + " runes provided => reseting to default");
                     SCharacterBuildData characterData = buildsDictionary[character];
-                    characterData.Runes = DEFAULT_RUNES;
+                    DEFAULT_RUNES.CopyTo(characterData.Runes, 0);
                     buildsDictionary[character] = characterData;
                 }
 
@@ -267,26 +266,57 @@ namespace Save
             m_Data[KEY_BUILDS] = buildsDictionary;
         }
 
+        /// <summary>
+        /// Check if current build is not missing any spell
+        /// </summary>
+        /// <returns></returns>
+        public static bool IsCurrentBuildOk
+        {
+            get
+            {
+                foreach (ESpell spell in CurrentBuild)
+                {
+                    if (spell == ESpell.Count)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
         #endregion
 
 
         #region Listeners
 
-        protected override void OnCloudDataLoaded(string key)
+        protected override void OnCloudDataKeyLoaded(string key)
         {
-            base.OnCloudDataLoaded(key);
+            base.OnCloudDataKeyLoaded(key);
 
             // CHECKERS : check that data is conform to the expected data, add default data if some data is missing
             switch (key)
             {
                 case KEY_BUILDS:
                     CheckCharactersBuilds();
-                    return;
+                    break;
             }
-                
         }
 
         #endregion
 
+
+        #region Debug
+
+        public override string ToString()
+        {
+            string str = base.ToString();
+            str += "\n SelectedCharacter : "    + TextHandler.ToString(SelectedCharacter);
+            str += "\n CurrentBuildIndex : "    + TextHandler.ToString(CurrentBuildIndex);
+            str += "\n CurrentBuild : "         + TextHandler.ToString(CurrentBuild);
+            str += "\n CurrentRune : "          + TextHandler.ToString(CurrentRune);
+            return str;
+        }
+
+        #endregion
     }
 }

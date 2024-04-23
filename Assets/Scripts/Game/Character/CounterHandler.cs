@@ -1,7 +1,7 @@
-﻿using Data;
-using Enums;
-using Game.Managers;
+﻿using Enums;
 using Game.Spells;
+using System.Collections.Generic;
+using System.Linq;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
@@ -12,84 +12,27 @@ namespace Game.Character
     {
         #region Members
 
-        NetworkVariable<bool>   m_CounterActivated  = new NetworkVariable<bool>(false);
-        NetworkVariable<float>  m_CounterTimer      = new NetworkVariable<float>(0f);
+        private NetworkVariable<bool> m_IsBlockingMovement    = new(false);
+        private NetworkVariable<bool> m_IsBlockingCast        = new(false);
 
         Controller m_Controller;
-        CounterData m_CounterData;
-        int m_HitCtr = 0;
-        GameObject m_CounterGraphics;
+        List<Counter> m_Counters = new List<Counter>();
 
-        public NetworkVariable<bool> CounterActivated => m_CounterActivated;
-        public bool HasCounter => m_CounterTimer.Value > 0;
+        public NetworkVariable<bool> IsBlockingMovement => m_IsBlockingMovement;
+        public NetworkVariable<bool> IsBlockingCast => m_IsBlockingCast;
+        public bool HasCounter => m_Counters.Count > 0;
 
         #endregion
 
 
-        #region Inherited Manipulators
+        #region Init & End
 
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
 
             m_Controller = Finder.FindComponent<Controller>(gameObject);
-        }
-
-        void Update()
-        {
-            if (!IsServer)
-                return;
-
-            UpdateCounterTimer();
-        }
-
-        #endregion
-
-
-        #region Client RPCs
-
-        [ClientRpc]
-        void SetCounterGraphicsClientRPC(bool activate)
-        {
-            if (activate)
-                m_CounterGraphics = Instantiate(m_CounterData.Graphics, m_Controller.transform);
-            else
-            {
-                Destroy(m_CounterGraphics);
-                m_CounterGraphics = null;
-            }
-        }
-
-        #endregion
-
-
-        #region Private Manipulators
-
-        void UpdateCounterTimer()
-        {
-            if (m_CounterTimer.Value <= 0)
-                return;
-            
-            m_CounterTimer.Value -= Time.deltaTime;
-            if (m_CounterTimer.Value <= 0)
-            {
-                EndCounter();
-            }
-        }
-
-        void EndCounter()
-        {
-            m_CounterTimer.Value = 0;
-            CounterActivated.Value = false;
-            m_Controller.Movement.CancelMovement(false);
-
-            // reset color on the client side
-            if (m_CounterData.ColorSwap != default)
-                m_Controller.AnimationHandler.ChangeColorClientRPC(Color.white);
-
-            // destory counter graphics on the client side
-            if (m_CounterGraphics != null)
-                SetCounterGraphicsClientRPC(false);
+            m_Counters = new List<Counter>();
         }
 
         #endregion
@@ -97,62 +40,144 @@ namespace Game.Character
 
         #region Public Manipulators
 
-        public void SetCounter(CounterData counterData)
+        /// <summary>
+        /// When a spell hits a player, check for counters
+        /// </summary>
+        /// <param name="spell"></param>
+        /// <returns></returns>
+        public bool CheckCounters(Spell spell)
         {
-            if (!IsServer)
-                return;
+            // check has counters
+            if (m_Counters.Count == 0)
+                return false;
 
-            m_CounterData = counterData;
-            m_CounterTimer.Value = m_CounterData.Duration;
-            m_Controller.Movement.CancelMovement(true);
+            // check is same team
+            if (GameManager.Instance.GetPlayer(spell.OwnerClientId).Team == m_Controller.Team)
+                return false;
 
-            if (m_CounterData.ColorSwap != default)
+            // check that spell can proc counters
+            if (!Counter.COUNTER_PROCABLE_SPELLTYPE.Contains(spell.SpellData.SpellType))
+                return false;
+
+            // find first counter that has an "OnHit" proc effect
+            foreach (Counter counter in m_Counters)
             {
-                m_Controller.AnimationHandler.ChangeColorClientRPC(m_CounterData.ColorSwap);
+                // check has right type
+                if (counter.SpellData.CounterActivation != ECounterActivation.OnHitPlayer)
+                    continue;
+
+                // try to proc it, return true if successfull
+                if (counter.ProcCounter(spell))
+                    return true;
             }
 
-            if (m_CounterData.Graphics != null)
-            {
-                SetCounterGraphicsClientRPC(true);
-            }
+            // no spell has proc any counter : return false
+            return false;
         }
 
-        public void ProcCounter(Spell enemySpell)
+        public void AddCounter(Counter counterSpell)
         {
             if (!IsServer)
                 return;
 
-            var targetPosition = enemySpell.Controller.transform.position;
-            SpellData spellData;
+            // add counter to list of counters
+            m_Counters.Add(counterSpell);
 
-            switch (m_CounterData.CounterType)
+            // now that this spell has been added, check if there is still blocking actions
+            CheckBlockingActions();
+        }
+
+        public void RemoveCounter(Counter counterSpell)
+        {
+            if (!IsServer)
+                return;
+
+            // find index
+            int index = -1;
+            for (int i = 0; i < m_Counters.Count; i++)
             {
-                // cast the counter spell on the enemy
-                case ECounterType.Proc:
-                    spellData = SpellLoader.GetSpellData(m_CounterData.OnCounterProc);
-                    spellData.Cast(OwnerClientId, targetPosition, transform.position);
+                if (m_Counters[i] == counterSpell)
+                {
+                    index = i;
                     break;
-
-                // block the spell : do nothing
-                case ECounterType.Block:
-                    // todo : block animation
-                    break;
-
-                // Recast the spell to the enemy
-                case ECounterType.Reflect:
-                    enemySpell.SpellData.Cast(OwnerClientId, targetPosition, transform.position);
-                    break;
-
-                default :
-                    Debug.LogError("Unhandled counter type : " + m_CounterData.CounterType);
-                    break;
+                }
             }
 
-            enemySpell.DestroySpell();
+            // remove at index if found
+            if (index >= 0)
+                m_Counters.RemoveAt(index);
+            else
+                ErrorHandler.Error("Unable to find counter " + counterSpell.name + " in list of counters");
 
-            m_HitCtr++;
-            if (m_HitCtr >= m_CounterData.MaxHit && m_CounterData.MaxHit > 0)
-                EndCounter();
+            // now that this spell has been removed, check if there is still blocking actions
+            CheckBlockingActions();
+        }
+
+        #endregion
+
+
+        #region Private Manipulators
+
+        void CheckBlockingActions()
+        {
+            bool blockingMovement   = false;
+            bool blockingCast       = false;
+
+            foreach(var counterSpell in m_Counters)
+            {
+                if (counterSpell.SpellData.IsBlockingMovement)
+                {
+                    blockingMovement = true;
+                }
+
+                if (counterSpell.SpellData.IsBlockingCast)
+                {
+                    blockingCast = true;
+                }
+            }
+
+            SetIsBlockingMovement(blockingMovement);
+            SetIsBlockingCast(blockingCast);
+        }
+
+        private void SetIsBlockingMovement(bool blockingMovement)
+        {
+            Debug.LogWarning("SetIsBlockingMovement() : " + blockingMovement);
+
+            if (!IsServer)
+                return;
+
+            if (blockingMovement == m_IsBlockingMovement.Value)
+                return;
+
+            Debug.Log("     + Before : " + m_IsBlockingMovement.Value);
+
+            if (blockingMovement)
+                m_Controller.Movement.CancelMovement(true);
+
+            m_IsBlockingMovement.Value = blockingMovement;
+
+            Debug.Log("     + After : " + m_IsBlockingMovement.Value);
+        }
+
+        private void SetIsBlockingCast(bool blockingCast)
+        {
+            Debug.LogWarning("SetIsBlockingCast() : " + blockingCast);
+
+            if (!IsServer)
+                return;
+
+            if (blockingCast == m_IsBlockingCast.Value)
+                return;
+
+            Debug.Log("     + Before : " + m_IsBlockingCast.Value);
+           
+            if (blockingCast)
+                m_Controller.SpellHandler.CancelCast();
+
+            m_IsBlockingCast.Value = blockingCast;
+
+            Debug.Log("     + Before : " + m_IsBlockingCast.Value);
         }
 
         #endregion

@@ -3,7 +3,6 @@ using TMPro;
 using Tools;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEngine.Rendering.DebugUI;
 
 public class PlayerBarUI : MonoBehaviour
 {
@@ -49,6 +48,12 @@ public class PlayerBarUI : MonoBehaviour
 
     void UpdateChanges()
     {
+        if (GameManager.IsGameOver)
+            return;
+
+        if (m_Fill.IsDestroyed())
+            return;
+
         m_Fill.fillAmount = (float)m_CurrentValue / m_MaxValue;
         if (m_Text != null)
             m_Text.text = $"{m_CurrentValue} / {m_MaxValue}";

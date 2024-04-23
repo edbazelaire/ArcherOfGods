@@ -13,9 +13,7 @@ namespace Save
         #region Members
 
         List<CloudData>                     m_CloudData;
-
-        public ChestsCloudData              ChestsCloudData                 => GetCloudData(typeof(ChestsCloudData)) as ChestsCloudData;
-
+        
         #endregion
 
 
@@ -43,11 +41,16 @@ namespace Save
                 new CharacterBuildsCloudData(),
                 new InventoryCloudData(),
                 new ChestsCloudData(),
+                new ProfileCloudData(),
+                new StatCloudData(),
             };
         }
 
         public void SaveAll()
         {
+            if ( ! LoadingCompleted )
+                return;
+            
             foreach (CloudData data in m_CloudData)
             {
                 data.Save();

@@ -1,6 +1,6 @@
 using Enums;
+using System;
 using Tools;
-using UnityEngine;
 
 
 namespace Menu.MainMenu
@@ -55,7 +55,7 @@ namespace Menu.MainMenu
 
         #region Listeners
 
-        void SelectSpellItemsTab(ESpell spell)
+        void SelectSpellItemsTab(Enum spell)
         {
             m_ItemsTabManager.SelectTab(EInvetoryItemTab.SpellsTab);
         }

@@ -26,11 +26,12 @@ namespace Game
         List<Transform>         m_TargettableAreas;
         List<List<Transform>>   m_Spawns;
 
-        public GameObject Arena => m_Arena;
-        public List<List<Transform>> Spawns => m_Spawns;
-        public Transform TargetHight => m_TargetHight;
-        public Transform EnemyTargettableArea => GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team == 0 ? m_TargettableAreas[1] : m_TargettableAreas[0];
-        public Transform AllyTargettableArea => GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team == 0 ? m_TargettableAreas[0] : m_TargettableAreas[1];
+        float                   m_TargettableAreaSize;
+
+        public GameObject               Arena                   => m_Arena;
+        public List<List<Transform>>    Spawns                  => m_Spawns;
+        public Transform                TargetHight             => m_TargetHight;
+        public float                    TargettableAreaSize     => m_TargettableAreaSize;
 
         #endregion
 
@@ -130,13 +131,37 @@ namespace Game
                 // increment id of target area to search
                 i++;
             }
-            
+
+            m_TargettableAreaSize = m_TargettableAreas[0].GetComponent<RectTransform>().rect.width;
         }
 
         #endregion
 
 
         #region Static Accessors
+
+        /// <summary>
+        /// Depending on the team, the enemy and ally areas are inverted
+        /// </summary>
+        /// <param name="team"></param>
+        /// <param name="enemyArea"></param>
+        /// <returns></returns>
+        public static Transform GetTargettableArea(int team, bool enemyArea = true)
+        {
+            return (team == 0 && enemyArea || team == 1 && ! enemyArea) ? Instance.m_TargettableAreas[1] : Instance.m_TargettableAreas[0];
+        }
+
+        /// <summary>
+        /// Depending on which area is selected (ally or enemy) and the team of the player, the "movement direction" (= what is consider to be "forward")
+        /// of a spell will not be the same.
+        /// </summary>
+        /// <param name="team"></param>
+        /// <param name="enemyArea"></param>
+        /// <returns></returns>
+        public static int GetAreaMovementDirection(int team, bool enemyArea = true)
+        {
+            return (team == 0 && enemyArea || team == 1 && !enemyArea) ? 1 : -1;
+        }
 
         public static ArenaManager Instance
         {

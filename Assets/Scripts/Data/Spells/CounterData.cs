@@ -15,10 +15,16 @@ namespace Data
         [Header("Counter")]
         [Description("Spell Caster when the counter procs")]
         public ECounterType CounterType;
-        public Color ColorSwap;
+        public ECounterActivation CounterActivation;
+        public bool IsBlockingMovement  = true;
+        public bool IsBlockingCast      = true;
 
-        [Description("Spell Caster when the counter procs")]
+        [Description("Spell Casted when the counter procs")]
         [ConditionalField("CounterType", false, ECounterType.Proc)]
         public ESpell OnCounterProc;
+
+        [Header("Counter Extra Graphics")]
+        [Description("Change of character color")]
+        public Color ColorSwap;
     }
 }

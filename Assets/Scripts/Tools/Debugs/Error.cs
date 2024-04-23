@@ -1,6 +1,9 @@
+using Assets;
+using Enums;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using UnityEngine.UIElements.Experimental;
 
 namespace Tools
 {
@@ -14,40 +17,46 @@ namespace Tools
         public new string Message => m_Message;
         public List<string> Trace => m_Trace;
 
-        public Error(string message, EError type = EError.Error, int frame = 0) : base(message)
+        public Error(string message, EError type = EError.Error, int frame = 0, ELogTag logTag = ELogTag.None, bool display = true) : base(message)
         {
             frame += 1;
 
             m_Message = message;
             m_Trace = GetTrace(frame+1);
+
+            // check if configuration contains this type of logs to display
+            display &= (logTag == ELogTag.None || Main.LogTags.Contains(logTag));
                               
-            message = FormatErrorMessage(message, type, frame);
-            switch (type)
+            if (display)
             {
-                case EError.Log:
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    UnityEngine.Debug.Log(message);
-                    break;
-                case EError.Warning:
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    UnityEngine.Debug.LogWarning(message);
-                    break;
-                case EError.Error:
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    UnityEngine.Debug.LogError(message);
-                    break;
-                case EError.FatalError:
-                    Console.ForegroundColor = ConsoleColor.Magenta;
-                    break;
+                message = FormatErrorMessage(message, type, frame);
+                switch (type)
+                {
+                    case EError.Log:
+                        Console.ForegroundColor = ConsoleColor.Blue;
+                        UnityEngine.Debug.Log(message);
+                        break;
+                    case EError.Warning:
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        UnityEngine.Debug.LogWarning(message);
+                        break;
+                    case EError.Error:
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        UnityEngine.Debug.LogError(message);
+                        break;
+                    case EError.FatalError:
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
+
+                Console.ResetColor();
+
+                Console.WriteLine(GetStackTrace(frame).ToString());
             }
-
-            Console.ResetColor();
-
-            Console.WriteLine(GetStackTrace(frame).ToString());
-
+           
             if (type == EError.FatalError)
                 throw this;
         }

@@ -1,8 +1,8 @@
 ﻿using Data;
+using Data.GameManagement;
 using Enums;
 using System;
 using Tools;
-using UnityEditor;
 using UnityEngine;
 
 namespace Game.Spells
@@ -21,10 +21,10 @@ namespace Game.Spells
 
         #region Init & End
 
-        public override void Initialize(Vector3 target, string spellName, int level)
+        public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
             target.y = 0;
-            base.Initialize(target, spellName, level);
+            base.Initialize(clientId, target, spellName, level);
 
             m_OriginalPosition = transform.position;
 
@@ -66,13 +66,12 @@ namespace Game.Spells
                 return;
 
             // if spell hits a wall, end it
-            if (collision.gameObject.layer == LayerMask.NameToLayer("Wall"))
+            if (collision.gameObject.layer == LayerMask.NameToLayer("Wall") || collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
                 End();
 
             // if spell hits a player, hit it and end the spell
-            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player"))
-                if (m_SpellData.TriggerPlayer)
-                    OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
+            else if (collision.gameObject.layer == LayerMask.NameToLayer("Player") && m_SpellData.TriggerPlayer)
+                OnHitPlayer(Finder.FindComponent<Controller>(collision.gameObject));
         }
 
         /// <summary>

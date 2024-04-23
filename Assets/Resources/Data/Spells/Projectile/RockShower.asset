@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a54727096f1b9a14e931ac401f233989, type: 3}
+  m_Name: RockShower
+  m_EditorClassIdentifier: 
+  Rarety: 0
+  Linked: 0
+  Graphics: {fileID: 2272309172655654138, guid: 707016094918de145aed102b2535ac3e, type: 3}
+  Preview: {fileID: 0}
+  OnAnimation: []
+  OnCastPrefabs: []
+  OnHit: []
+  SpellTarget: 7
+  MaxHit: 1
+  EnergyGain: 10
+  EnergyCost: 0
+  Damage: 12
+  Heal: 0
+  Distance: -1
+  Duration: 0
+  Delay: 0
+  m_Size: 1
+  TriggerPlayer: 1
+  EnemyStateEffects: []
+  AllyStateEffects: []
+  PersistanceAfterEnd: 0
+  Animation: 2
+  IsCancellable: 1
+  AnimationTimer: 0.8
+  CastAt: 1
+  Cooldown: 12
+  Trajectory: 1
+  m_Speed: 7
+  ProjectileData: {fileID: 0}
+  MultiProjectileType: 1
+  NProjectiles: 4
+  ProjectileZoneSize: 5
+  DelayBetweenLaunches: 0

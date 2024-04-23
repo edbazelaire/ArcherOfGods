@@ -1,7 +1,5 @@
 ﻿using Data;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using Tools;
 using Unity.Netcode;
 using UnityEngine;
@@ -39,12 +37,12 @@ namespace Game.Spells
         /// <param name="radius"></param>
         /// <param name="damage"></param>
         /// <param name="duration"></param>
-        public override void Initialize(Vector3 target, string spellName, int level)
+        public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
             // handle size and position (before graphic initialization)
             transform.position = new Vector3(target.x, 0f, 1f);
 
-            base.Initialize(target, spellName, level);
+            base.Initialize(clientId, target, spellName, level);
 
             transform.localScale = new Vector3(m_SpellData.Size, m_SpellData.Size, 1f);
 
@@ -52,19 +50,10 @@ namespace Game.Spells
                 return;
 
             // setup radius and timer
-            m_Radius.Value      = m_SpellData.Size;
+            m_Radius.Value      = m_SpellData.Size / 2;
             m_DurationTimer     = m_SpellData.Duration;
 
             CreateCollisionCircle();
-        }
-
-        protected override void End()
-        {
-            // visual ending effect
-            SpawnOnHitPrefab();
-
-            // destroy the spell game object (with delay if any)
-            StartCoroutine(DelayEndGraphics());
         }
 
         /// <summary>
@@ -86,6 +75,9 @@ namespace Game.Spells
         /// </summary>
         protected override void Update()
         {
+            if (m_IsOver)
+                return;
+
             base.Update();
 
             if (!IsServer)
@@ -129,10 +121,6 @@ namespace Game.Spells
 
         protected virtual void OnCollisionController(Controller controller)
         {
-            Debug.Log("OnHit() : " + m_SpellData.SpellName);
-            Debug.Log("     + Owner : " + OwnerClientId);
-            Debug.Log("     + LocalId : " + NetworkManager.Singleton.LocalClientId);
-
             // hit the player
             OnHitPlayer(controller);
         }
@@ -152,28 +140,11 @@ namespace Game.Spells
         #endregion
 
 
-        #region Graphics Manipulation
-
-        protected virtual IEnumerator DelayEndGraphics()
-        {
-            var timer = DELAY_END_DURATION;
-            while (timer > 0)
-            {
-                timer -= Time.deltaTime;
-                yield return null;
-            }
-
-            DestroySpell();
-        }
-
-        #endregion
-
-
         #region Listeners
 
         protected virtual void OnRadiusChanged(float oldRadius, float newRadius)
         {
-            transform.localScale = new Vector3(newRadius, newRadius, 1f);
+            transform.localScale = new Vector3(newRadius * 2, newRadius * 2, 1f);
         }
 
         #endregion

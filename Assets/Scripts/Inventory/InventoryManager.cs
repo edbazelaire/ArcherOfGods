@@ -1,11 +1,9 @@
-﻿using Assets;
-using Data.GameManagement;
+﻿using Data.GameManagement;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Save;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Tools;
 
 namespace Inventory
@@ -17,55 +15,50 @@ namespace Inventory
         // =================================================================================================
         // CONSTANTS
         public const        int                     MAX_CHESTS      = 4;
-        public static       ERewardType[]           CURRENCIES      => new ERewardType[] { ERewardType.Golds };
 
         // =================================================================================================
         // EVENTS
         public static       Action<ChestData, int>  ChestsAddedEvent;
-        public static       Action<ESpell>          UnlockSpellEvent;
-        public static       Action<ECharacter>      CharacterLeveledUpEvent;
+        public static       Action<Enum>            UnlockCollectableEvent;
+
+        /// <summary> event fired when a collectable has been upgraded (=level up) </summary>
+        public static       Action<Enum, int>       CollectableUpgradedEvent;
+        /// <summary> event fired when a character gains xp </summary>
         public static       Action<ECharacter, int> CharacterGainedXpEvent;
 
         // =================================================================================================
         // ACCESSORS
-        public static       List<SSpellCloudData>   SpellData       => (List<SSpellCloudData>)InventoryCloudData.Instance.Data[ERewardType.Spell.ToString()];
-        public static       int                     Golds           => Convert.ToInt32(InventoryCloudData.Instance.Data[InventoryCloudData.KEY_GOLDS]);
-        public static       ChestData[]             Chests          => (ChestData[])ChestsCloudData.Instance.Data[ChestsCloudData.KEY_CHESTS];
+        public static       int                             Golds         => Convert.ToInt32(InventoryCloudData.Instance.Data[InventoryCloudData.KEY_GOLDS]);
+        public static       ChestData[]                     Chests        => (ChestData[])ChestsCloudData.Instance.Data[ChestsCloudData.KEY_CHESTS];
 
         #endregion
 
 
         #region Currency Management
 
-        public static int GetCurrency(ERewardType rewardType)
+        public static int GetCurrency(ECurrency currency)
         {
-            if (! CURRENCIES.Contains(rewardType))
-            {
-                ErrorHandler.Error("Reward " + rewardType + " is not a currency");
-                return 0;
-            }
-
-            return (int)InventoryCloudData.Instance.Data[rewardType.ToString()];
+            return (int)InventoryCloudData.Instance.Data[currency.ToString()];
         }
 
-        public static void UpdateCurrency(ERewardType reward, int amount) 
+        public static void UpdateCurrency(ECurrency currency, int amount)
         {
             var data = InventoryCloudData.Instance.Data;
 
-            if (!data.ContainsKey(reward.ToString()))
+            if (!data.ContainsKey(currency.ToString()))
             {
-                ErrorHandler.Error("Currency " + reward + " not found in inventory cloud data");
-                return;
-            }
-            
-            var total = (int)data[reward.ToString()] + amount;
-            if (amount < 0)
-            {
-                ErrorHandler.Error($"Not enought {reward} ({(int)data[reward.ToString()]}) to spend ({amount})");
+                ErrorHandler.Error("Currency " + currency + " not found in inventory cloud data");
                 return;
             }
 
-            InventoryCloudData.Instance.SetData(reward, total);
+            var total = (int)data[currency.ToString()] + amount;
+            if (amount < 0)
+            {
+                ErrorHandler.Error($"Not enought {currency} ({(int)data[currency.ToString()]}) to spend ({amount})");
+                return;
+            }
+
+            InventoryCloudData.Instance.SetData(currency.ToString(), total);
         }
 
         /// <summary>
@@ -73,9 +66,32 @@ namespace Inventory
         /// </summary>
         /// <param name="cost"></param>
         /// <returns></returns>
-        public static bool CanBuy(int cost)
+        public static bool CanBuy(int cost, ECurrency currency = ECurrency.Golds)
         {
-            return Golds - cost > 0;
+            return GetCurrency(currency) - cost >= 0;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cost"></param>
+        /// <returns></returns>
+        public static bool Spend(int cost, ECurrency currency)
+        {
+            if (cost < 0)
+            {
+                ErrorHandler.Error($"Trying to add a spend a negative amount of gold ({cost}) : use the AddGolds() method");
+                return false;
+            }
+
+            if (!CanBuy(cost, currency))
+            {
+                ErrorHandler.Error($"Not enought {currency} ({GetCurrency(currency)}) to buy the item ({cost}) : this situation should not happen");
+                return false;
+            }
+
+            InventoryCloudData.Instance.SetData(currency.ToString(), GetCurrency(currency) - cost);
+            return true;
         }
 
         /// <summary>
@@ -90,7 +106,7 @@ namespace Inventory
                 return;
             }
 
-            InventoryCloudData.Instance.SetData(ERewardType.Golds, Golds + qty);
+            InventoryCloudData.Instance.SetData(ECurrency.Golds, Golds + qty);
         }
 
         /// <summary>
@@ -111,7 +127,117 @@ namespace Inventory
                 return;
             }
 
-            InventoryCloudData.Instance.SetData(ERewardType.Golds, Golds - cost);
+            InventoryCloudData.Instance.SetData(ECurrency.Golds, Golds - cost);
+        }
+
+        #endregion
+
+
+        #region Collectables Management
+
+        /// <summary>
+        /// Add xp to a character : check if raise a level up
+        /// </summary>
+        /// <param name="character"></param>
+        /// <param name="qty"></param>
+        public static void AddCollectable(Enum collectable, int qty)
+        {
+            if (qty < 0)
+            {
+                ErrorHandler.Error("Trying to provide negative qty (" + qty + ") to collectable " + collectable);
+                return;
+            }
+
+            if (qty == 0)
+            {
+                ErrorHandler.Warning("Trying to provide 0 qty to collectable " + collectable);
+                return;
+            }
+
+            // get data of this character (current xp, level)
+            SCollectableCloudData collectableData = InventoryCloudData.Instance.GetCollectable(collectable);
+            if (collectableData.Level == 0)
+            {
+                Unlock(ref collectableData);    // unlock the item
+                qty -= 1;                       // consume 1 from the qty for the unlocking
+            }
+
+            // add xp to character and save
+            collectableData.Qty += qty;
+            InventoryCloudData.Instance.SetCollectable(collectableData);
+
+            if (collectable.GetType() == typeof(ECharacter))
+                CharacterGainedXpEvent?.Invoke((ECharacter)collectable, qty);
+        }
+
+        /// <summary>
+        /// Unlock a spell
+        /// </summary>
+        /// <param name="spellCloudData"></param>
+        public static void Unlock(ref SCollectableCloudData collectableCloudData)
+        {
+            if (collectableCloudData.Level > 0)
+            {
+                ErrorHandler.Error("Trying to unlock spell " + collectableCloudData.GetCollectable() + " but already has level " + collectableCloudData.Level);
+                return;
+            }
+
+            collectableCloudData.Level = CollectablesManagementData.GetStartLevel(collectableCloudData.GetCollectable());
+            InventoryCloudData.Instance.SetCollectable(collectableCloudData);
+
+            UnlockCollectableEvent?.Invoke(collectableCloudData.GetCollectable());
+        }
+
+        public static void Upgrade(Enum collectable)
+        {
+            if (! CanUpgrade(collectable))
+            {
+                ErrorHandler.Error("Trying to upgrade " + collectable + " but this action is not authorized - this should never happen, fix");
+                return;
+            }
+
+            // get data of this character (current xp, level)
+            SCollectableCloudData data = InventoryCloudData.Instance.GetCollectable(collectable);
+            // get level data (required xp, golds, ...)
+            SLevelData levelData = CollectablesManagementData.GetLevelData(collectable, data.Level);
+
+            // UPGRADE : spend golds and cards to update the level
+            if (! Spend(levelData.RequiredGolds, ECurrency.Golds))
+                return;
+
+            data.Qty -= levelData.RequiredQty;
+            data.Level++;
+
+            // SAVE : update cloud data
+            InventoryCloudData.Instance.SetCollectable(data);
+
+            // fire event of upgrade
+            CollectableUpgradedEvent?.Invoke(collectable, data.Level);
+        }
+
+        public static bool CanUpgrade(Enum collectable)
+        {
+            // get data of this character (current xp, level)
+            SCollectableCloudData data = InventoryCloudData.Instance.GetCollectable(collectable);
+            // get level data (required xp, golds, ...)
+            SLevelData levelData = CollectablesManagementData.GetLevelData(collectable, data.Level);
+
+            if (IsMaxLevel(collectable))
+                return false;
+
+            if (data.Qty < levelData.RequiredQty)
+                return false;
+
+            if (!CanBuy(levelData.RequiredGolds, ECurrency.Golds))
+                return false;
+
+            return true;
+        }
+
+        public static bool IsMaxLevel(Enum collectable)
+        {
+            SCollectableCloudData data = InventoryCloudData.Instance.GetCollectable(collectable);
+            return data.Level >= CollectablesManagementData.GetMaxLevel(collectable);
         }
 
         #endregion
@@ -124,68 +250,9 @@ namespace Inventory
         /// </summary>
         /// <param name="spell"></param>
         /// <returns></returns>
-        public static SSpellCloudData GetSpellData(ESpell spell)
+        public static SCollectableCloudData GetSpellData(ESpell spell)
         {
             return InventoryCloudData.Instance.GetSpell(spell);
-        }
-        
-        /// <summary>
-        /// Spend cards and golds to update a spell level
-        /// </summary>
-        /// <param name="spellCloudData"></param>
-        public static void Upgrade(SSpellCloudData spellCloudData)
-        {
-            SSpellLevelData spellLevelData = SpellLoader.GetSpellLevelData(spellCloudData.Spell);
-            int requestedQty    = spellLevelData.RequiredCards;
-            int requestedGolds  = spellLevelData.RequiredGolds;
-
-            // CHECK:  values before making upgrade
-            // -- check requested golds
-            if (! CanBuy(requestedGolds))
-            {
-                ErrorHandler.Error($"Not enought gold ({Golds}) to upgrade spell {spellCloudData.Spell} : requested amount = {spellCloudData.Spell}");
-                return;
-            }
-
-            // -- check requested quantity
-            if (spellCloudData.Qty < requestedQty)
-            {
-                ErrorHandler.Error($"Not enought cards ({spellCloudData.Qty}) to upgrade spell {spellCloudData.Spell} : requested amount = {requestedQty}");
-                return;
-            }
-
-            // -- check level
-            if (spellCloudData.Level > SpellLoader.SpellsManagementData.SpellLevelData.Count)
-            {
-                ErrorHandler.Error($"spell {spellCloudData.Spell} is already maxed");
-                return;
-            }
-
-            // UPGRADE : spend golds and cards to update the level
-            SpendGolds(requestedGolds);
-            spellCloudData.Qty -= requestedQty;
-            spellCloudData.Level++;
-
-            // SAVE : update cloud data
-            InventoryCloudData.Instance.SetSpell(spellCloudData);
-        }
-
-        /// <summary>
-        /// Unlock a spell
-        /// </summary>
-        /// <param name="spellCloudData"></param>
-        public static void Unlock(ref SSpellCloudData spellCloudData)
-        {
-            if (spellCloudData.Level > 0)
-            {
-                ErrorHandler.Error("Trying to unlock spell " + spellCloudData.Spell + " but already has level " + spellCloudData.Level);
-                return;
-            }
-
-            spellCloudData.Level = SpellLoader.GetRaretyData(spellCloudData.Spell).StartLevel;
-            InventoryCloudData.Instance.SetSpell(spellCloudData);
-
-            UnlockSpellEvent?.Invoke(spellCloudData.Spell);
         }
 
         #endregion
@@ -210,16 +277,16 @@ namespace Inventory
 
         public static ChestData CreateRandomChest()
         {
-            Array values = Enum.GetValues(typeof(EChestType));
+            Array values = Enum.GetValues(typeof(EChest));
             var random = new System.Random();
-            return new ChestData((EChestType)values.GetValue(random.Next(values.Length)));
+            return new ChestData((EChest)values.GetValue(random.Next(values.Length)));
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="chestType"></param>
-        public static void AddChest(EChestType chestType) 
+        public static void AddChest(EChest chestType) 
         {
             AddChest(new ChestData(chestType));
         }
@@ -282,80 +349,14 @@ namespace Inventory
         /// <param name="reward"></param>
         public static void CollectReward(SReward reward)
         {
-            if (CURRENCIES.Contains(reward.RewardType))
-            {
-                UpdateCurrency(reward.RewardType, reward.Qty);
-                return;
-            }
+            if (Enum.TryParse(reward.RewardName, out ECurrency currency))
+                UpdateCurrency(currency, reward.Qty);
 
-            if (reward.RewardType == ERewardType.Spell)
-            {
-                var spellCloudData = InventoryCloudData.Instance.GetSpell((ESpell)reward.Metadata[SReward.METADATA_KEY_SPELL_TYPE]);
-                if (spellCloudData.Level == 0)
-                    Unlock(ref spellCloudData);
-                spellCloudData.Qty += reward.Qty;
-                InventoryCloudData.Instance.SetSpell(spellCloudData);
-                return;
-            }
+            else if (Enum.TryParse(reward.RewardName, out EChest chestType))
+                CollectRewards(ItemLoader.GetChestRewardData(chestType).GenerateRewards());
 
-            ErrorHandler.Error("Unhandled case : " + reward.RewardType);
-        }
-
-
-        #endregion
-
-
-        #region Character Management
-
-        /// <summary>
-        /// Add xp to a character : check if raise a level up
-        /// </summary>
-        /// <param name="character"></param>
-        /// <param name="xp"></param>
-        public static void AddXp(ECharacter character, int xp)
-        {
-            if (xp < 0)
-            {
-                ErrorHandler.Error("Trying to provide negative xp ("+ xp + ") to character " + character);
-                return;
-            }
-
-            if (xp == 0)
-            {
-                ErrorHandler.Warning("Trying to provide 0 xp to character " + character);
-                return;
-            }
-
-            // fire event that character gained xp
-            CharacterGainedXpEvent?.Invoke(character, xp);
-
-            // get data of this character (current xp, level)
-            SCharacterCloudData charData = InventoryCloudData.Instance.GetCharacter(character);
-            
-            // get level data (required xp, ...)
-            SCharacterLevelData charLevelData = CharacterLoader.CharactersManagementData.GetCharacterLevelData(charData.Level);
-
-            // check that the xp added to the character is below required xp to level up
-            charData.Xp += xp;
-            if (charData.Xp < charLevelData.RequiredXp)
-            {
-                // save & return
-                InventoryCloudData.Instance.SetCharacter(charData);
-                return;
-            }
-
-            // retrieve required xp to current character xp
-            charData.Xp -= charLevelData.RequiredXp;
-            // level up character
-            charData.Level += 1;
-            // save
-            InventoryCloudData.Instance.SetCharacter(charData);
-
-            // raise level upevent
-            CharacterLeveledUpEvent?.Invoke(character);
-
-            // call level up popup
-            Main.SetPopUp(EPopUpState.LevelUpScreen, character);
+            else
+                AddCollectable(CollectablesManagementData.Cast(reward.RewardName, reward.RewardType), reward.Qty);
         }
 
         #endregion

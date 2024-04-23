@@ -1,50 +1,122 @@
 ﻿using Assets;
 using Enums;
+using MyBox;
 using System.Collections;
 using Tools;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Menu.PopUps
 {
-    public class OverlayScreen : OvMonoBehavior
+    public class OverlayScreen : MObject
     {
+        static int OrderInLayer = 0;
+
         protected bool m_Initialized = false;
+        protected Canvas m_Canvas;
+        protected float m_EndingTimer = 0f;
 
-        protected EPopUpState m_Ref;
-        protected virtual string PrefabPath { get; set; } = AssetLoader.c_OverlayPath;
 
+        #region Init & End
 
-        public OverlayScreen(EPopUpState reference)
+        public override void Initialize()
         {
-            m_Ref = reference;
-        }
+            OrderInLayer++;
 
-        public virtual void Initialize()
-        {
+            gameObject.SetActive(false);
+
             OnEnter();
-            CoroutineManager.DelayMethod(OnPrefabLoaded);
+            CoroutineManager.DelayMethod(LoadAndSetup);
 
             m_Initialized = true;
         }
 
-        protected virtual void OnEnter()
-        {
+        /// <summary>
+        /// Happens BEFORE loading and Setting of the GameObject
+        /// </summary>
+        protected virtual void OnEnter() { }
 
-        }
-
+        /// <summary>
+        /// Happens right before destroying the prefab
+        /// </summary>
         protected virtual void OnExit()
         {
+            OrderInLayer--;
             UnRegisterButtons();
-            Destroy(gameObject);
+            UnRegisterListeners();
         }
+
+        #endregion
+
+
 
         #region Loading
 
-        protected virtual void OnPrefabLoaded() 
+        protected virtual void LoadAndSetup()
         {
+            // find components of the GameObject
+            FindComponents();
+
+            // init & setup UI
+            OnPrefabLoaded();
+
+            // register buttons
             RegisterButtons();
+
+            // register listeners
+            RegisterListeners();
+           
+            // init completed - display game object and start autoscript if any
+            OnInitializationCompleted();
+        }
+
+        protected override void FindComponents() 
+        {
+            m_Canvas = Finder.FindComponent<Canvas>(gameObject);
+         
+            m_Canvas.worldCamera = Camera.main;
+            m_Canvas.sortingLayerName = "Overlay";
+            m_Canvas.sortingOrder = OrderInLayer;
+        }
+
+        protected virtual void OnPrefabLoaded() { }
+
+        protected virtual void OnInitializationCompleted()
+        {
+
+            // re-activate game object
+            gameObject.SetActive(true);
+
+            // call init done
+            m_Initialized = true;
+        }
+
+        #endregion
+
+
+        #region Ending
+
+        /// <summary>
+        /// Happens before destroying the game object
+        /// </summary>
+        protected virtual void Exit()
+        {
+            OnExit();
+
+            StartCoroutine(DestroyCoroutine());
+        }
+
+        protected virtual IEnumerator DestroyCoroutine()
+        {
+            while (m_EndingTimer > 0)
+            {
+                m_EndingTimer -= Time.deltaTime;
+                yield return null;
+            }
+
+            Destroy(gameObject);
         }
 
         #endregion
@@ -115,11 +187,20 @@ namespace Menu.PopUps
         {
             switch (bname)
             {
+                case "CancelButton":
+                    OnCancelButton();
+                    break;
+
                 default:
                     //ErrorHandler.Warning("Unregistered button : " + bname);
                     return;
             }
         }
+        protected virtual void OnCancelButton()
+        {
+            Exit();
+        }
+
 
         /// <summary>
         /// 

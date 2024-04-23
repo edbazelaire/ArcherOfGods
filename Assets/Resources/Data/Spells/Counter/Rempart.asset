@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0eac928962cb2b8498d5234d56207800, type: 3}
+  m_Name: Rempart
+  m_EditorClassIdentifier: 
+  Rarety: 2
+  Linked: 0
+  Graphics: {fileID: 1289543790355709915, guid: b24eacb1121c8634bbd0a0ca61272ea1, type: 3}
+  Preview: {fileID: 0}
+  OnAnimation: []
+  OnCastPrefabs: []
+  OnHit: []
+  SpellTarget: 4
+  MaxHit: 0
+  EnergyGain: 5
+  EnergyCost: 0
+  Damage: 0
+  Heal: 0
+  Distance: -1
+  Duration: 4
+  Delay: 0
+  m_Size: 6
+  TriggerPlayer: 0
+  EnemyStateEffects: []
+  AllyStateEffects: []
+  Animation: 4
+  IsCancellable: 0
+  AnimationTimer: 0
+  CastAt: 1
+  Cooldown: 30
+  CounterType: 3
+  CounterActivation: 1
+  IsBlockingMovement: 1
+  IsBlockingCast: 1
+  OnCounterProc: 0
+  ColorSwap: {r: 1, g: 1, b: 1, a: 1}

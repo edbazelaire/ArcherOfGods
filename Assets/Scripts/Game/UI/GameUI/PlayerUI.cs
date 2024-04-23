@@ -1,5 +1,5 @@
 ﻿using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System.Collections.Generic;
 using TMPro;
 using Tools;
@@ -15,9 +15,9 @@ namespace Game.UI
         const string        c_EnergyBar         = "EnergyBar";
         const string        c_StateDisplayer    = "StateDisplayer";
 
+        Controller          m_Controller = null;
         [SerializeField] GameObject   m_TemplateStateEffect;
 
-        SpellItemUI         m_UltimateButton;
         PlayerBarUI         m_HealthBar;
         PlayerBarUI         m_ShieldBar;
         PlayerBarUI         m_EnergyBar;
@@ -26,6 +26,8 @@ namespace Game.UI
 
         Dictionary<string, StateEffectUI> m_StateEffectsUI;
 
+        #region Init & End
+
         public void Initialize(ulong clientId)
         {
             Debug.Log("Initialize PlayerUI");
@@ -33,6 +35,7 @@ namespace Game.UI
             Debug.Log($"        + LocalId: {NetworkManager.Singleton.LocalClientId}");
 
             var controller = GameManager.Instance.GetPlayer(clientId);
+            m_Controller = controller;
 
             // Player Name
             m_PlayerName = Finder.FindComponent<TMP_Text>(gameObject, "PlayerName");
@@ -42,9 +45,13 @@ namespace Game.UI
                 m_PlayerName.color = Color.green;
 
             // Character Icon
-            var characterData = CharacterLoader.GetCharacterData(controller.Character);
-            m_UltimateButton = Finder.FindComponent<SpellItemUI>(gameObject, "UltimateButton");
-            m_UltimateButton.Initialize(characterData.Ultimate, controller.CharacterLevel);
+            GameObject playerIconSection = Finder.Find(gameObject, "PlayerIconSection");
+            Image playerIcon = Finder.FindComponent<Image>(playerIconSection, "PlayerIcon");
+            playerIcon.sprite = AssetLoader.LoadCharacterIcon(controller.Character);
+
+            // Player Level
+            TMP_Text playerLevelText = Finder.FindComponent<TMP_Text>(playerIconSection, "LevelValue");
+            playerLevelText.text = "Level " + controller.CharacterLevel.ToString();
 
             // HealthBar
             m_HealthBar = Finder.FindComponent<PlayerBarUI>(gameObject, c_HealthBar);
@@ -71,6 +78,23 @@ namespace Game.UI
             controller.StateHandler.OnStateEvent += OnStateEvent;
         }
 
+        private void OnDestroy()
+        {
+            if (m_Controller == null)
+                return;
+
+            m_Controller.Life.MaxHp.OnValueChanged                      -= m_HealthBar.OnMaxValueChanged;
+            m_Controller.Life.Hp.OnValueChanged                         -= m_HealthBar.OnValueChanged;
+            m_Controller.EnergyHandler.MaxEnergy.OnValueChanged         -= m_EnergyBar.OnMaxValueChanged;
+            m_Controller.EnergyHandler.Energy.OnValueChanged            -= m_EnergyBar.OnValueChanged;
+            m_Controller.Life.MaxHp.OnValueChanged                      -= m_ShieldBar.OnMaxValueChanged;
+            m_Controller.StateHandler.RemainingShield.OnValueChanged    -= m_ShieldBar.OnValueChanged;
+            m_Controller.StateHandler.OnStateEvent                      -= OnStateEvent;
+        }
+
+        #endregion
+
+
         #region State Displayer
 
         void OnStateEvent(EListEvent listEvent, string state, int stack, float duration)
@@ -95,13 +119,17 @@ namespace Game.UI
 
         void AddState(string state, int stack, float duration)
         {
-            // if not in existing state, create it and add it to the list
-            if (! m_StateEffectsUI.ContainsKey(state))
+            // if already in existing state, refresh it
+            if (m_StateEffectsUI.ContainsKey(state))
             {
-                GameObject stateEffectUI = Instantiate(m_TemplateStateEffect, m_StateDisplayer.transform);
-                m_StateEffectsUI.Add(state, stateEffectUI.GetComponent<StateEffectUI>());
+                // initialize the state (or refresh it)
+                m_StateEffectsUI[state].Refresh(duration, stack);
+                return;
             }
-          
+
+            GameObject stateEffectUI = Instantiate(m_TemplateStateEffect, m_StateDisplayer.transform);
+            m_StateEffectsUI.Add(state, stateEffectUI.GetComponent<StateEffectUI>());
+
             // initialize the state (or refresh it)
             m_StateEffectsUI[state].Initialize(state, stack, duration);
         }

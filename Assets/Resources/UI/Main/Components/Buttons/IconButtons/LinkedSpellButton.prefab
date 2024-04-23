@@ -114,7 +114,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 20.302979, y: 0}
-  m_SizeDelta: {x: 165.606, y: 200.73}
+  m_SizeDelta: {x: 165.606, y: 169.6827}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2407225886058708214
 CanvasRenderer:
@@ -298,7 +298,7 @@ GameObject:
   - component: {fileID: 5452660499840290279}
   - component: {fileID: 2779756315992280465}
   m_Layer: 5
-  m_Name: LevelValue
+  m_Name: BottomText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -691,7 +691,7 @@ GameObject:
   - component: {fileID: 2053081977011786073}
   - component: {fileID: 6702841336135926223}
   m_Layer: 5
-  m_Name: LevelBackground
+  m_Name: BottomOverlay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -712,10 +712,10 @@ RectTransform:
   - {fileID: 6848676819392207087}
   m_Father: {fileID: 1413729079764543782}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.30610168, y: 0}
-  m_AnchorMax: {x: 0.68585956, y: 0.29037112}
-  m_AnchoredPosition: {x: -1.3260612, y: -0.008972168}
-  m_SizeDelta: {x: 5.963284, y: 0.85842186}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 0.2904252}
+  m_AnchoredPosition: {x: -0.3235016, y: -0.008972168}
+  m_SizeDelta: {x: -0.2347002, y: 0.8584}
   m_Pivot: {x: 0.5, y: 0.000000014901161}
 --- !u!222 &2053081977011786073
 CanvasRenderer:

@@ -2,12 +2,13 @@
 using Game;
 using Game.Spells;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Tools;
-using UnityEditor;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
+using Assets;
+using Data.GameManagement;
 
 namespace Data
 {
@@ -20,20 +21,19 @@ namespace Data
         [Header("Movement Data")]
         [Description("Type of path that the spell is taking")]
         public ESpellTrajectory Trajectory;
-
         [Description("Speed of the spell")]
-        public float            Speed       = 0f;
+        [SerializeField] float            m_Speed       = 0f;
 
+        public float Speed => Settings.SpellSpeedFactor * m_Speed;
         #endregion
 
 
         #region Inherited Spawning Members
 
-        public override void Cast(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default)
+        public override void Cast(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default, bool recalculateTarget = true)
         {
             position += GetSpawnOffset(GameManager.Instance.GetPlayer(clientId));
-
-            base.Cast(clientId, target, position, rotation);
+            base.Cast(clientId, target, position, rotation, recalculateTarget);
         }
 
         public override void SpellPreview(Controller controller, Transform parent = default, Vector3 offset = default)
@@ -71,7 +71,7 @@ namespace Data
                 GameObject go = GameObject.Instantiate(prefab);
 
                 float delay = Delay;
-                if (Speed > 0)
+                if (m_Speed > 0)
                     delay += Math.Abs(target.x - ownerTransform.position.x) / Speed;
 
                 Finder.FindComponent<OnCastAoe>(go).Initialize(target, Size, delay);
@@ -121,8 +121,8 @@ namespace Data
         {
             var infoDict = base.GetInfos();
 
-            if (Speed > 0)
-                infoDict.Add("Speed", Speed);
+            if (m_Speed > 0)
+                infoDict.Add("Speed", m_Speed);
 
             return infoDict;
         }

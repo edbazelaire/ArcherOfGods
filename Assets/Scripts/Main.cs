@@ -1,6 +1,6 @@
 ﻿using Assets.Scripts.Network;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Managers;
 using Menu.PopUps;
 using Save;
@@ -12,7 +12,10 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using UnityEngine;
 using Data;
-
+using System.Linq;
+using Data.GameManagement;
+using System.Collections.Generic;
+using Menu.PopUps.PopUps;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -26,24 +29,36 @@ namespace Assets
 
         static Main s_Instance;
 
+        // ==========================================================================================================
+        // SERIALIZED MEMBERS
         [SerializeField] Canvas m_Canvas;
         [SerializeField] CloudSaveManager m_CloudSaveManager;
-        [SerializeField] float m_CharacterSizeFactor = 1.0f;
-        [SerializeField] float m_SpellSizeFactor = 0.3f;    
+        [SerializeField] float m_CharacterSizeFactor    = 1.0f;
+        [SerializeField] float m_SpellSizeFactor        = 0.3f;    
+        [SerializeField] List<ELogTag> m_LogTags;
 
+        // ==========================================================================================================
+        // EVENTS
         public static event Action<EAppState>   StateChangedEvent;
         public static event Action              InitializationCompletedEvent;
         public static event Action              ApplicationQuitEvent;
 
-        EAppState       m_State                 = EAppState.Release;
-        bool            m_SignedIn              = false;
-        
-        public static Main Instance                     => s_Instance;
-        public static CloudSaveManager CloudSaveManager => Instance.m_CloudSaveManager;
-        public static EAppState State                   => Instance.m_State;
-        public static Canvas Canvas                     => Instance.m_Canvas;
-        public static float CharacterSizeFactor         => Instance.m_CharacterSizeFactor;
-        public static float SpellSizeFactor             => Instance.m_SpellSizeFactor;
+        // ==========================================================================================================
+        // PRIVATE MEMBERS
+        EAppState                               m_State                 = EAppState.Release;
+        bool                                    m_SignedIn              = false;
+        /// <summary> Events to store until reaching a specific AppState </summary>
+        Dictionary<EAppState, List<Action>>     m_StoredEvents          = new();
+
+        // ==========================================================================================================
+        // PUBLIC DEPENDENT STATIC MEMBERS
+        public static Main Instance                             => s_Instance;
+        public static CloudSaveManager CloudSaveManager         => Instance.m_CloudSaveManager;
+        public static EAppState State                           => Instance.m_State;
+        public static Canvas Canvas                             => Instance.m_Canvas;
+        public static float CharacterSizeFactor                 => Instance.m_CharacterSizeFactor;
+        public static float SpellSizeFactor                     => Instance.m_SpellSizeFactor;
+        public static List<ELogTag> LogTags                     => Instance.m_LogTags;  
 
         #endregion
 
@@ -65,6 +80,8 @@ namespace Assets
         {
             try
             {
+                PlayerPrefsHandler.Initialize();
+
                 // register to state changes 
                 StateChangedEvent += OnStateChanged;
 
@@ -81,13 +98,14 @@ namespace Assets
                 AuthenticationService.Instance.SignedIn += m_CloudSaveManager.LoadSave;
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 ErrorHandler.Error(ex.Message);
             }
 
 #if UNITY_EDITOR
-                Debug.Log("UNITY EDITOR MODE");
+            ErrorHandler.Log("UNITY EDITOR MODE", ELogTag.System);
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
             ApplicationQuitEvent += m_CloudSaveManager.OnApplicationQuit;
@@ -123,7 +141,7 @@ namespace Assets
 
         #endregion
 
-        
+
         #region State Management
 
         public static void SetState(EAppState state)
@@ -132,8 +150,24 @@ namespace Assets
                 return;
 
             Instance.m_State = state;
-
             StateChangedEvent?.Invoke(state);
+        }
+
+        public static void AddStoredEvent(EAppState state, Action action)
+        {
+            // state is current state : fire event right away
+            if (Instance.m_State == state)
+            {
+                action?.Invoke();
+                return;
+            }
+
+            // init if doesnt exists
+            if (!Instance.m_StoredEvents.ContainsKey(state))
+                Instance.m_StoredEvents.Add(state, new List<Action>());
+
+            // store the event
+            Instance.m_StoredEvents[state].Add(action);
         }
 
         #endregion
@@ -144,21 +178,19 @@ namespace Assets
         public static void SetPopUp(EPopUpState popUpState, params object[] args)
         {
             var popUpPath = "";
-            Transform parent = Instance.m_Canvas.transform;
             if (popUpState.ToString().EndsWith("Screen"))
             {
                 popUpPath = AssetLoader.c_OverlayPath;
             } else if (popUpState.ToString().EndsWith("PopUp"))
             {
                 popUpPath = AssetLoader.c_PopUpsPath;
-                parent = null;
             } else
             {
                 ErrorHandler.Error("Unknown PopUp type " + popUpState.ToString() + " : unable to find adequate path");
             }
 
             // instantiate object in the canvas
-            var obj = Instantiate(AssetLoader.Load<GameObject>(popUpPath + popUpState.ToString()), parent);
+            var obj = Instantiate(AssetLoader.Load<GameObject>(popUpPath + popUpState.ToString()));
             if (obj == null)
             {
                 ErrorHandler.Error("Unable to find popup : " + popUpState.ToString());
@@ -167,21 +199,51 @@ namespace Assets
 
             // setup initalization depending on the popup state
             switch (popUpState) {
-                case EPopUpState.ChestOpeningScreen:
-                    EChestType chestType = (EChestType)args[0];
-                    int chestIndex = args.Length > 1 ? (int)args[1] : -1;
-                    obj.GetComponent<ChestOpeningScreen>().Initialize(chestType, chestIndex);
+
+                // MESSAGE POP UPS -------------------------------------------------------
+                case EPopUpState.MessagePopUp:
+                    obj.GetComponent<MessagePopUp>().Initialize((string)args[0], args.Count() > 1 ? (string)args[1] : "");
+                    break;
+
+                case EPopUpState.ConfirmBuyPopUp:
+                    obj.GetComponent<ConfirmBuyPopUp>().Initialize((SPriceData)args[0], (SRewardsData)args[1]);
+                    break;
+
+                case EPopUpState.ConfirmBuyItemPopUp:
+                    obj.GetComponent<ConfirmBuyItemPopUp>().Initialize((SPriceData)args[0], (Enum)args[1], (int)args[2]);
+                    break;
+
+                case EPopUpState.ConfirmBuyBundlePopUp:
+                    obj.GetComponent<ConfirmBuyBundlePopUp>().Initialize((SPriceData)args[0], (SRewardsData)args[1]);
+                    break;
+
+
+                // SCREENS -------------------------------------------------------
+                case EPopUpState.RewardsScreen:
+                    obj.GetComponent<RewardsScreen>().Initialize((SRewardsData)args[0]);
+                    break;
+
+                case EPopUpState.ArenaPathScreen:
+                    obj.GetComponent<ArenaPathScreen>().Initialize((EArenaType)args[0]);
                     break;
 
                 case EPopUpState.LevelUpScreen:
-                    ECharacter character = (ECharacter)args[0];
-                    obj.GetComponent<LevelUpScreen>().Initialize(character);
+                    obj.GetComponent<LevelUpScreen>().Initialize((ECharacter)args[0]);
                     break;
 
+                // OPTIONS POP UPS -------------------------------------------------------
+                case EPopUpState.ProfilePopUp:
+                    obj.GetComponent<ProfilePopUp>().Initialize();
+                    break;
+
+                // INFO POP UPS -------------------------------------------------------
                 case EPopUpState.SpellInfoPopUp:
-                    ESpell spell = (ESpell)args[0];
-                    int level = (int)args[1];
-                    obj.GetComponent<SpellInfoPopUp>().Initialize(spell, level);
+                    bool infoOnly = args.Length > 2 && (bool)args[2];
+                    obj.GetComponent<SpellInfoPopUp>().Initialize((ESpell)args[0], (int)args[1], infoOnly);
+                    break;
+
+                case EPopUpState.CharacterInfoPopUp:
+                    obj.GetComponent<CharacterInfoPopUp>().Initialize((ECharacter)args[0], (int)args[1]);
                     break;
 
                 case EPopUpState.StateEffectPopUp:
@@ -198,6 +260,35 @@ namespace Assets
             }
         }
 
+        public static void DisplayRewards(SRewardsData rewardsData)
+        {
+            Main.SetPopUp(EPopUpState.RewardsScreen, rewardsData);
+        }
+
+        public static void ConfirmBuyRewards(SPriceData priceData, SRewardsData rewardsData)
+        {
+            if (rewardsData.Rewards.Count == 0)
+            {
+                ErrorHandler.Error("Call reward popup with no rewards in list");
+                return;
+            }
+
+            if (rewardsData.Rewards.Count > 1)
+            {
+                Main.SetPopUp(EPopUpState.ConfirmBuyBundlePopUp, priceData, rewardsData);
+                return;
+            }
+
+            if (rewardsData.Rewards.Count == 1 && Enum.TryParse(rewardsData.Rewards[0].RewardType, rewardsData.Rewards[0].RewardName, out object item) )
+            {
+                Main.SetPopUp(EPopUpState.ConfirmBuyItemPopUp, priceData, item, rewardsData.Rewards[0].Qty);
+                return;
+            }
+
+            ErrorHandler.Warning("Unable to find any specific ConfirmBuyPopUp for provided RewardsData : using default");
+            Main.SetPopUp(EPopUpState.ConfirmBuyPopUp, priceData, rewardsData);
+        }
+
         public static void ErrorMessagePopUp(string message)
         {
             // TODO : error animation
@@ -212,6 +303,15 @@ namespace Assets
             SetPopUp(EPopUpState.StateEffectPopUp, stateEffectData, level);
         }
 
+        public static void ToggleProfileButton()
+        {
+            ProfilePopUp popUp = Finder.FindComponent<ProfilePopUp>("ProfilePopUp", throwError: false);
+            if (popUp == null)
+                Main.SetPopUp(EPopUpState.ProfilePopUp);
+            else
+                popUp.Close();
+        }
+
         #endregion
 
 
@@ -219,22 +319,32 @@ namespace Assets
 
         void OnSignedIn()
         {
+            ErrorHandler.Log("SIGNED ID", ELogTag.System);
             m_SignedIn = true;
-            StaticPlayerData.PlayerName = AuthenticationService.Instance.PlayerName ?? "SheepRapist";
         }
 
         private void OnInitializationCompleted()
         {
             if (SceneLoader.Instance == null)
-                Debug.Log("SceneLoader is null");
+                ErrorHandler.Log("SceneLoader is null", ELogTag.System);
 
-            Debug.Log("Initialization of the data completed : loading MainMenu");
+            ErrorHandler.Log("Initialization of the data completed : loading MainMenu", ELogTag.System);
             SceneLoader.Instance.LoadScene("MainMenu");
         }
 
         private void OnStateChanged(EAppState state)
         {
-            Debug.Log("New state : " + state.ToString());
+            ErrorHandler.Log("New state : " + state.ToString(), ELogTag.System);
+
+            if (!m_StoredEvents.ContainsKey(state))
+                return;
+            
+            foreach (Action action in m_StoredEvents[state])
+            {
+                action?.Invoke();
+            }
+
+            m_StoredEvents[state] = new List<Action>();
         }
 
 #if UNITY_EDITOR

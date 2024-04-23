@@ -36,6 +36,7 @@ MonoBehaviour:
     Duration: 0
     SpeedBonus: 0
   AllyStateEffects: []
+  PersistanceAfterEnd: 2
   Animation: 0
   IsCancellable: 1
   AnimationTimer: 0

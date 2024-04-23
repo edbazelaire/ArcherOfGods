@@ -1,0 +1,139 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df7d51f633e46b344920f012b0e1eca8, type: 3}
+  m_Name: FireArena
+  m_EditorClassIdentifier: 
+  m_ArenaLevelData:
+  - Spells: 1c00000004000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 1500
+      - Currency: 1
+        Qty: 15
+      Chests: 
+      Collectables:
+      - CollectableType: 2
+        CollectableName: FireBarrage
+        Qty: 15
+    StageData:
+    - Character: 1
+      CharacterLevel: 1
+    - Character: 4
+      CharacterLevel: 1
+    - Character: 0
+      CharacterLevel: 2
+  - Spells: 0300000004000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 3500
+      - Currency: 1
+        Qty: 15
+      Chests: 04000000
+      Collectables:
+      - CollectableType: 2
+        CollectableName: FireBomb
+        Qty: 15
+    StageData:
+    - Character: 1
+      CharacterLevel: 2
+    - Character: 4
+      CharacterLevel: 2
+    - Character: 0
+      CharacterLevel: 3
+  - Spells: 03000000110000001c000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 5000
+      - Currency: 1
+        Qty: 15
+      Chests: 0400000004000000
+      Collectables:
+      - CollectableType: 2
+        CollectableName: ScorchedEarth
+        Qty: 15
+    StageData:
+    - Character: 1
+      CharacterLevel: 3
+    - Character: 4
+      CharacterLevel: 3
+    - Character: 0
+      CharacterLevel: 4
+  - Spells: 03000000110000001c00000004000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 10000
+      - Currency: 1
+        Qty: 25
+      Chests: 05000000
+      Collectables: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 4
+    - Character: 2
+      CharacterLevel: 4
+    - Character: 0
+      CharacterLevel: 5
+    - Character: 3
+      CharacterLevel: 5
+    - Character: 0
+      CharacterLevel: 6
+  - Spells: 03000000110000001c0000001b000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 15000
+      - Currency: 1
+        Qty: 25
+      Chests: 0500000004000000
+      Collectables:
+      - CollectableType: 2
+        CollectableName: PyrotoxinMist
+        Qty: 1
+    StageData:
+    - Character: 1
+      CharacterLevel: 6
+    - Character: 2
+      CharacterLevel: 6
+    - Character: 0
+      CharacterLevel: 7
+    - Character: 3
+      CharacterLevel: 7
+    - Character: 0
+      CharacterLevel: 8
+  - Spells: 03000000110000001b00000001000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 25000
+      - Currency: 1
+        Qty: 25
+      Chests: 06000000
+      Collectables: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 8
+    - Character: 2
+      CharacterLevel: 8
+    - Character: 0
+      CharacterLevel: 9
+    - Character: 3
+      CharacterLevel: 9
+    - Character: 0
+      CharacterLevel: 10
+  CurrentLevel: 1
+  CurrentStage: 1
+  LastLevel: 0
+  LastStage: 0

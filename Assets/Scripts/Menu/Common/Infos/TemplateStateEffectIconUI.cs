@@ -1,11 +1,10 @@
 ﻿using Assets;
 using Data;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using TMPro;
 using Tools;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Menu.Common.Infos
@@ -13,8 +12,6 @@ namespace Menu.Common.Infos
     public class TemplateStateEffectIconUI : MonoBehaviour
     {
         #region Members
-
-        const string DURATION_FORMAT = "{0} sec";
 
         Image m_Icon;
         TMP_Text m_DurationValue;
@@ -28,7 +25,7 @@ namespace Menu.Common.Infos
 
         #region Init & End
 
-        private void Awake()
+        private void FindComponents()
         {
             m_Icon = Finder.FindComponent<Image>(gameObject, "StateEffectIcon");
             m_DurationValue = Finder.FindComponent<TMP_Text>(gameObject, "StateEffectDuration");
@@ -39,6 +36,8 @@ namespace Menu.Common.Infos
 
         public void Initialize(SStateEffectData stateEffectData, int level)
         {
+            FindComponents();
+
             m_StateEffectData = stateEffectData;
             m_Level = level;
 

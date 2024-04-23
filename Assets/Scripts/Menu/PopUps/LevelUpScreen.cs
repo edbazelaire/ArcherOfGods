@@ -2,12 +2,11 @@
 using Data;
 using Data.GameManagement;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Inventory;
-using Managers;
-using MyBox;
 using Save;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using Tools;
 using UnityEngine;
@@ -42,15 +41,11 @@ namespace Menu.PopUps
         // Data
         ECharacter              m_Character;
         CharacterData           m_CharacterData;
-        SCharacterCloudData     m_CharacterCloudData;
-        SCharacterLevelData     m_CharacterLevelData;
+        SCollectableCloudData   m_CharacterCloudData;
+        SLevelData              m_CharacterLevelData;
 
-        #endregion
-
-
-        #region Constructor
-
-        public LevelUpScreen() : base(EPopUpState.LevelUpScreen) { }
+        int                     m_BonusGolds = 0;
+        List<EChest>            m_BonusChests = new List<EChest>();
 
         #endregion
 
@@ -61,15 +56,16 @@ namespace Menu.PopUps
         {
             m_Character             = character;
             m_CharacterData         = CharacterLoader.GetCharacterData(character);
-            m_CharacterCloudData    = InventoryCloudData.Instance.GetCharacter(character);
-            m_CharacterLevelData    = CharacterLoader.CharactersManagementData.GetCharacterLevelData(m_CharacterCloudData.Level - 1);   // get rewards of the previous level, since levelup has already happenned
+            m_CharacterCloudData    = InventoryCloudData.Instance.GetCollectable(character);
+            m_CharacterLevelData    = CollectablesManagementData.GetCharacterLevelData(m_CharacterCloudData.Level - 1);   // get rewards of the previous level, since levelup has already happenned
 
             // reset 
             m_Coroutine             = null;
             m_RewardIndex           = 0;
 
             // add golds to inventory manager
-            InventoryManager.AddGolds(m_CharacterLevelData.BonusGolds);
+            int golds = 0;
+            InventoryManager.AddGolds(golds);
 
             base.Initialize();  
         }
@@ -137,13 +133,13 @@ namespace Menu.PopUps
         /// </summary>
         void DisplayLevelUpRewards()
         {
-            m_GoldsQty.text = string.Format(GOLDS_QTY_FORMAT, m_CharacterLevelData.BonusGolds);
+            m_GoldsQty.text = string.Format(GOLDS_QTY_FORMAT, m_BonusGolds);
 
             // clean the content of the chests reward display (if any)
             UIHelper.CleanContent(m_ChestsRewardDisplay);
 
             // for each chests, add new gameobject with image component
-            foreach (EChestType chestType in m_CharacterLevelData.BonusChests)
+            foreach (EChest chestType in m_BonusChests)
             {
                 var chest = Instantiate(AssetLoader.LoadTemplateItem("Icon"), m_ChestsRewardDisplay.transform);
                 chest.GetComponent<Image>().sprite = AssetLoader.LoadChestIcon(chestType);
@@ -157,29 +153,29 @@ namespace Menu.PopUps
 
         IEnumerator ChestsDisplayCoroutine()
         {
-            while (m_RewardIndex < m_CharacterLevelData.BonusChests.Count)
+            while (m_RewardIndex < m_BonusChests.Count)
             {
                 DisplayNextReward();
 
                 // wait for ChestOpeningScreen to be displayed
-                while (Finder.FindComponent<ChestOpeningScreen>(Main.Canvas.gameObject, throwError: false) == null)
+                while (Finder.FindComponent<RewardsScreen>(Main.Canvas.gameObject, throwError: false) == null)
                 {
                     yield return null;
                 }
 
                 // wait for ChestOpeningScreen to not be diplayed anymore
-                while (Finder.FindComponent<ChestOpeningScreen>(Main.Canvas.gameObject, throwError: false) != null)
+                while (Finder.FindComponent<RewardsScreen>(Main.Canvas.gameObject, throwError: false) != null)
                 {
                     yield return null;
                 }
             }
 
-            OnExit();
+            Exit();
         }
 
         void DisplayNextReward()
         {
-            Main.SetPopUp(EPopUpState.ChestOpeningScreen, m_CharacterLevelData.BonusChests[m_RewardIndex]);
+            Main.SetPopUp(EPopUpState.RewardsScreen, m_BonusChests);
 
             m_RewardIndex++;
         }

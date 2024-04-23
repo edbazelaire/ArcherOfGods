@@ -1,8 +1,13 @@
-﻿using System;
+﻿using Enums;
+using MyBox;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
+using static UnityEngine.Rendering.VolumeComponent;
 
 namespace Tools
 {
@@ -14,6 +19,9 @@ namespace Tools
         /// <summary> when put in a text, all lignes will with this tag will have enought spaces to match alignement </summary>
         public const string TAG_ALIGNMENT = "%%ALIGNMENT%%";
 
+
+        #region Cleaning 
+
         public static string Clean(string text)
         {
             CleanAlignment(ref text);
@@ -24,7 +32,7 @@ namespace Tools
         static void CleanAlignment(ref string text)
         {
             // check if has tag
-            if (! HasTag(text, TAG_ALIGNMENT))
+            if (!HasTag(text, TAG_ALIGNMENT))
                 return;
 
             // =================================================================================================
@@ -35,14 +43,14 @@ namespace Tools
 
             // get max alignement pos of each ALIGNMENT sections (can be multiples in one line)
             List<int> alignementPos = new(0);
-            foreach(string line in lignes)
+            foreach (string line in lignes)
             {
                 // skip line if has no TAG
                 if (!HasTag(line, TAG_ALIGNMENT))
                     continue;
 
                 string[] lineSplits = line.Split(TAG_ALIGNMENT);
-                for (int i=0; i < lineSplits.Length - 1; i++) 
+                for (int i = 0; i < lineSplits.Length - 1; i++)
                 {
                     // save provided position of the alignement if is sup to last one (or if does not exists)
                     if (i < alignementPos.Count)
@@ -54,7 +62,7 @@ namespace Tools
 
             // =================================================================================================
             // APPLY ALIGNEMENT
-            
+
             // reset text
             text = "";
             foreach (string line in lignes)
@@ -64,7 +72,7 @@ namespace Tools
                 for (int i = 0; i < lineSplits.Length; i++)
                 {
                     // check if must add spaces (for the alignement) before adding the next line
-                    string spaces = i > 0 ? string.Concat(Enumerable.Repeat(" ", 2 * (alignementPos[i-1] - lineSplits[i-1].Length))) : "";
+                    string spaces = i > 0 ? string.Concat(Enumerable.Repeat(" ", 2 * (alignementPos[i - 1] - lineSplits[i - 1].Length))) : "";
                     lineCleaned += spaces + lineSplits[i];
                 }
 
@@ -72,9 +80,102 @@ namespace Tools
             }
         }
 
-        static bool HasTag(string text, string tag) 
-        { 
+        static bool HasTag(string text, string tag)
+        {
             return text.Contains(tag);
         }
+
+
+        #endregion
+
+
+        #region Format
+
+        public static string FormatNumericalString(int number, string separator = " ")
+        {
+            string MyString = number.ToString();
+            StringBuilder formattedNumber = new StringBuilder();
+
+            // Iterate over the characters of the input number from right to left
+            for (int i = MyString.Length - 1, count = 0; i >= 0; i--)
+            {
+                // Add the current character to the formatted string
+                formattedNumber.Insert(0, MyString[i]);
+
+                // Insert a space after every third character, except for the last character
+                if (++count % 3 == 0 && i != 0)
+                {
+                    formattedNumber.Insert(0, separator); // Insert a space
+                }
+            }
+
+            return formattedNumber.ToString();
+        }
+
+        #endregion
+
+
+        #region ToString()
+
+        public static string ToString(object obj, int indent = 1)
+        {
+            StringBuilder sb = new StringBuilder();
+            switch (obj)
+            {
+                case double d:
+                    sb.Append(d.ToString("G17"));
+                    break;
+
+                case Enum em:
+                    sb.Append(em.ToString());
+                    break;
+
+                case IDictionary dict:
+                    {
+                        sb.Append("[\n");
+                        var i = 0;
+                        foreach (var key in dict.Keys)
+                        {
+                            sb.Append(new string(Enumerable.Repeat(' ', indent * 2).ToArray()));
+                            sb.Append('"');
+                            sb.Append(key);
+                            sb.Append("\": ");
+                            sb.Append(ToString(dict[key], indent + 1));
+
+                            if (i < dict.Count - 1) sb.Append(",\n");
+                            i++;
+                        }
+
+                        sb.Append('\n');
+                        sb.Append(new string(Enumerable.Repeat(' ', indent * 2).ToArray()));
+                        sb.Append(']');
+                        break;
+                    }
+
+                case IList iList:
+                    var list = iList.Cast<object>().ToList();
+
+                    sb.Append("[\n");
+                    for (var i = 0; i < list.Count; i++)
+                    {
+                        sb.Append(new string(Enumerable.Repeat(' ', indent * 2).ToArray()));
+                        sb.Append(ToString(list[i],indent + 1));
+                        if (i < list.Count - 1) sb.Append(",\n");
+                    }
+
+                    sb.Append('\n');
+                    sb.Append(new string(Enumerable.Repeat(' ', indent * 2).ToArray()));
+                    sb.Append(']');
+                    break;
+
+                default:
+                    sb.Append(obj != null ? obj.ToString() : "null");
+                    break;
+            }
+
+            return sb.ToString();
+        }
+
+        #endregion
     }
 }

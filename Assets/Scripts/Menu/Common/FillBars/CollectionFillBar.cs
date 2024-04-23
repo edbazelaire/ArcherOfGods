@@ -1,14 +1,16 @@
-﻿using System;
+﻿using Data.GameManagement;
+using Inventory;
+using Save;
+using System;
 using System.Collections;
 using TMPro;
 using Tools;
-using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Menu.Common
 {
-    public class CollectionFillBar : MonoBehaviour
+    public class CollectionFillBar : MObject
     {
         #region Members
 
@@ -25,6 +27,7 @@ namespace Menu.Common
         Color                   m_BaseColor;
         GameObject              m_Glow;
 
+        SCollectableCloudData?  m_CollectableCloudData = null;
         int                     m_CurrentCollection;
         int                     m_MaxCollection;
         float                   m_GlowPauseTimer;
@@ -38,23 +41,33 @@ namespace Menu.Common
 
         #region Init & End
 
-        private void Awake()
+        public void Initialize(SCollectableCloudData collectableCloudData)
         {
-            m_CollectionFill            = Finder.FindComponent<Image>(gameObject, "Fill");
-            m_CollectionFillRectT       = Finder.FindComponent<RectTransform>(m_CollectionFill.gameObject);
-            m_CollectionValue           = Finder.FindComponent<TMP_Text>(gameObject, "Value");
-            m_BaseColor                 = m_CollectionFill.color;
-            m_Glow                      = Finder.Find(gameObject, "Glow");
+            base.Initialize();
 
-            m_Glow.SetActive(false);
-        }
+            RefreshCloudData(collectableCloudData);
+            RegisterListeners();
+        } 
 
         public void Initialize(int currentValue, int maxCollection)
         {
+            base.Initialize();
+
             m_CurrentCollection = currentValue;
             m_MaxCollection = maxCollection;
 
             RefreshUI();
+        }
+
+        protected override void FindComponents()
+        {
+            m_CollectionFill = Finder.FindComponent<Image>(gameObject, "Fill");
+            m_CollectionFillRectT = Finder.FindComponent<RectTransform>(m_CollectionFill.gameObject);
+            m_CollectionValue = Finder.FindComponent<TMP_Text>(gameObject, "Value");
+            m_BaseColor = m_CollectionFill.color;
+            m_Glow = Finder.Find(gameObject, "Glow");
+
+            m_Glow.SetActive(false);
         }
 
         #endregion  
@@ -98,8 +111,15 @@ namespace Menu.Common
         #region GUI Manipulators
         void RefreshUI()
         {
+            if (m_MaxCollection == 0)
+            {
+                m_CollectionFill.fillAmount = 0;
+                m_CollectionValue.text = "Maxed";
+                return;
+            }
+
             m_CollectionFill.fillAmount = Mathf.Clamp((float)m_CurrentCollection / (float)m_MaxCollection, 0, 1);
-            if (m_CurrentCollection > m_MaxCollection)
+            if (m_CurrentCollection >= m_MaxCollection)
             {
                 m_CollectionFill.color = m_FullColor;
                 m_Glow.SetActive(true);
@@ -117,6 +137,17 @@ namespace Menu.Common
 
 
         #region Collection Manipulators
+
+        public void RefreshCloudData(SCollectableCloudData? cloudData = null)
+        {
+            if (cloudData.HasValue) 
+                m_CollectableCloudData = cloudData.Value;
+
+            if (!m_CollectableCloudData.HasValue)
+                return;
+
+            UpdateCollection(m_CollectableCloudData.Value.Qty, CollectablesManagementData.GetLevelData(m_CollectableCloudData.Value.GetCollectable(), m_CollectableCloudData.Value.Level).RequiredQty);
+        }
 
         public void UpdateCollection(int newValue, int? maxCollection = null)
         {
@@ -149,6 +180,34 @@ namespace Menu.Common
             }
 
             m_Animation = null;
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        protected override void RegisterListeners()
+        {
+            base.RegisterListeners();
+
+            InventoryCloudData.CollectableDataChangedEvent += OnCollectableCloudDataChanged;
+        }
+
+        protected override void UnRegisterListeners()
+        {
+            InventoryCloudData.CollectableDataChangedEvent -= OnCollectableCloudDataChanged;
+        }
+
+        void OnCollectableCloudDataChanged(SCollectableCloudData cloudData)
+        {
+            if (m_CollectableCloudData == null)
+                return;
+            
+            if (! m_CollectableCloudData.Value.GetCollectable().Equals(cloudData.GetCollectable()))
+                return;
+
+            RefreshCloudData(cloudData);
         }
 
         #endregion

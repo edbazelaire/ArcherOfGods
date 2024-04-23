@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a54727096f1b9a14e931ac401f233989, type: 3}
+  m_Name: PoisonFury
+  m_EditorClassIdentifier: 
+  Rarety: 0
+  Linked: 1
+  Graphics: {fileID: 0}
+  Preview: {fileID: 0}
+  OnAnimation: []
+  OnCastPrefabs: []
+  OnHit: []
+  SpellTarget: 6
+  MaxHit: 0
+  EnergyGain: 0
+  EnergyCost: 100
+  Damage: 0
+  Heal: 0
+  Distance: -1
+  Duration: 0
+  Delay: 0
+  m_Size: 1
+  TriggerPlayer: 1
+  EnemyStateEffects: []
+  AllyStateEffects: []
+  PersistanceAfterEnd: 0
+  Animation: 2
+  IsCancellable: 0
+  AnimationTimer: 0.2
+  CastAt: 1
+  Cooldown: 0.1
+  Trajectory: 1
+  m_Speed: 10
+  ProjectileData: {fileID: 11400000, guid: 93a080128b9d08b41be2771c8b8e659a, type: 2}
+  MultiProjectileType: 2
+  NProjectiles: 12
+  ProjectileZoneSize: 4
+  DelayBetweenLaunches: 0.08

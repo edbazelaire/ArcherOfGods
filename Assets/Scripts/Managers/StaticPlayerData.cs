@@ -1,6 +1,7 @@
 ﻿using Enums;
 using Game.Spells;
 using Save;
+using System;
 using System.Collections.Generic;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
@@ -11,6 +12,7 @@ namespace Managers
     /// <summary>
     /// Structural data that can be provided to create a new character 
     /// </summary>
+    [Serializable]
     public struct SPlayerData : INetworkSerializable
     {
         public string       PlayerName;
@@ -55,9 +57,8 @@ namespace Managers
         public const string KEY_SPELLS              = "Spells";
         public const string KEY_SPELL_LEVELS        = "SpellLevels";
 
-        public static string        PlayerName  = "";
-
-        public static int           CharacterLevel  => InventoryCloudData.Instance.GetCharacter(Character).Level;
+        public static string        PlayerName      => ProfileCloudData.GamerTag;
+        public static int           CharacterLevel  => InventoryCloudData.Instance.GetCollectable(Character).Level;
         public static ECharacter    Character       => CharacterBuildsCloudData.SelectedCharacter;
         public static ERune         Rune            => CharacterBuildsCloudData.CurrentRune;
         public static ESpell[]      Spells          => CharacterBuildsCloudData.CurrentBuild;

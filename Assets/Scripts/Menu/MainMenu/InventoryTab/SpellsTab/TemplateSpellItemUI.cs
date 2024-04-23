@@ -1,8 +1,7 @@
 ﻿using Assets;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Inventory;
-using Menu.Common;
 using Menu.Common.Buttons;
 using Save;
 using System;
@@ -14,13 +13,6 @@ using UnityEngine.UI;
 
 namespace Menu.MainMenu
 {
-    enum EButtonState
-    {
-        Locked,
-        Normal,
-        Updatable
-    }
-
     public class TemplateSpellItemUI : TemplateSpellButton
 
     {
@@ -28,6 +20,7 @@ namespace Menu.MainMenu
 
         // ========================================================================================
         // GameObjects & Components
+        GameObject          m_AutoTargettIconContainer;
         GameObject          m_SubButtons;
         Button              m_UseButton;
         Button              m_RemoveButton;
@@ -35,13 +28,6 @@ namespace Menu.MainMenu
         Button              m_UpgradeButton;
         Image               m_UpgradeButtonImage;
         TMP_Text            m_UpgradeButtonCostText;
-
-        // -- collection bar
-        CollectionFillBar   m_CollectionFillBar;
-
-        // ========================================================================================
-        // SpellData
-        bool m_IsLinked;
 
         #endregion
 
@@ -52,7 +38,8 @@ namespace Menu.MainMenu
         {
             base.FindComponents();
 
-            m_Border                = Finder.FindComponent<Image>(gameObject, "IconContainer");
+            m_AutoTargettIconContainer = Finder.Find(gameObject, "AutoTargetIconContainer", false);
+
             m_SubButtons            = Finder.Find(gameObject, "SubButtons");
             m_UseButton             = Finder.FindComponent<Button>(m_SubButtons, "UseSubButton");
             m_RemoveButton          = Finder.FindComponent<Button>(m_SubButtons, "RemoveSubButton");
@@ -61,56 +48,47 @@ namespace Menu.MainMenu
             m_UpgradeButtonImage    = Finder.FindComponent<Image>(m_UpgradeButton.gameObject);
             m_UpgradeButtonCostText = Finder.FindComponent<TMP_Text>(m_UpgradeButton.gameObject, "CostText");
 
+            // -- hide sub buttons by default
+            m_SubButtons.SetActive(false);
         }
 
-        public void Initialize(ESpell spell, bool asIconOnly = false)
+        protected override void SetUpUI()
         {
-            base.Initialize(InventoryManager.GetSpellData(spell));
-            m_IsLinked = SpellLoader.GetSpellData(spell).Linked;
+            base.SetUpUI();
 
-            // Setup UI
-            // -- setup collection bar
-            SetUpCollectionFillBar(!asIconOnly);
+            m_AutoTargettIconContainer?.SetActive(m_IsAutoTarget);
+        }
 
-            // -- hide sub buttons
-            m_SubButtons.SetActive(false);
+        protected override void RegisterListeners()
+        {
+            base.RegisterListeners();
 
-            // check context of state and apply it
-            UpdateState();
-
-            // Listeners
             m_UseButton.onClick.AddListener(OnUseButtonClicked);
             m_RemoveButton.onClick.AddListener(OnRemoveButtonClicked);
-            m_InfosButton.onClick.AddListener(OnInfosButtonClicked);   
-            m_UpgradeButton.onClick.AddListener(OnUpgradeButtonClicked);   
-            InventoryCloudData.SpellDataChangedEvent += OnSpellDataChanged;
-            InventoryManager.CharacterLeveledUpEvent += OnCharacterLeveledUp;
-            TemplateSpellItemUI.ButtonClickedEvent += OnAnySpellItemButtonClicked;
+            m_InfosButton.onClick.AddListener(OnInfosButtonClicked);
+            m_UpgradeButton.onClick.AddListener(OnUpgradeButtonClicked);
 
-            // remove extra features if this is only requested as icon
-            AsIconOnly(asIconOnly);
+            InventoryCloudData.SpellDataChangedEvent    += OnCollectableDataChanged;
+            TemplateSpellItemUI.ButtonClickedEvent      += OnAnyItemButtonClicked;
         }
 
-        /// <summary>
-        /// On destroy : remove all listeners
-        /// </summary>
-        protected override void OnDestroy()
+        protected override void UnregisterLiteners()
         {
-            if (m_Button == null)
+           if (! m_IsInitialized)
                 return;
+
+            base.UnregisterLiteners();
 
             m_UseButton.onClick.RemoveAllListeners();
             m_RemoveButton.onClick.RemoveAllListeners();
             m_InfosButton.onClick.RemoveAllListeners();
             m_UpgradeButton.onClick.RemoveAllListeners();
 
-            InventoryCloudData.SpellDataChangedEvent -= OnSpellDataChanged;
-            InventoryManager.CharacterLeveledUpEvent -= OnCharacterLeveledUp;
-            TemplateSpellItemUI.ButtonClickedEvent -= OnAnySpellItemButtonClicked;
+            InventoryCloudData.SpellDataChangedEvent    -= OnCollectableDataChanged;
+            TemplateSpellItemUI.ButtonClickedEvent      -= OnAnyItemButtonClicked;
         }
 
         #endregion
-
 
 
         #region GUI Manipulators
@@ -119,35 +97,12 @@ namespace Menu.MainMenu
         {
             base.AsIconOnly(activate);
 
-            m_CollectionFillBar?.gameObject.SetActive(! activate);
+            m_AutoTargettIconContainer?.SetActive(! activate && m_IsAutoTarget);
         }
 
-        void SetUpCollectionFillBar(bool activate = true)
+        public override void SetUpCollectionFillBar(bool activate = true)
         {
-            // find collection fill bar
-            m_CollectionFillBar = Finder.FindComponent<CollectionFillBar>(gameObject, "CollectionFillBar", false);
-
-            // there is no collection of linked spell
-            if (SpellLoader.GetSpellData(m_SpellCloudData.Spell).Linked)
-            {
-                if (m_CollectionFillBar != null)
-                    m_CollectionFillBar.gameObject.SetActive(false);
-                return;
-            } 
-
-            // if not linked : check existence
-            if (m_CollectionFillBar == null) 
-            {
-                ErrorHandler.Error("Unable to find CollectionFillBar for template spell item of " + m_SpellCloudData.Spell);
-                return;
-            }
-
-            if (m_SpellCloudData.Level > 0)
-                m_CollectionFillBar.Initialize(m_SpellCloudData.Qty, SpellLoader.GetSpellLevelData(m_SpellCloudData.Spell).RequiredCards);
-            else
-                m_CollectionFillBar.Initialize(0, 1);
-
-            m_CollectionFillBar.gameObject.SetActive(activate);
+            base.SetUpCollectionFillBar(activate && ! SpellLoader.GetSpellData(Spell).Linked);    
         }
 
         /// <summary>
@@ -157,6 +112,7 @@ namespace Menu.MainMenu
         {
             bool alreadyActivated = m_SubButtons.activeInHierarchy;
             m_SubButtons.SetActive(! alreadyActivated);
+            m_AutoTargettIconContainer?.SetActive(alreadyActivated && m_IsAutoTarget);
 
             RefreshSubButtonUI();
         }
@@ -167,6 +123,7 @@ namespace Menu.MainMenu
         void CloseSubButtons()
         {
             m_SubButtons.SetActive(false);
+            m_AutoTargettIconContainer?.SetActive(m_IsAutoTarget);
         }
 
         /// <summary>
@@ -202,7 +159,7 @@ namespace Menu.MainMenu
 
                 // activate UpgradeButton
                 m_UpgradeButton.gameObject.SetActive(true);
-                int spellCost = SpellLoader.GetSpellLevelData(m_SpellCloudData.Spell).RequiredGolds;
+                int spellCost = SpellLoader.GetSpellLevelData(Spell).RequiredGolds;
                 m_UpgradeButtonImage.color = InventoryManager.CanBuy(spellCost) ? Color.white : new Color(0.7f, 0.7f, 0.7f);
                 m_UpgradeButtonCostText.text = spellCost.ToString();
             } 
@@ -223,28 +180,16 @@ namespace Menu.MainMenu
         /// <summary>
         /// Check context to define which state the button is in - set state accordingly
         /// </summary>
-        void UpdateState()
+        protected override void UpdateState()
         {
             // linked spell are always in "Normal" state
-            if (SpellLoader.GetSpellData(m_SpellCloudData.Spell).Linked)
+            if (SpellLoader.GetSpellData(Spell).Linked)
             {
                 SetState(EButtonState.Normal);
                 return;
             }
 
-            if (m_SpellCloudData.Level == 0)
-            {
-                SetState(EButtonState.Locked);
-                return;
-            }
-
-            if (m_SpellCloudData.Level <= SpellLoader.SpellsManagementData.SpellLevelData.Count && m_SpellCloudData.Qty >= SpellLoader.GetSpellLevelData(m_SpellCloudData.Spell).RequiredCards)
-            {
-                SetState(EButtonState.Updatable);
-                return;
-            }
-
-            SetState(EButtonState.Normal);
+            base.UpdateState();
         }
 
         /// <summary>
@@ -258,21 +203,18 @@ namespace Menu.MainMenu
             switch (state)
             {
                 case (EButtonState.Locked):
-                    m_LevelValue.text = "";
+                    SetBottomOverlay("");
                     break;
 
                 case (EButtonState.Updatable):
                 case (EButtonState.Normal):
-                    m_LevelValue.text = string.Format(LEVEL_FORMAT, m_SpellCloudData.Level);
+                    SetBottomOverlay(string.Format(LEVEL_FORMAT, m_CollectableCloudData.Level));
                     break;
 
                 default:
                     ErrorHandler.Error("UnHandled state " + state);
                     break;
             }
-
-            if (m_CollectionFillBar != null && m_CollectionFillBar.isActiveAndEnabled)
-                m_CollectionFillBar.UpdateCollection(m_SpellCloudData.Qty, m_SpellCloudData.Level > 0 ? SpellLoader.GetSpellLevelData(m_SpellCloudData.Spell).RequiredCards : 1);
         }
 
         #endregion
@@ -285,13 +227,12 @@ namespace Menu.MainMenu
         /// </summary>
         protected override void OnClick()
         {
-            // fire the event
-            ButtonClickedEvent?.Invoke(m_SpellCloudData.Spell);
-
+            base.OnClick();
+            
             // behavior when the USE button was clicked and this is one of the current build spells
-            if (CurrentBuildDisplayUI.CurrentSelectedCard != null && CharacterBuildsCloudData.CurrentBuild.Contains(m_SpellCloudData.Spell))
+            if (CurrentBuildDisplayUI.CurrentSelectedCard != null && CharacterBuildsCloudData.CurrentBuild.Contains(Spell))
             {
-                CurrentBuildDisplayUI.ReplaceSpell(m_SpellCloudData.Spell);
+                CurrentBuildDisplayUI.ReplaceSpell(Spell);
                 return;
             }
 
@@ -313,14 +254,14 @@ namespace Menu.MainMenu
         /// </summary>
         void OnUseButtonClicked()
         {
-            ToggleSubButtons();
+            CloseSubButtons();
 
             // try to find empty slot
-            if (CurrentBuildDisplayUI.UseFirstEmptySlot(m_SpellCloudData.Spell))
+            if (CurrentBuildDisplayUI.UseFirstEmptySlot(Spell))
                 return;
 
             // if no empty slot, set card as current selected
-            CurrentBuildDisplayUI.SetCurrentSelectedCard(m_SpellCloudData.Spell);
+            CurrentBuildDisplayUI.SetCurrentSelectedCard(Spell);
         }
 
         /// <summary>
@@ -328,12 +269,12 @@ namespace Menu.MainMenu
         /// </summary>
         void OnRemoveButtonClicked()
         {
-            ToggleSubButtons();
+            CloseSubButtons();
 
             // remove the spell from the current build display
-            CurrentBuildDisplayUI.RemoveSpell(m_SpellCloudData.Spell);
+            CurrentBuildDisplayUI.RemoveSpell(Spell);
             // display the spell item in the list of spell items
-            SpellsTabContent.ShowSpellItem(m_SpellCloudData.Spell, true);
+            SpellsTabContent.ShowSpellItem(Spell, true);
         }
 
         /// <summary>
@@ -341,8 +282,8 @@ namespace Menu.MainMenu
         /// </summary>
         void OnInfosButtonClicked()
         {
-            ToggleSubButtons();
-            Main.SetPopUp(EPopUpState.SpellInfoPopUp, m_SpellCloudData.Spell, m_SpellCloudData.Level);
+            CloseSubButtons();
+            Main.SetPopUp(EPopUpState.SpellInfoPopUp, Spell, m_CollectableCloudData.Level);
         }
 
         /// <summary>
@@ -350,36 +291,38 @@ namespace Menu.MainMenu
         /// </summary>
         void OnUpgradeButtonClicked()
         {
-            ToggleSubButtons();
-            Main.SetPopUp(EPopUpState.SpellInfoPopUp, m_SpellCloudData.Spell, m_SpellCloudData.Level);
+            CloseSubButtons();
+            Main.SetPopUp(EPopUpState.SpellInfoPopUp, Spell, m_CollectableCloudData.Level);
         }
 
         /// <summary>
-        /// When the value of this button's linked "SSpellCloudData" changes, reload it and apply changes to the UI
+        /// 
         /// </summary>
-        /// <param name="spellCloudData"></param>
-        void OnSpellDataChanged(SSpellCloudData spellCloudData)
+        /// <param name="character"></param>
+        protected override void OnCollectableUpgraded(Enum collectable, int level)
         {
-            if (spellCloudData.Spell != m_SpellCloudData.Spell)
-                return;
-            m_SpellCloudData = spellCloudData;
-            UpdateState();
-        }
+            base.OnCollectableUpgraded(collectable, level);
 
-        void OnCharacterLeveledUp(ECharacter character)
-        {
+            // for link spell, when a character is upgraded, the spell is too
+            if (!m_IsLinked || collectable.GetType() != typeof(ECharacter))
+                return;
+
             // this applies only for linked spell of the current selected character
-            if (! m_IsLinked || character != CharacterBuildsCloudData.SelectedCharacter)
+            if (! CharacterBuildsCloudData.SelectedCharacter.Equals((ECharacter)collectable))
                 return;
 
             // refresh spell cloud data
-            m_SpellCloudData = InventoryManager.GetSpellData(m_SpellCloudData.Spell);
-            UpdateState();
+            m_CollectableCloudData = InventoryManager.GetSpellData(Spell);
+            RefreshUI();
         }
 
-        void OnAnySpellItemButtonClicked(ESpell spell)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="spell"></param>
+        void OnAnyItemButtonClicked(Enum collectable)
         {
-            if (spell != m_SpellCloudData.Spell) 
+            if (! collectable.Equals(Spell)) 
                 CloseSubButtons();
         }
 
@@ -388,7 +331,7 @@ namespace Menu.MainMenu
 
         #region Dependent Members
 
-        bool IsInCurrentBuild => CharacterBuildsCloudData.CurrentBuild.Contains(m_SpellCloudData.Spell);
+        bool IsInCurrentBuild => CharacterBuildsCloudData.CurrentBuild.Contains((ESpell)m_CollectableCloudData.GetCollectable());
 
         #endregion
     }

@@ -1,10 +1,10 @@
-using Assets;
+using AI;
 using Data;
+using Data.GameManagement;
 using Enums;
 using Game;
 using Game.Character;
-using Game.Managers;
-using Game.Spells;
+using Game.Loaders;
 using Managers;
 using System.Linq;
 using Tools;
@@ -27,11 +27,12 @@ public class Controller : NetworkBehaviour
     NetworkVariable<bool>               m_IsInitialized     = new NetworkVariable<bool>(false);
 
     // -- Server Variable
-    ERune m_Rune;
+    RuneData m_RuneData;
 
     // -- Components & GameObjects
+    BehaviorTree            m_BehaviorTree;
     GameObject              m_CharacterPreview;
-    AnimationHandler        m_AnimationHandler;
+    Game.Character.AnimationHandler        m_AnimationHandler;
     Movement                m_Movement;
     Life                    m_Life;
     EnergyHandler           m_EnergyHandler;
@@ -47,15 +48,16 @@ public class Controller : NetworkBehaviour
     public string           PlayerName          => m_PlayerName.Value.ToString();
     public ECharacter       Character           => m_Character.Value;
     public int              CharacterLevel      => m_CharacterLevel.Value;
-    public ERune            Rune                => m_Rune;
+    public RuneData         RuneData            => m_RuneData;
     public int              Team                => m_Team.Value;
     public bool             IsPlayer            => m_IsPlayer.Value;
     public ulong            PlayerId            => IsPlayer ? OwnerClientId : GameManager.POUTCH_CLIENT_ID;
 
 
     // -- Components & GameObjects
+    public BehaviorTree     BehaviorTree    => m_BehaviorTree;
     public GameObject       CharacterPreview    => m_CharacterPreview;
-    public AnimationHandler AnimationHandler    => m_AnimationHandler;
+    public Game.Character.AnimationHandler AnimationHandler    => m_AnimationHandler;
     public Movement         Movement            => m_Movement;
     public Life             Life                => m_Life;
     public SpellHandler     SpellHandler        => m_SpellHandler;
@@ -84,12 +86,20 @@ public class Controller : NetworkBehaviour
         m_EnergyHandler     = Finder.FindComponent<EnergyHandler>(gameObject);
         m_Movement          = Finder.FindComponent<Movement>(gameObject);
         m_SpellHandler      = Finder.FindComponent<SpellHandler>(gameObject);
-        m_AnimationHandler  = Finder.FindComponent<AnimationHandler>(gameObject);
+        m_AnimationHandler  = Finder.FindComponent<Game.Character.AnimationHandler>(gameObject);
         m_StateHandler      = Finder.FindComponent<StateHandler>(gameObject);
         m_CounterHandler    = Finder.FindComponent<CounterHandler>(gameObject);
 
+        // check behavior tree
+        m_BehaviorTree = Finder.FindComponent<BehaviorTree>(gameObject, throwError: false);
+        
         // add event to call UI initialization after NetworkVariable update 
         m_IsInitialized.OnValueChanged += OnInitializedChanged;
+
+        if (IsServer)
+        {
+            GameManager.GameStartedEvent    += OnGameStarted;
+        }
     }
 
 
@@ -138,8 +148,8 @@ public class Controller : NetworkBehaviour
         CharacterData characterData = CharacterLoader.GetCharacterData(character);
         m_CharacterPreview = characterData.InstantiateCharacterPreview(gameObject);
 
-        // setup local client position
-        transform.localScale = characterData.Size * Main.CharacterSizeFactor * transform.localScale;
+        // setup local client size
+        SetSize();
 
         // get animator
         Animator animator       = Finder.FindComponent<Animator>(m_CharacterPreview);
@@ -164,8 +174,9 @@ public class Controller : NetworkBehaviour
         // setup the seplls icons buttons
         SetupSpellUI();
 
-        // TODO
-        m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.Spells[0]);
+        // select auto attack by default (if not IsAutoTarget)
+        if (! SpellLoader.GetSpellData(m_SpellHandler.AutoAttack).IsAutoTarget)
+            m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.AutoAttack);
     }
 
     /// <summary>
@@ -179,7 +190,7 @@ public class Controller : NetworkBehaviour
         m_PlayerName.Value      = playerData.PlayerName;
         m_Character.Value       = playerData.Character;
         m_CharacterLevel.Value  = playerData.CharacterLevel;
-        m_Rune                  = playerData.Rune;
+        m_RuneData              = SpellLoader.GetRuneData(playerData.Rune);
 
         CharacterData characterData = CharacterLoader.GetCharacterData(playerData.Character, playerData.CharacterLevel);
 
@@ -189,9 +200,16 @@ public class Controller : NetworkBehaviour
         // initialize MovementSpeed with character's speed
         m_Movement.Initialize(characterData.Speed);
 
+        // initialize StateHandler with character data
+        m_StateHandler.Initialize(characterData.Character, characterData.Level);
+
         // init health and energy
         m_Life.Initialize(characterData.MaxHealth);
         m_EnergyHandler.Initialize(10, characterData.MaxEnergy);
+
+        // init BehaviorTree
+        if (m_BehaviorTree != null)
+            m_BehaviorTree.Initialize();
     }
 
     /// <summary>
@@ -223,30 +241,43 @@ public class Controller : NetworkBehaviour
         }
     }
 
+    public override void OnDestroy()
+    {
+        base.OnDestroy();
+
+        GameManager.GameStartedEvent -= OnGameStarted;
+    }
+
+    #endregion
+
+
+    #region On Game Starts
+
+    /// <summary>
+    /// List of action enabled on game starting
+    ///     - enable AI Behavior tree
+    ///     
+    ///     TODO (?)
+    ///     - allow server to receive data
+    /// 
+    /// ONLY SERVER (?)
+    /// </summary>
+    void OnGameStarted()
+    {
+        if (!IsServer)
+            return;
+
+        // when game starts, activate behavior tree of the 
+        if (!IsPlayer)
+        {
+            m_BehaviorTree.Activate(true);
+        }
+    }
+
     #endregion
 
 
     #region Server RPC
-
-
-    #endregion
-
-
-    #region Inherited Manipulators
-
-    void Update()
-    {
-        if (!IsOwner)
-            return;
-
-        if (Input.GetKeyDown(KeyCode.C))
-        {
-            Debug.Log("Client : " + NetworkManager.Singleton.LocalClientId);
-            Debug.Log("     + Character " + m_Character.Value);
-            Debug.Log("     + Team " + m_Team.Value);
-            Debug.Log("     + Spells " + m_SpellHandler.Spells);
-        }
-    }
 
 
     #endregion
@@ -258,6 +289,14 @@ public class Controller : NetworkBehaviour
     public void ActivateColliderClientRPC(bool on)
     {
         m_Collider.enabled = on;
+    }
+
+    /// <summary>
+    /// Initialize size of the character
+    /// </summary>
+    public void SetSize()
+    {
+        transform.localScale = Settings.CharacterSizeFactor * CharacterLoader.GetCharacterData(m_Character.Value).Size * Vector3.one;
     }
 
     #endregion
@@ -303,6 +342,12 @@ public class Controller : NetworkBehaviour
         m_SpellHandler.enabled      = active;
         m_StateHandler.enabled      = active;
         m_CounterHandler.enabled    = active;
+
+        if (m_BehaviorTree != null)
+        {
+            m_BehaviorTree.Activate(active);
+            m_BehaviorTree.enabled = active;
+        }
     }
 
     #endregion

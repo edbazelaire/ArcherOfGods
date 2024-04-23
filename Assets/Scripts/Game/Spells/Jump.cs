@@ -1,6 +1,6 @@
 ﻿using Data;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System;
 using System.Collections;
 using Unity.VisualScripting;
@@ -14,25 +14,20 @@ namespace Game.Spells
         #region Members
 
         JumpData m_SpellData => m_BaseSpellData as JumpData;
-
-        bool    m_StartEnd              = false;
-        float   m_DurationTimer;
         float   m_OffsetY;
 
         #endregion
 
         // Use this for initialization
-        public override void Initialize(Vector3 target, string spellName, int level)
+        public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
-            base.Initialize(target, spellName, level);
+            base.Initialize(clientId, target, spellName, level);
 
             m_OffsetY = 0.1f + ((CapsuleCollider2D)m_Controller.Collider).size.y / 2;
 
-            transform.position = m_Controller.transform.position;
-            m_OriginalPosition = transform.position;
-            m_MaxDistance = Math.Abs(m_Target.x - m_OriginalPosition.x);
-
-            m_DurationTimer = m_SpellData.Duration;
+            transform.position  = m_Controller.transform.position;
+            m_OriginalPosition  = transform.position;
+            m_MaxDistance       = Math.Abs(m_Target.x - m_OriginalPosition.x);
 
             if (EJumpType.Teleport == m_SpellData.JumpType)
                 m_Controller.AnimationHandler.HideCharacter(true);
@@ -45,12 +40,6 @@ namespace Game.Spells
         // Update is called once per frame
         protected override void Update()
         {
-            if (m_StartEnd)
-            {
-                CheckEnd();
-                return;
-            }
-
             base.Update();
 
             // only server can check for distance and update the Controller position
@@ -62,25 +51,7 @@ namespace Game.Spells
 
             // check if the spell has reached its max distance
             if (Math.Abs(transform.position.x - m_OriginalPosition.x) >= m_MaxDistance)
-            {
-                // visual ending effect
-                SpawnOnHitPrefab();
-
-                // re activate collider
-                m_Controller.Collider.enabled = true;
-
-                if (m_SpellData.JumpType == EJumpType.Teleport)
-                {
-                    m_Controller.AnimationHandler.HideCharacterClientRPC(false);
-                    m_Controller.transform.position = transform.position;
-                }
-
-                // reset jump state
-                m_Controller.StateHandler.SetStateJump(false);
-
-                // start end counter
-                m_StartEnd = true;
-            }
+                End();
         }
 
         protected override void OnTriggerEnter2D(Collider2D collistion)
@@ -91,22 +62,35 @@ namespace Game.Spells
 
         #region Protected Members
 
+        protected override void End()
+        {
+            base.End();
+
+            // re activate collider
+            m_Controller.Collider.enabled = true;
+
+            if (m_SpellData.JumpType == EJumpType.Teleport)
+            {
+                m_Controller.AnimationHandler.HideCharacterClientRPC(false);
+                m_Controller.transform.position = transform.position;
+            }
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            // reset player position
+            m_Controller.transform.position = m_OriginalPosition;
+
+            // reset jump state
+            m_Controller.StateHandler.SetStateJump(false);
+        }
+
         #endregion
 
 
         #region Private Members
-
-        void CheckEnd()
-        {
-            if (m_DurationTimer <= 0)
-            {
-                // reset player position
-                m_Controller.transform.position = m_OriginalPosition;
-                DestroySpell();
-            }
-            
-            m_DurationTimer -= Time.deltaTime;
-        }
 
         /// <summary>
         /// Update the player position to the spell position

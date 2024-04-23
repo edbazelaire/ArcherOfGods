@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace Tools
 {
-    public class Debugger : OvMonoBehavior
+    public class Debugger : MObject
     {
         #region Members
 
@@ -113,11 +113,7 @@ namespace Tools
         public void UnregisterClass(object obj, List<string> skips = default)
         {
             if (! IsRegistered(obj))
-            {
-                ErrorHandler.Warning("Class " + obj.GetType().ToString() + " not registered");
                 return;
-
-            }
 
             // register class as alive
             m_ClassesAlive.Remove(obj);
@@ -413,14 +409,23 @@ namespace Tools
             ConsoleUI.Log(text);
         }
 
-        [Command(KeyCode.P)]
-        public void UnlockAllSpells()
+        [Command]
+        public void Babylon()
         {
+            InventoryManager.AddCollectable(ECurrency.Golds, 9999999);
+            InventoryManager.AddCollectable(ECurrency.Gems, 9999999);
+
             foreach (ESpell spell in Enum.GetValues(typeof(ESpell)))
             {
-                SSpellCloudData data = InventoryManager.GetSpellData(spell);
+                if (spell == ESpell.Count)
+                    continue;
+
+                SCollectableCloudData data = InventoryManager.GetSpellData(spell);
                 if (data.Level == 0)
                     InventoryManager.Unlock(ref data);
+
+                data.Qty = 1000000;
+                InventoryCloudData.Instance.SetCollectable(data);
             }
         }
 
@@ -449,6 +454,18 @@ namespace Tools
             }
 
             ConsoleUI.Log(ErrorHandler.Errors.Last().GetTraceString());
+        }
+
+        [Command]
+        public void PrintBuilds()
+        {
+            ConsoleUI.Log(CharacterBuildsCloudData.Instance.ToString());
+        }
+
+        [Command]
+        public void PrintInventory()
+        {
+            ConsoleUI.Log(InventoryCloudData.Instance.ToString());
         }
 
         #endregion

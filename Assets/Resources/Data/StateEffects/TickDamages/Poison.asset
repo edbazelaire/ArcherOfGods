@@ -16,7 +16,7 @@ MonoBehaviour:
     seconds
   m_DescriptionVariables: 0d0000000c00000001000000
   m_VisualEffect: {fileID: 0}
-  m_ColorSwitch: {r: 1, g: 1, b: 1, a: 1}
+  m_ColorSwitch: {r: 0.40980083, g: 0.5566038, b: 0, a: 1}
   m_Duration: 8
   m_MaxStacks: 5
   m_SpeedBonus: 0
@@ -26,11 +26,17 @@ MonoBehaviour:
   m_BonusDamages: 0
   m_BonusDamagesPerc: 0
   m_LifeSteal: 0
-  m_StateEffectScalingLevel: []
-  m_StateEffectScalingStacks: []
+  m_StateEffectScalingLevel:
+  - StateEffectProperty: 1
+    ScalingFactor: 0.1
+  - StateEffectProperty: 13
+    ScalingFactor: 0.1
+  m_StateEffectScalingStacks:
+  - StateEffectProperty: 13
+    ScalingFactor: 1
   m_Damages: 0
   m_Heal: 0
-  m_Tick: 2
-  m_TickDamages: 0
+  m_Tick: 1
+  m_TickDamages: 1
   m_TickHeal: 0
   m_TickShield: 0

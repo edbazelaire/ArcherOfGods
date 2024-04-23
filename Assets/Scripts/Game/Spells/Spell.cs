@@ -1,7 +1,8 @@
 ﻿using Data;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
@@ -16,7 +17,6 @@ namespace Game.Spells
         // ========================================================================================================
         // Constants
         const string c_GraphicsContainer = "GraphicsContainer";
-        
 
         // ========================================================================================================
         // Data
@@ -25,7 +25,11 @@ namespace Game.Spells
         protected Controller        m_Controller;
         protected Vector3           m_Target;
         protected GameObject        m_GraphicsContainer;
-                
+
+        /// <summary> in case of persistance of graphisme, allows to stop spell behavior </summary>
+        protected bool              m_IsOver = false;   
+        /// <summary> timer delaying the end of spell graphismes after end of spell </summary>
+        protected float             m_PersistanceTimer;
         /// <summary> counter of remaining number of target that this spell can hit </summary>
         protected List<ulong>       m_HittedPlayerId;
         /// <summary> on cast prefabs (spawn on cast) </summary>
@@ -35,7 +39,8 @@ namespace Game.Spells
         // Events
         public Action OnSpellEndedEvent;
 
-
+        // ========================================================================================================
+        // Public Accessors
         public SpellData SpellData => m_SpellData;
         public Controller Controller => m_Controller;
 
@@ -54,9 +59,9 @@ namespace Game.Spells
         /// </summary>
         /// <param name="target"></param>
         /// <param name="spellName"></param>
-        public virtual void Initialize(Vector3 target, string spellName, int level)
+        public virtual void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
-            m_Controller        = GameManager.Instance.GetPlayer(OwnerClientId);
+            m_Controller        = GameManager.Instance.GetPlayer(clientId);
             SetSpellData(spellName, level);
             m_HittedPlayerId    = new List<ulong>();
 
@@ -78,7 +83,7 @@ namespace Game.Spells
 
             if (m_SpellData.Graphics != null)
             {
-                Debug.Log("InitGraphics() : " + m_SpellData.Graphics + " with size " + m_SpellData.Size);
+                ErrorHandler.Log("InitGraphics() : " + m_SpellData.Graphics + " with size " + m_SpellData.Size, ELogTag.Spells);
                 Instantiate(m_SpellData.Graphics, m_GraphicsContainer.transform);
             }
 
@@ -90,15 +95,32 @@ namespace Game.Spells
         /// </summary>
         protected virtual void End()
         {
+            if (m_IsOver)
+                return;
+
+            // set is over to true (in case of persistance of graphisme, to stop spell behavior)
+            m_IsOver = true;
+
             // visual ending effect
             SpawnOnHitPrefab();
 
             // destroy the spell game object
-            DestroySpell();
+            StartCoroutine(DestroySpell());
+
+            ErrorHandler.Log("End of spell : " + m_SpellData, ELogTag.Spells);
         }
 
-        public virtual void DestroySpell()
+        public virtual IEnumerator DestroySpell()
         {
+            // delay destruction of spell graphismes for visual purpuses
+            m_PersistanceTimer = m_SpellData.PersistanceAfterEnd;
+
+            while (m_PersistanceTimer > 0) 
+            {
+                m_PersistanceTimer -= Time.deltaTime;
+                yield return null;
+            }
+
             // call an end on client side
             EndClientRpc();
 
@@ -117,11 +139,11 @@ namespace Game.Spells
         /// <param name="target"></param>
         /// <param name="spellType"></param>
         [ClientRpc]
-        public void InitializeClientRpc(Vector3 target, string spellName, int level)
+        public void InitializeClientRpc(ulong clientId, Vector3 target, string spellName, int level)
         {
             if (IsHost)
                 return;
-            Initialize(target, spellName, level);
+            Initialize(clientId, target, spellName, level);
         }
 
         [ClientRpc]
@@ -140,6 +162,9 @@ namespace Game.Spells
         /// </summary>
         protected virtual void Update()
         {
+            if (m_IsOver)
+                return;
+
             UpdateMovement();
         }
 
@@ -189,18 +214,20 @@ namespace Game.Spells
         /// <returns></returns>
         protected virtual bool CheckHitEnemy(Controller controller)
         {
+            // Target is Ally - return
             if (controller.Team == m_Controller.Team)
                 return false;
 
+            // no base Damages, StateEffects or OnHit effects - return
             if (m_SpellData.Damage <= 0 && m_SpellData.EnemyStateEffects.Count == 0 && m_SpellData.OnHit.Count == 0)
                 return false;
 
+            // add bonus damages from state bonus & boosts 
             int damages = m_Controller.StateHandler.ApplyBonusDamages(m_SpellData.Damage);
-            if (controller.CounterHandler.HasCounter)
-            {
-                controller.CounterHandler.ProcCounter(this);
+
+            // check if target has counter(s)
+            if (controller.CounterHandler.CheckCounters(this))
                 return false;
-            }
             
             // get final damages after shields and resistances
             int finalDamages = controller.Life.Hit(damages);
@@ -212,7 +239,14 @@ namespace Game.Spells
             {
                 m_Controller.Life.Heal((int)Mathf.Round(lifeSteal * finalDamages));
             }
-            
+
+            // if spell is AutoAttack & controller has a "AutoAttackRune" : add effects of the rune to the spell
+            if (m_Controller.RuneData.GetType() == typeof(AutoAttackRune) && m_SpellData.Name == CharacterLoader.GetCharacterData(m_Controller.Character).AutoAttack.ToString())
+            {
+                ((AutoAttackRune)m_Controller.RuneData).ApplyOnHit(ref controller);
+            }
+
+            // apply state effects specifics to enemies
             ApplyEnemyStateEffects(controller);
 
             return true;
@@ -314,13 +348,13 @@ namespace Game.Spells
             switch (SpellData.SpellTarget)
             {
                 case ESpellTarget.Self:
-                    return GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId);
+                    return m_Controller;
 
                 case ESpellTarget.FirstAlly:
-                    return GameManager.Instance.GetFirstAlly(GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team, NetworkManager.Singleton.LocalClientId);
+                    return GameManager.Instance.GetFirstAlly(m_Controller.Team, OwnerClientId);
 
                 case ESpellTarget.FirstEnemy:
-                    return GameManager.Instance.GetFirstEnemy(GameManager.Instance.GetPlayer(NetworkManager.Singleton.LocalClientId).Team);
+                    return GameManager.Instance.GetFirstEnemy(m_Controller.Team);
 
                 default:
                     ErrorHandler.Error("Unhandled case : " + SpellData.SpellTarget);

@@ -1,14 +1,15 @@
+using Data.GameManagement;
 using Enums;
 using Externals;
-using Game.Managers;
+using Game.Loaders;
+using Game.Spells;
 using Managers;
-using MyBox;
 using Network;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game
@@ -21,6 +22,11 @@ namespace Game
 
         public const int POUTCH_CLIENT_ID   = 999;
         public const int N_LOADING_STEPS    = 3;
+
+        // ===================================================================================
+        // ACTIONS
+        public static Action GameStartedEvent;
+        public static Action GameEndEvent;
 
         // ===================================================================================
         // PRIVATE VARIABLES 
@@ -51,7 +57,7 @@ namespace Game
         public Dictionary<ulong, Controller>    Controllers                 => m_Controllers;
         public NetworkVariable<float>           ProgressGameStart           => m_ProgressGameStart;
         public bool                             IsGameStarted               => m_State.Value >= EGameState.Intro;
-        public bool                             IsGameOver                  => m_State.Value >= EGameState.GameOver;
+        public static bool                      IsGameOver                  => ! GameManager.FindInstance() || Instance.m_State.Value >= EGameState.GameOver;
 
         #endregion
 
@@ -210,7 +216,7 @@ namespace Game
         void SpawnPoutch()
         {
             // create player prefab and spawn it
-            GameObject poutch = Instantiate(CharacterLoader.Instance.PlayerPrefab, ArenaManager.Instance.transform);
+            GameObject poutch = Instantiate(CharacterLoader.Instance.PlayerAIPrefab, ArenaManager.Instance.transform);
             poutch.GetComponent<NetworkObject>().Spawn();
 
             // add player to list of player controllers
@@ -218,7 +224,7 @@ namespace Game
 
             // initialize player data
             poutchController.Initialize(
-                playerData: new SPlayerData("Poutchy", 1, ECharacter.Alexander, ERune.None, new ESpell[] {}, new int[] {}),
+                playerData: GetAIPlayerData(),
                 team: 1,
                 false
             );
@@ -260,6 +266,9 @@ namespace Game
 
             // once every one is initialized, setup the UI 
             SetupUIClientRPC();
+
+            // do a little shake of player position to be sure that everything is synchronized
+            ShakePlayers();
 
             // goto intro
             SetState(EGameState.Intro);
@@ -310,6 +319,47 @@ namespace Game
             }
         }
 
+        /// <summary>
+        /// Do a little position shake to make sure everything is synchronized for clients
+        /// </summary>
+        void ShakePlayers()
+        {
+            if (!IsServer)
+                return;
+
+            foreach (Controller player in m_Controllers.Values) 
+            {
+                player.Movement.Shake();
+            }
+        }
+
+        SPlayerData GetAIPlayerData()
+        {
+            // AI SOLO MODE
+            if (LobbyHandler.Instance.GameMode == EGameMode.Solo)
+            {
+                if (!Enum.TryParse(PlayerPrefs.GetString("SoloArena"), out EArenaType arenaType))
+                {
+                    ErrorHandler.Error("Unable to parse arena " + PlayerPrefs.GetString("SoloArena"));
+                    arenaType = EArenaType.FireArena;
+                }
+
+                ArenaData arenaData = AssetLoader.LoadArenaData(arenaType);
+                return arenaData.CreatePlayerData();                
+            }
+
+            // AI MULTI PLAYER MODE
+            return new SPlayerData(
+                ECharacter.Alexander.ToString(),
+                1,
+                ECharacter.Alexander,
+                ERune.None,
+                new ESpell[] { ESpell.Heal, ESpell.RockShower},
+                new int[] { 1, 1 }
+            );
+
+        }
+
         #endregion
 
 
@@ -337,6 +387,8 @@ namespace Game
         [ClientRpc]
         void GameOverClientRPC(int team)
         {
+            Debug.LogWarning("GameOverClientRPC");
+
             // set "Game Ended" mode for each player
             foreach (Controller controller in m_Controllers.Values) 
             {
@@ -426,6 +478,10 @@ namespace Game
                 return;
             }
 
+            // fire event that game has started if state becomes GameRunning
+            if (state == EGameState.GameRunning && m_State.Value != EGameState.GameRunning)
+                GameStartedEvent?.Invoke();
+              
             m_State.Value = state;
         }
 
@@ -544,6 +600,17 @@ namespace Game
         public void RemoveLifeEnemy() 
         {
             GetFirstEnemy(Owner.Team).Life.Hit(50);
+        }
+
+        /// <summary>
+        /// Rescale all characters after changing size factor from the DebugSettings 
+        /// </summary>
+        public void RescaleCharacters()
+        {
+            foreach (Controller controller in m_Controllers.Values)
+            {
+                controller.SetSize();
+            }
         }
 
         #endregion

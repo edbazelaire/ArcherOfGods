@@ -1,13 +1,29 @@
 ﻿using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System;
+using System.Collections.Generic;
 using Tools;
 using UnityEngine;
 
 namespace Data
 {
+    [Serializable]
+    public struct SCharacterStatScaling
+    {
+        public EStateEffectProperty StateEffectProperty;
+        public float BaseValue;
+        public float ScalingFactor;
+
+        public SCharacterStatScaling(EStateEffectProperty stateEffectProperty, float baseValue, float scalingFactor = 1.1f)
+        {
+            StateEffectProperty = stateEffectProperty;
+            BaseValue           = baseValue;
+            ScalingFactor       = scalingFactor;
+        }
+    }
+
     [CreateAssetMenu(fileName = "Character", menuName = "Game/Character")]
-    public class CharacterData : ScriptableObject
+    public class CharacterData : CollectionData
     {
         [Header("Spells")]
         public ESpell           AutoAttack;
@@ -15,39 +31,15 @@ namespace Data
 
         [Header("Stats")]
         public float            Size        = 1f;
-        public float            Speed       = 1f;
-        public float            AttackSpeed = 1f;
+        public float            Speed       = 3f;
         public int              MaxHealth   = 100;
         public int              MaxEnergy   = 100;
 
-        // -- private data
-        private int m_Level = 1;
-        public int Level => m_Level;
+        [Header("Bonus Stats")]
+        public List<SCharacterStatScaling> CharacterStatScaling;
 
-        public string CharacterName
-        {
-            get
-            {
-                string myName = name;
-                if (myName.EndsWith("(Clone)"))
-                    myName = myName[..^"(Clone)".Length];
-
-                return myName;
-            }
-        }
-
-        public ECharacter Character { 
-            get 
-            { 
-                if (! Enum.TryParse(CharacterName, out ECharacter myCharacter))
-                {
-                    ErrorHandler.Error("Unable to parse character name : " + CharacterName);
-                    return ECharacter.Count;
-                }
-
-                return myCharacter;
-            } 
-        }
+        protected override Type m_EnumType => typeof(ECharacter);
+        public ECharacter Character => (ECharacter)Id;
 
         public GameObject InstantiateCharacterPreview(GameObject parent)
         {
@@ -55,24 +47,67 @@ namespace Data
             return go;
         }
 
-        public CharacterData Clone(int level = 0)
+        public new CharacterData Clone(int level = 0)
         {
-            CharacterData clone = Instantiate(this);
-            if (level == 0) 
-                return clone;
-
-            clone.SetLevel(level);
-            return clone;
+            return (CharacterData)base.Clone(level);
         }
 
-        private void SetLevel(int level)
+        protected override void SetLevel(int level)
         {
-            var currentFactor = Math.Pow(CharacterLoader.CharactersManagementData.ScaleFactor, m_Level - 1);
-            var scaleFactor = Math.Pow(CharacterLoader.CharactersManagementData.ScaleFactor, level - 1);
+            // TODO : personal factors
+            float scaleFactor = 1.1f;
 
-            MaxHealth = (int)Math.Round(MaxHealth * scaleFactor / currentFactor);
+            var currentFactor = Math.Pow(scaleFactor, m_Level - 1);
+            var newFactor = Math.Pow(scaleFactor, level - 1);
 
-            m_Level = level;
+            MaxHealth = (int)Math.Round(MaxHealth * newFactor / currentFactor);
+
+            base.SetLevel(level);
         }
+
+        public float GetValue(EStateEffectProperty property) 
+        {
+            var characterStatScalingData = GetCharacterScalingData(property);
+            if (! characterStatScalingData.HasValue)
+                return 0.0f;
+
+            return Mathf.Pow(1f + characterStatScalingData.Value.ScalingFactor, m_Level - 1) * characterStatScalingData.Value.BaseValue;
+        }
+
+        public int GetInt(EStateEffectProperty property) 
+        {
+            return (int)Math.Round(GetValue(property));
+        }
+
+        SCharacterStatScaling? GetCharacterScalingData(EStateEffectProperty property)
+        {
+            foreach(SCharacterStatScaling data in CharacterStatScaling)
+            {
+                if (data.StateEffectProperty == property)
+                    return data;
+            }
+
+            return null;
+        }
+
+
+        #region Infos
+
+        public override Dictionary<string, object> GetInfos()
+        {
+            var infosDict = base.GetInfos();
+
+            infosDict.Add("Health", MaxHealth);
+            infosDict.Add("MovementSpeed", Speed);
+
+            foreach (SCharacterStatScaling data in CharacterStatScaling)
+            {
+                infosDict.Add(data.StateEffectProperty.ToString(), GetValue(data.StateEffectProperty));
+            }
+
+            return infosDict;
+        }
+
+        #endregion
     }
 }

@@ -1,15 +1,8 @@
-﻿using Data;
-using Enums;
-using Game.Managers;
-using Game.Spells;
-using Inventory;
+﻿using Enums;
+using Game.Loaders;
 using Menu.Common.Buttons;
-using Menu.Common.Infos;
-using Menu.MainMenu;
 using Save;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using TMPro;
 using Tools;
 using UnityEngine;
@@ -29,11 +22,10 @@ namespace Menu.PopUps
         // =========================================================================================
         // GameObjects & Components
         GameObject                          m_RunesContent;
-        TemplateRuneButton                  m_CurrentRuneItem;
+        TemplateRuneItemUI                  m_CurrentRuneItem;
         TMP_Text                            m_CurrentRuneTitle;
         TMP_Text                            m_CurrentRuneDescription;
         Button                              m_UpgradeButton;
-        Button                              m_UseButton;
         TMP_Text                            m_CostText;
 
         // =========================================================================================
@@ -45,15 +37,11 @@ namespace Menu.PopUps
         #endregion
 
 
-        #region Constructor
-
-        public RuneSelectionPopUp() : base(EPopUpState.RuneSelectionPopUp) { }
-
-        #endregion
-
-
         #region Init & End
 
+        /// <summary>
+        /// Called when the prefab is loaded : register all components & game objects, then initilaize UI
+        /// </summary>
         protected override void OnPrefabLoaded()
         {
             base.OnPrefabLoaded();
@@ -61,36 +49,40 @@ namespace Menu.PopUps
             // -- scroller
             var rightSection            = Finder.Find(m_WindowContent, "RightSection");
             m_RunesContent              = Finder.Find(rightSection, "Content");
-            m_TemplateRuneButton        = AssetLoader.LoadTemplateItem("RuneButton");
+            m_TemplateRuneButton        = AssetLoader.LoadTemplateItem(CharacterBuildsCloudData.CurrentRune);
 
             // -- left section
             var leftSection             = Finder.Find(m_WindowContent, "LeftSection");
-            m_CurrentRuneItem           = Finder.FindComponent<TemplateRuneButton>(leftSection, "CurrentRune");
+            m_CurrentRuneItem           = Finder.FindComponent<TemplateRuneItemUI>(leftSection, "CurrentRune");
             m_CurrentRuneTitle          = Finder.FindComponent<TMP_Text>(leftSection, "RuneTitle");
             m_CurrentRuneDescription    = Finder.FindComponent<TMP_Text>(leftSection, "Description");
-            m_CurrentRuneItem.GetComponent<Button>().interactable = false;      // deactivate button of "current rune"
             m_CurrentRuneItem.Initialize(CharacterBuildsCloudData.CurrentRune);
 
             // -- buttons
-            m_UseButton = Finder.FindComponent<Button>(m_Buttons, "UseSubButton");
             m_UpgradeButton = Finder.FindComponent<Button>(m_Buttons, "UpgradeSubButton");
             m_CostText = Finder.FindComponent<TMP_Text>(m_UpgradeButton.gameObject, "CostText");
 
             // set ui of current rune
+            m_CurrentRuneItem.Initialize(CharacterBuildsCloudData.CurrentRune, asIconOnly: true);
             RefreshCurrentRuneSelection(CharacterBuildsCloudData.CurrentRune);
 
             // initialize scroller of Runes
             SetUpRuneScroller();
 
             // setup listeners
-            TemplateRuneButton.ButtonClickedEvent += RefreshCurrentRuneSelection;
+            TemplateRuneItemUI.ButtonClickedEvent += RefreshCurrentRuneSelection;
         }
 
-        protected override void OnExit()
+        /// <summary>
+        /// Exiting the PopUp
+        /// </summary>
+        protected override void Exit()
         {
-            base.OnExit();
+            CharacterBuildsCloudData.SetCurrentRune(m_CurrentRune);
 
-            TemplateRuneButton.ButtonClickedEvent -= RefreshCurrentRuneSelection;
+            base.Exit();
+
+            TemplateRuneItemUI.ButtonClickedEvent -= RefreshCurrentRuneSelection;
         }
 
         #endregion
@@ -98,22 +90,35 @@ namespace Menu.PopUps
 
         #region UIManipulators
 
-        void RefreshCurrentRuneSelection(ERune rune)
+        /// <summary>
+        /// Display selected rune to the current selection
+        /// </summary>
+        /// <param name="rune"></param>
+        void RefreshCurrentRuneSelection(Enum collectable)
         {
+            ERune rune = (ERune)collectable;
+
+            var runeData = SpellLoader.GetRuneData(rune);
+            if (runeData == default)
+                return;
+
             m_CurrentRune = rune;
             m_CurrentRuneItem.RefreshRune(rune);
-            m_CurrentRuneTitle.text = rune.ToString() + " Rune";
-            m_CurrentRuneDescription.text = rune.ToString() + " : TODO - Add Description";
+            m_CurrentRuneTitle.text         = TextLocalizer.SplitCamelCase(rune.ToString());
+            m_CurrentRuneDescription.text   = runeData.Description;
 
             RefreshUpgradeButtonUI();
         }
 
+        /// <summary>
+        /// Initilaize scroller of runes
+        /// </summary>
         void SetUpRuneScroller()
         {
             UIHelper.CleanContent(m_RunesContent);
             foreach (ERune rune in Enum.GetValues(typeof(ERune)))
             {
-                var runeItem = Instantiate(m_TemplateRuneButton, m_RunesContent.transform).GetComponent<TemplateRuneButton>();
+                var runeItem = Instantiate(m_TemplateRuneButton, m_RunesContent.transform).GetComponent<TemplateRuneItemUI>();
                 runeItem.Initialize(rune);
             }
         }
@@ -166,8 +171,7 @@ namespace Menu.PopUps
 
         void OnUse()
         {
-            CharacterBuildsCloudData.SetCurrentRune(m_CurrentRune);
-            OnExit();
+            Exit();
         }
 
         #endregion

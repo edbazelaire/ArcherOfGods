@@ -1,6 +1,7 @@
 using Assets;
+using Data.GameManagement;
 using Enums;
-using Menu.MainMenu;
+using Game;
 using Network;
 using Save;
 using System;
@@ -12,7 +13,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Menu
+namespace Menu.MainMenu.MainTab
 {
     public class MainTab : MainMenuTabContent
     {
@@ -25,6 +26,7 @@ namespace Menu
 
         CharacterPreviewSectionUI   m_CharacterPreviewSection;
         CharacterSelectionUI        m_CharacterSelection;
+        GameSectionUI               m_GameSectionUI;
         Button                      m_PlayButton;
         Image                       m_PlayButtonImage;
         TMP_Dropdown                m_GameTypeDropDown;
@@ -47,12 +49,13 @@ namespace Menu
 
             m_CharacterPreviewSection           = Finder.FindComponent<CharacterPreviewSectionUI>(gameObject, c_CharacterPreviewSection);
             m_CharacterSelection                = Finder.FindComponent<CharacterSelectionUI>(gameObject, c_CharacterSelectionPopUp);
+            m_GameSectionUI                     = Finder.FindComponent<GameSectionUI>(gameObject, "GameSection");
             m_PlayButton                        = Finder.FindComponent<Button>(gameObject, c_PlayButton);
             m_PlayButtonImage                   = Finder.FindComponent<Image>(m_PlayButton.gameObject);
             m_GameTypeDropDown                  = Finder.FindComponent<TMP_Dropdown>(gameObject, c_Dropdown);
 
-            // initialize character preview section (with a delay to avoid issue with size)
-            CoroutineManager.DelayMethod(m_CharacterPreviewSection.Initialize);
+            // initialize GameSectionUI
+            m_GameSectionUI.Initialize();
 
             // create all buttons for characters
             m_CharacterSelection.Initialize();
@@ -64,8 +67,13 @@ namespace Menu
             // register to events
             m_PlayButton.onClick.AddListener(OnPlay);
 
+            // initialize character preview section (with a delay to avoid issue with size)
+            CoroutineManager.DelayMethod(m_CharacterPreviewSection.Initialize);
             // delay register method by one frame (to avoid issue with Awake() order)
             CoroutineManager.DelayMethod(() => { m_CharacterPreviewSection.CharacterPreviewButton.onClick.AddListener(ToggleCharacterSelection); });
+
+            // register arena level up event
+            ArenaData.ArenaLevelCompletedEvent += OnArenaLevelCompleted;
         }
 
         public override void Activate(bool activate)
@@ -80,6 +88,9 @@ namespace Menu
             base.OnDestroy();
 
             m_PlayButton.onClick.RemoveAllListeners();
+
+            // register arena level up event
+            ArenaData.ArenaLevelCompletedEvent -= OnArenaLevelCompleted;
         }
 
         #endregion
@@ -89,15 +100,15 @@ namespace Menu
 
         void SetUpDropDownButton()
         {
-            List<string> modes = Enum.GetNames(typeof(EGameMode)).ToList<string>();
+            List<string> modes = Enum.GetNames(typeof(EGameMode)).ToList();
 
             m_GameTypeDropDown.AddOptions(modes);
 
             // change Lobby game mode on new selection
-            m_GameTypeDropDown.onValueChanged.AddListener((int index) => {
-                Enum.TryParse(m_GameTypeDropDown.options[index].text, out EGameMode gameMode);
-                LobbyHandler.Instance.GameMode = gameMode;
-            });
+            m_GameTypeDropDown.onValueChanged.AddListener(OnDropDown);
+
+            // set value to last selected value
+            m_GameTypeDropDown.value = modes.IndexOf(PlayerPrefsHandler.GetGameMode().ToString());
         }
 
         #endregion
@@ -129,10 +140,9 @@ namespace Menu
         /// <summary>
         /// Activate / Deactivate character selection
         /// </summary>
-        [Command(KeyCode.A)]
         public void ToggleCharacterSelection()
         {
-            if (!Checker.NotNull(m_CharacterSelection))
+            if (m_CharacterSelection == null)
                 return;
 
             m_CharacterSelection.gameObject.SetActive(!m_CharacterSelection.gameObject.activeInHierarchy);
@@ -156,6 +166,29 @@ namespace Menu
             }
 
             JoinLobby();
+        }
+
+        void OnDropDown(int index)
+        {
+            if (!Enum.TryParse(m_GameTypeDropDown.options[index].text, out EGameMode gameMode))
+            {
+                ErrorHandler.Error("Unable to convert " + m_GameTypeDropDown.options[index].text + " as game mode");
+            }
+
+            GameSectionUI.SetGameMode(gameMode);
+        }
+
+        /// <summary>
+        /// When an arena is completed, display UI
+        /// </summary>
+        /// <param name="arenaType"></param>
+        /// <param name="level"></param>
+        void OnArenaLevelCompleted(EArenaType arenaType, int level)
+        {
+            Debug.LogWarning("MainTab.OnArenaLevelCompleted");
+
+            var arenaData = AssetLoader.LoadArenaData(arenaType);
+            Main.DisplayRewards(arenaData.GetArenaLevelData(level).rewardsData);
         }
 
         #endregion

@@ -1,6 +1,6 @@
 ﻿using Data;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Game.Spells;
 using System;
 using System.Collections.Generic;
@@ -23,6 +23,7 @@ namespace Game.Character
 
         // -- SERVER SIDE
         Controller              m_Controller;
+        CharacterData           m_CharacterData;
         List<StateEffect>       m_StateEffects;
 
         // ==============================================================================================
@@ -55,7 +56,7 @@ namespace Game.Character
         {
             base.OnNetworkSpawn();
 
-            m_Controller.SpellHandler.AnimationTimer.OnValueChanged     += OnAnimationTimerChanged;
+            m_Controller.SpellHandler.IsCasting.OnValueChanged     += OnIsCastingValueChanged;
         }
 
         public override void OnNetworkDespawn()
@@ -65,10 +66,15 @@ namespace Game.Character
             m_StateEffectList.Dispose();
         }
 
+        public void Initialize(ECharacter character, int level)
+        {
+            m_CharacterData = CharacterLoader.GetCharacterData(character, level);
+        }
+
 
         public override void OnDestroy()
         {
-            m_Controller.SpellHandler.AnimationTimer.OnValueChanged     -= OnAnimationTimerChanged;
+            m_Controller.SpellHandler.IsCasting.OnValueChanged     -= OnIsCastingValueChanged;
         }
 
         #endregion
@@ -157,11 +163,13 @@ namespace Game.Character
         /// </summary>
         /// <param name="previousValue"></param>
         /// <param name="newValue"></param>
-        void OnAnimationTimerChanged(float previousValue, float newValue)
+        void OnIsCastingValueChanged(bool previousValue, bool newValue)
         {
-            if (previousValue > 0 || newValue <= 0)
+            // if cast is canceled dont do anything 
+            if (! newValue)
                 return;
 
+            // check states that are removed on casting 
             if (HasState(EStateEffect.Invisible))
                 RemoveState(EStateEffect.Invisible);
         }
@@ -345,7 +353,7 @@ namespace Game.Character
             if (!IsServer)
                 return 1f;
 
-            float baseValue = 1f;
+            float baseValue = 1f + m_CharacterData.GetValue(property);
 
             foreach (var effect in m_StateEffects)
             {
@@ -361,7 +369,7 @@ namespace Game.Character
             if (!IsServer)
                 return 0;
 
-            int baseValue = 0;
+            int baseValue = m_CharacterData.GetInt(property);
 
             foreach (var effect in m_StateEffects)
             {

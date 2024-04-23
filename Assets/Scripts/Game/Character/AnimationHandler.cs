@@ -1,7 +1,9 @@
 ﻿using Data;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
+using Game.Spells;
 using System.Collections.Generic;
+using System.Linq;
 using Tools;
 using Unity.Collections;
 using Unity.Netcode;
@@ -25,6 +27,8 @@ namespace Game.Character
         List<GameObject>        m_AnimationPrefabs;
         /// <summary> list of visual effects proc by state effects</summary>
         List<GameObject>        m_StateEffectGraphics;
+        /// <summary> list of colors of the state effect </summary>
+        List<Color>             m_Colors;
 
         #endregion
 
@@ -43,9 +47,9 @@ namespace Game.Character
             m_Animator = animator;
             m_AnimationPrefabs = new List<GameObject>();
             m_StateEffectGraphics = new();
+            m_Colors = new();
 
-            m_Controller.SpellHandler.AnimationTimer.OnValueChanged         += OnAnimationTimerChanged;
-            m_Controller.CounterHandler.CounterActivated.OnValueChanged     += OnCounterActivatedValueChanged;
+            m_Controller.SpellHandler.IsCasting.OnValueChanged              += OnIsCastingValueChanged;
             m_Controller.StateHandler.StateEffectList.OnListChanged         += OnStateEffectListChanged;
             m_Controller.StateHandler.SpeedBonus.OnValueChanged             += OnSpeedBonusValueChanged;
 
@@ -68,26 +72,19 @@ namespace Game.Character
         #endregion
 
 
-        #region Client RPC
-
-        #endregion
-
-
         #region Public Manipulators
 
         /// <summary>
         /// change the color of this character on each clients
         /// </summary>
         /// <param name="color"></param>
-        [ClientRpc]
-        public void SpawnSpellEffectGraphicsClientRPC(string stateEffectName)
+        public void SpawnSpellEffectGraphics(GameObject visualEffect, string name)
         {
-            var stateEffect = SpellLoader.GetStateEffect(stateEffectName);
-            if (stateEffect.VisualEffect == null)
+            if (visualEffect == null)
                 return;
 
-            var myVisualEffect = Instantiate(stateEffect.VisualEffect, m_Controller.transform);
-            myVisualEffect.name = stateEffect.VisualEffect.name;
+            var myVisualEffect = Instantiate(visualEffect, m_Controller.transform);
+            myVisualEffect.name = name;
             m_StateEffectGraphics.Add(myVisualEffect);
         }
 
@@ -95,17 +92,12 @@ namespace Game.Character
         /// change the color of this character on each clients
         /// </summary>
         /// <param name="color"></param>
-        [ClientRpc]
-        public void RemoveSpellEffectGraphicsClientRPC(string stateEffectName)
+        public void RemoveSpellEffectGraphics(string effectName)
         {
-            var stateEffect = SpellLoader.GetStateEffect(stateEffectName);
-            if (stateEffect.VisualEffect == null)
-                return;
-
             int index = -1;
             for (int i = 0; i < m_StateEffectGraphics.Count; i++)
             {
-                if (m_StateEffectGraphics[i].name == stateEffect.VisualEffect.name)
+                if (m_StateEffectGraphics[i].name == effectName)
                 {
                     index = i;
                     break;
@@ -114,7 +106,7 @@ namespace Game.Character
 
             if (index < 0)
             {
-                ErrorHandler.Error("Unable to find visual effect " + stateEffect.VisualEffect.name + " in list of visual effects");
+                ErrorHandler.Error("Unable to find visual effect " + effectName + " in list of visual effects");
                 return;
             }
 
@@ -127,10 +119,19 @@ namespace Game.Character
         /// </summary>
         /// <param name="color"></param>
         [ClientRpc]
-        public void ChangeColorClientRPC(Color color)
+        public void AddColorClientRPC(Color color)
         {
-            foreach (var spriteRenderer in m_SpriteRenderers)
-                spriteRenderer.color = color;
+            AddColor(color);
+        }
+
+        /// <summary>
+        /// change the color of this character on each clients
+        /// </summary>
+        /// <param name="color"></param>
+        [ClientRpc]
+        public void RemoveColorClientRPC(Color color)
+        {
+            RemoveColor(color);
         }
 
         /// <summary>
@@ -196,6 +197,19 @@ namespace Game.Character
             EndAnimationParticles();
         }
 
+        void AddColor(Color color)
+        {
+            m_Colors.Add(color);
+            SetColor(color);
+        }
+
+        void RemoveColor(Color color)
+        {
+            m_Colors.Remove(color);
+            color = m_Colors.Count > 0 ? m_Colors.Last() : Color.white;
+            SetColor(color);
+        }
+
         void SetColor(Color color)
         {
             foreach (var spriteRenderer in m_SpriteRenderers)
@@ -222,7 +236,7 @@ namespace Game.Character
             m_Animator.SetTrigger(spellData.Animation.ToString());
 
             // update speed of the animation
-            m_Animator.SetFloat("CastSpeed", 1f / spellData.AnimationTimer);
+            m_Animator.SetFloat("CastSpeed", m_Controller.SpellHandler.CurrentCastSpeedFactor / spellData.AnimationTimer );
         }
 
         void CancelCastAnimation()
@@ -266,34 +280,18 @@ namespace Game.Character
 
         #region Events Listeners
 
-        void OnAnimationTimerChanged(float oldValue, float newValue)
+        void OnIsCastingValueChanged(bool oldValue, bool newValue)
         {
-            if (oldValue > 0 && newValue > 0)
+            if (oldValue == newValue)
                 return;
 
-            // from 0 : start casting
-            if (oldValue <= 0 && newValue > 0)
+            // start casting
+            if (newValue)
                 Cast();
 
-            // to 0 : end casting
-            else if (oldValue > 0 && newValue <= 0)
+            // end cast
+            else
                 CancelCast();
-        }
-
-        /// <summary>
-        /// Change counter of the character on proc
-        /// </summary>
-        /// <param name="oldValue"></param>
-        /// <param name="newValue"></param>
-        void OnCounterActivatedValueChanged(bool oldValue, bool newValue)
-        {
-            if (newValue == true)
-            {
-                m_Animator.SetTrigger(EAnimation.Counter.ToString());
-            } else
-            {
-                m_Animator.SetTrigger(EAnimation.CancelCast.ToString());
-            }
         }
 
         /// <summary>
@@ -313,8 +311,15 @@ namespace Game.Character
         /// <param name="newValue"></param>
         void OnStateEffectListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
         {
-            Debug.Log(changeEvent.Type + " " + changeEvent.Value);
+            ErrorHandler.Log(changeEvent.Type + " " + changeEvent.Value, ELogTag.Spells);
 
+            if (changeEvent.Type != NetworkListEvent<FixedString64Bytes>.EventType.RemoveAt && changeEvent.Type != NetworkListEvent<FixedString64Bytes>.EventType.Remove)
+                OnAddStateEffect(changeEvent.Value.ToString());
+            else
+                OnRemoveStateEffect(changeEvent.Value.ToString());
+
+            // ---------------------------------------------------------------------------------------
+            // SPECIAL EFFECTS
             if (changeEvent.Value == EStateEffect.Invisible.ToString())
             {
                 float opacity = 1f;
@@ -326,7 +331,7 @@ namespace Game.Character
                 return;
             }
 
-            if (changeEvent.Value == EStateEffect.Invisible.ToString())
+            if (changeEvent.Value == EStateEffect.Jump.ToString())
             {
                 if (changeEvent.Type == NetworkListEvent<FixedString64Bytes>.EventType.Add)
                 {
@@ -341,6 +346,31 @@ namespace Game.Character
                 }
                 return;
             }
+        }
+
+        void OnAddStateEffect(string stateEffectName)
+        {
+            StateEffect data = SpellLoader.GetStateEffect(stateEffectName);
+
+            if (data.VisualEffect != null)
+                SpawnSpellEffectGraphics(data.VisualEffect, stateEffectName);
+
+            if (data.ColorSwitch != Color.white)
+                AddColor(data.ColorSwitch);
+
+            if (data.Animation != EAnimation.None)
+                m_Animator.SetTrigger(data.Animation.ToString());
+        }
+
+        void OnRemoveStateEffect(string stateEffectName)
+        {
+            StateEffect data = SpellLoader.GetStateEffect(stateEffectName);
+         
+            if (data.VisualEffect != null)
+                RemoveSpellEffectGraphics(stateEffectName);
+
+            if (data.ColorSwitch != Color.white)
+                RemoveColor(data.ColorSwitch);
         }
                
         #endregion

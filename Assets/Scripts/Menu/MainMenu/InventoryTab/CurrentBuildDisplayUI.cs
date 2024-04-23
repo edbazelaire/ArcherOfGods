@@ -12,7 +12,7 @@ namespace Menu.MainMenu
         #region Members
 
         const string FORMAT_SPELL_ITEM_CONTAINER = "SpellItemContainer ({0})";
-        const int N_SPELL_ITEM_CONTAINERS = 4;
+        const int N_SPELL_ITEM_CONTAINERS = CharacterBuildsCloudData.N_SPELLS_IN_BUILDS;
 
         static CurrentBuildDisplayUI s_Instance;
         public static CurrentBuildDisplayUI Instance => s_Instance;

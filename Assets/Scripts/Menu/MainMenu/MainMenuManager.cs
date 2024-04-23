@@ -9,6 +9,7 @@ namespace Menu.MainMenu
     {
         MainTab,
         InventoryTab,
+        ShopTab,
     }
 
     public class MainMenuManager : TabsManager

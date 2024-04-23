@@ -12,6 +12,7 @@ namespace Save
 {
     public class CloudData
     {
+        #region Members
         public static CloudData Instance => Main.CloudSaveManager.GetCloudData(typeof(CloudData)) as CloudData;
 
         protected virtual Dictionary<string, object> m_Data { get; set; }
@@ -20,15 +21,16 @@ namespace Save
         List<string> m_KeysToLoad;
 
         public Dictionary<string, object> Data => m_Data;
-        public bool LoadingCompleted => m_KeysToLoad != null && m_KeysToLoad.Count == 0;
+        public bool LoadingCompleted = false;
 
-        public static Action<string> CloudDataLoadedEvent;
+        #endregion
+
 
         #region Init & End 
 
-        public CloudData() 
+        public CloudData()
         {
-            CloudDataLoadedEvent += OnCloudDataLoaded;
+            LoadingCompleted = false;
             m_KeysToLoad = m_Data.Keys.ToList();
             Load();
         }
@@ -52,7 +54,7 @@ namespace Save
             var cloudData = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { key });
             if (!cloudData.TryGetValue(key, out var item))
             {
-                CloudDataLoadedEvent?.Invoke(key);
+                OnCloudDataKeyLoaded(key);
                 return;
             }
 
@@ -60,8 +62,9 @@ namespace Save
             if (value == null)
                 return;
 
-            SetData(key, value);
-            CloudDataLoadedEvent?.Invoke(key);
+            // set givent value (block saving)
+            SetData(key, value, false);
+            OnCloudDataKeyLoaded(key);
         }
 
         public virtual void Save()
@@ -74,19 +77,50 @@ namespace Save
 
         public virtual async void SaveValue(string key)
         {
+            if (! m_Data.ContainsKey(key))
+            {
+                ErrorHandler.Error("Unable to find key " + key + " in data of " + this.GetType().FullName);
+                return;
+            }
+
             var playerData = new Dictionary<string, object> { { key, m_Data[key] } };
-            await CloudSaveService.Instance.Data.Player.SaveAsync(playerData);
+            
+            if (playerData == null)
+            {
+                ErrorHandler.Error($"Data of key ({key}) is null");
+                return;
+            }
+
+            // to keep the trace (because async exception creates a "bad" trace)
+            Error error = new Error($"Error saving key ({key})", display: false);
+
+            try
+            {
+                await CloudSaveService.Instance.Data.Player.SaveAsync(playerData);
+            } catch (Exception ex)
+            {
+                ErrorHandler.Error($"Error saving key ({key}) : " + ex.Message + "\nData : " + TextHandler.ToString(m_Data[key]));
+                ErrorHandler.Warning("Trace : + \n" + error.GetTraceString());
+            }
         }
+
+        #endregion
+
+
+        #region Checkers
+
+        protected virtual void CheckData() { }
 
         #endregion
 
 
         #region Helpers
 
-        public virtual void SetData(string key, object value)
+        public virtual void SetData(string key, object value, bool save = true)
         {
             m_Data[key] = value;
-            SaveValue(key);
+            if (save)
+                SaveValue(key);
         }
 
         protected virtual object Convert(Item item)
@@ -112,6 +146,10 @@ namespace Save
                     return item.Value.GetAs<ECharacter>();
                 case "ESpell":
                     return item.Value.GetAs<ESpell>();
+                case "EBadge":
+                    return item.Value.GetAs<EBadge>();
+                case "EBadge[]":
+                    return item.Value.GetAs<EBadge[]>();
 
                 default:
                     ErrorHandler.Error("Unhandled type : " + expectedType);
@@ -136,12 +174,32 @@ namespace Save
 
         #region Listeners
 
-        protected virtual void OnCloudDataLoaded(string key) 
-        { 
+        protected virtual void OnCloudDataKeyLoaded(string key)
+        {
             if (m_KeysToLoad.Contains(key))
                 m_KeysToLoad.Remove(key);
+
+            if (m_KeysToLoad.Count == 0)
+                OnCloudDataLoadingCompleted();
+        }
+
+        protected virtual void OnCloudDataLoadingCompleted()
+        {
+            CheckData();
+            LoadingCompleted = true;
+        }
+
+        #endregion
+
+
+        #region Debug
+
+        public override string ToString()
+        {
+            return TextHandler.ToString(m_Data);
         }
 
         #endregion
     }
+
 }

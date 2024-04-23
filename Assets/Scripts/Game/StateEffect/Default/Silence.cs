@@ -1,6 +1,4 @@
-﻿using Enums;
-using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Game.Spells
 {
@@ -10,7 +8,7 @@ namespace Game.Spells
         protected override bool CheckBeforeGraphicInit()
         {
             // if player is casting, improve the duration
-            if (m_Controller.SpellHandler.IsCasting)
+            if (m_Controller.SpellHandler.IsCasting.Value)
             {
                 m_Duration *= 2.5f;
             }

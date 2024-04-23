@@ -12,29 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b3ab460364119c408209877f7ac86d5, type: 3}
   m_Name: RareChest
   m_EditorClassIdentifier: 
-  ChestType: 1
-  Image: {fileID: 21300000, guid: d142fafab3943fc46b3510c9d9c621e4, type: 3}
   UnlockTime: 10
-  Golds: 960000002c010000
+  Currencies:
+  - Currency: 0
+    Min: 2100
+    Max: 2400
+  ExtraCardData:
+    ExtraCards: 3
+    RaretyPercData:
+    - Rarety: 0
+      Percentage: 100
+    - Rarety: 1
+      Percentage: 50
+    - Rarety: 2
+      Percentage: 25
+    - Rarety: 3
+      Percentage: 1.357
   SpellsDistribution:
   - Rarety: 0
-    MinAmount: 25
-    MaxAmount: 50
-  - Rarety: 0
-    MinAmount: 25
-    MaxAmount: 50
-  - Rarety: 0
-    MinAmount: 25
-    MaxAmount: 50
-  - Rarety: 0
-    MinAmount: 25
-    MaxAmount: 50
+    Qty: 35
+    Splits: 2
   - Rarety: 1
-    MinAmount: 5
-    MaxAmount: 10
-  - Rarety: 1
-    MinAmount: 5
-    MaxAmount: 10
+    Qty: 12
+    Splits: 1
   - Rarety: 2
-    MinAmount: 1
-    MaxAmount: 1
+    Qty: 0
+    Splits: 0
+  - Rarety: 3
+    Qty: 0
+    Splits: 0
+  StateEffectFilter: 

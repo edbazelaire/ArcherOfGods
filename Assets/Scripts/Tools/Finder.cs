@@ -49,6 +49,10 @@ namespace Tools
         {
             // find all child with that name in parent
             List<GameObject> list = new List<GameObject>();
+
+            if (parent == null)
+                return list;
+
             foreach (Transform child in parent.transform)
             {
                 // if name is prefix, get all childs with such prefix

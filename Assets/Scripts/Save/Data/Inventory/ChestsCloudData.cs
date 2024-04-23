@@ -1,6 +1,6 @@
 ﻿using Assets;
 using Enums;
-using Game.Managers;
+using Game.Loaders;
 using System;
 using System.Collections.Generic;
 using Unity.Services.CloudSave.Models;
@@ -11,22 +11,30 @@ namespace Save
     public class ChestData
     {
         /// <summary> type of chest </summary>
-        public EChestType ChestType;
+        public EChest ChestType;
         /// <summary> timestamp (in seconds) when the chest will be available </summary>
         public long UnlockedAt;
 
-        public ChestData(EChestType chestType, long unlockedAt = 0)
+        public ChestData(EChest chestType, long unlockedAt = 0)
         {
             ChestType = chestType;
             UnlockedAt = unlockedAt;
-
-            if (UnlockedAt <= 0)
-                SetUnlockTime();
         }
 
         public void SetUnlockTime()
         {
             UnlockedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + ItemLoader.GetChestRewardData(ChestType).UnlockTime;
+        }
+
+        public EChestLockState GetState()
+        {
+            if (UnlockedAt == 0)
+                return EChestLockState.Locked;
+
+            if (UnlockedAt > DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                return EChestLockState.Unlocking;
+
+            return EChestLockState.Ready;
         }
     }
 
@@ -57,6 +65,22 @@ namespace Save
                 return item.Value.GetAs<ChestData[]>();
 
             return base.Convert(item);
+        }
+
+        #endregion
+
+
+        #region Public Accessor
+
+        public static bool IsChestWaitingUnlock()
+        {
+            foreach (ChestData chestData in (Instance.m_Data[KEY_CHESTS] as ChestData[]))
+            {
+                if (chestData != null && chestData.GetState() == EChestLockState.Unlocking)
+                    return true;
+            }
+
+            return false;
         }
 
         #endregion

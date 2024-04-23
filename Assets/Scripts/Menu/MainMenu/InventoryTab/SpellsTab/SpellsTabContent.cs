@@ -1,7 +1,8 @@
 ﻿using Enums;
-using Game.Managers;
+using Game.Loaders;
 using Inventory;
 using Save;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Tools;
@@ -34,9 +35,10 @@ namespace Menu.MainMenu
             m_LockedSpellItemContainer      = Finder.Find(gameObject, "LockedSpellItemContainer");
 
             // Listeners
-            CharacterBuildsCloudData.SelectedCharacterChangedEvent += RefreshSpellItemsDisplay;
-            CharacterBuildsCloudData.CurrentBuildIndexChangedEvent += RefreshSpellItemsDisplay;
-            CharacterBuildsCloudData.CurrentBuildValueChangedEvent += RefreshSpellItemsDisplay; 
+            CharacterBuildsCloudData.SelectedCharacterChangedEvent  += RefreshSpellItemsDisplay;
+            CharacterBuildsCloudData.CurrentBuildIndexChangedEvent  += RefreshSpellItemsDisplay;
+            CharacterBuildsCloudData.CurrentBuildValueChangedEvent  += RefreshSpellItemsDisplay;
+            InventoryManager.UnlockCollectableEvent                 += OnUnlockedSpell;
         }
 
         /// <summary>
@@ -73,8 +75,6 @@ namespace Menu.MainMenu
                 if (CharacterBuildsCloudData.CurrentBuild.Contains(spell))
                     spellUI.gameObject.SetActive(false);
             }
-
-            InventoryManager.UnlockSpellEvent += OnUnlockedSpell;
         }
 
         /// <summary>
@@ -95,9 +95,10 @@ namespace Menu.MainMenu
         {
             base.OnDestroy();
 
-            CharacterBuildsCloudData.SelectedCharacterChangedEvent -= RefreshSpellItemsDisplay;
-            CharacterBuildsCloudData.CurrentBuildIndexChangedEvent -= RefreshSpellItemsDisplay;
-            CharacterBuildsCloudData.CurrentBuildValueChangedEvent -= RefreshSpellItemsDisplay;
+            CharacterBuildsCloudData.SelectedCharacterChangedEvent  -= RefreshSpellItemsDisplay;
+            CharacterBuildsCloudData.CurrentBuildIndexChangedEvent  -= RefreshSpellItemsDisplay;
+            CharacterBuildsCloudData.CurrentBuildValueChangedEvent  -= RefreshSpellItemsDisplay;
+            InventoryManager.UnlockCollectableEvent                 -= OnUnlockedSpell;
         }
 
         #endregion
@@ -146,13 +147,18 @@ namespace Menu.MainMenu
         /// When a spell is unlock, change its parent from Locked to normal SpellItemContainer
         /// </summary>
         /// <param name="spell"></param>
-        void OnUnlockedSpell(ESpell spell)
+        void OnUnlockedSpell(Enum spell)
         {
+            if (spell.GetType() != typeof(ESpell))
+                return;
+
             // find the item
             TemplateSpellItemUI spellItemUI = Finder.FindComponent<TemplateSpellItemUI>(m_LockedSpellItemContainer, string.Format(SPELL_ITEM_NAME_FORMAT, spell.ToString()));
+            if (spellItemUI == null)
+                return;
 
             // change parent
-            spellItemUI.transform.parent = m_SpellItemContainer.transform;
+            spellItemUI.transform.SetParent(m_SpellItemContainer.transform);
 
             // add spellUI to dict of spell UIs
             m_SpellItems.Add(spellItemUI.Spell, spellItemUI);

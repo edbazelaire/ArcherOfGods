@@ -9,14 +9,17 @@ namespace Menu
     {
         #region Members
 
+        [SerializeField] Color m_BorderColorActivated;
         [SerializeField] Color m_BackgroundColorActivated;
 
         public Action TabButtonClickedEvent;
 
         Button m_Button;
-        GameObject m_Border;
+        Image m_Border;
         Image m_BackgroundImage;
         Image m_Icon;
+
+        Color m_BaseBorderColor;
         Color m_BaseBackgroundColor;
 
         bool m_Activated;
@@ -29,11 +32,14 @@ namespace Menu
         protected virtual void FindComponents()
         {
             m_Button            = Finder.FindComponent<Button>(gameObject);
-            m_Border            = Finder.Find(gameObject, "Border");
-            m_BackgroundImage   = Finder.FindComponent<Image>(gameObject, "BackgroundImage");
+            m_Border            = Finder.FindComponent<Image>(gameObject, "Border", false);
+            m_BackgroundImage   = Finder.FindComponent<Image>(gameObject, "BackgroundImage", false);
             m_Icon              = Finder.FindComponent<Image>(gameObject, "TabIcon");
 
-            m_BaseBackgroundColor = m_BackgroundImage.color;
+            if (m_Border != null)
+                m_BaseBorderColor = m_Border.color;
+            if (m_BackgroundImage != null)
+                m_BaseBackgroundColor = m_BackgroundImage.color;
 
             m_Button.onClick.AddListener(OnButtonClicked);
         }
@@ -49,7 +55,11 @@ namespace Menu
             if (m_Activated == activate)
                 return;
 
-            m_BackgroundImage.color         = activate ? m_BackgroundColorActivated : m_BaseBackgroundColor;
+            if (m_Border != null)
+                m_Border.color                  = activate ? m_BaseBackgroundColor : m_BaseBorderColor;
+            if (m_BackgroundImage != null)
+                m_BackgroundImage.color         = activate ? m_BackgroundColorActivated : m_BaseBackgroundColor;
+
             m_Icon.transform.localScale     = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
             m_Activated                     = activate;
         }

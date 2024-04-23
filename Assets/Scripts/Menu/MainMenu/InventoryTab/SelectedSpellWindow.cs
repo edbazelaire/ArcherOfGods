@@ -65,9 +65,10 @@ namespace Assets.Scripts.Menu.MainMenu.InventoryTab
 
         void CheckTouch()
         {
-            if (Input.GetMouseButtonDown(0)) // Check for left mouse button click
+            if (Input.GetMouseButtonUp(0)) // Check for left mouse button click
             {
-                Deactivate();
+                // delay method by one frame (in case of clicking a button that needs the value
+                CoroutineManager.DelayMethod(() => { CurrentBuildDisplayUI.SetCurrentSelectedCard(null); } );
             }
         }
 
