@@ -88,7 +88,7 @@ namespace Menu.PopUps
                 return;
             }
 
-            InventoryManager.Spend(m_PriceData.Price, m_PriceData.Currency);
+            InventoryManager.Spend(m_PriceData.Price, m_PriceData.Currency, "Shop");
 
             OnPurchaseCompleted();
 
@@ -97,7 +97,7 @@ namespace Menu.PopUps
 
         protected virtual void OnPurchaseCompleted()
         {
-            Main.DisplayRewards(m_RewardsData);
+            Main.DisplayRewards(m_RewardsData, ERewardContext.Shop);
         }
 
         #endregion

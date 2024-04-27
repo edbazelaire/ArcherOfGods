@@ -1,6 +1,7 @@
 ﻿using Assets;
 using Enums;
 using Managers;
+using Save;
 using System;
 using System.Collections.Generic;
 using Tools;
@@ -33,18 +34,19 @@ namespace Data.GameManagement
 
         [SerializeField] List<SArenaLevelData> m_ArenaLevelData;
 
-        public int CurrentLevel;
-        public int CurrentStage;
+        public int CurrentLevel => ProgressionCloudData.SoloArenas[ArenaType].CurrentLevel;
+        public int CurrentStage => ProgressionCloudData.SoloArenas[ArenaType].CurrentStage;
 
         // last data seen by the user (usefull for display)
         public int LastLevel;
         public int LastStage;
 
-        public EArenaType           ArenaType               => Enum.TryParse(name, out EArenaType arenaType) ? arenaType : EArenaType.FireArena;
-        public SArenaLevelData      CurrentArenaLevelData   => GetArenaLevelData(CurrentLevel);
-        public SStageData           CurrentStageData        => GetStageData(CurrentLevel, CurrentStage);
-        public bool                 IsUpToDate              => LastLevel == CurrentLevel && LastStage == CurrentStage;
-        public int                  MaxLevel                => m_ArenaLevelData.Count;
+        public EArenaType               ArenaType               => Enum.TryParse(name, out EArenaType arenaType) ? arenaType : EArenaType.FireArena;
+        public List<SArenaLevelData>    ArenaLevelData          => m_ArenaLevelData;
+        public SArenaLevelData          CurrentArenaLevelData   => GetArenaLevelData(CurrentLevel);
+        public SStageData               CurrentStageData        => GetStageData(CurrentLevel, CurrentStage);
+        public bool                     IsUpToDate              => LastLevel == CurrentLevel && LastStage == CurrentStage;
+        public int                      MaxLevel                => m_ArenaLevelData.Count;
 
         #endregion
 
@@ -128,38 +130,7 @@ namespace Data.GameManagement
 
         public void UpdateStageValue(bool up)
         {
-            // Retrieve stage level
-            if (! up)
-            {
-                // stage level is 0 : do nothing
-                if (CurrentStage == 0)
-                    return;
-
-                CurrentStage--;
-                return;
-            }
-
-            // ADD stage level
-            if (CurrentStage == CurrentArenaLevelData.StageData.Count - 1)
-            {
-                UpgradeArenaLevel();
-                return;
-            }
-
-            CurrentStage++;
-        }
-
-        void UpgradeArenaLevel()
-        {
-            // wait until beeing on MainMenu to fire the arena level event
-            int level = CurrentLevel;
-            Main.AddStoredEvent(EAppState.MainMenu, () => { ArenaLevelCompletedEvent?.Invoke(ArenaType, level); });
-
-            if (CurrentLevel == m_ArenaLevelData.Count - 1)
-                return;
-            
-            CurrentLevel++;
-            CurrentStage = 0;
+            ProgressionCloudData.UpdateStageValue(ArenaType, up);
         }
 
         void UpdateLastData()

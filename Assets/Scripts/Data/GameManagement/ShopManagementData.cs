@@ -53,8 +53,10 @@ namespace Data.GameManagement
     public struct SRewardsData
     {
         public List<SCurrencyReward>    Currencies;
-        public List<EChest>         Chests;
+        public List<EChest>             Chests;
         public List<SCollectableReward> Collectables;
+
+        public readonly bool IsEmpty => Currencies.Count + Chests.Count + Collectables.Count == 0;
 
         public SRewardsData(List<SCurrencyReward> currencyRewards = default, List<EChest> chests = default, List<SCollectableReward> collectableRewards = default)
         {

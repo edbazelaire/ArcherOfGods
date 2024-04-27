@@ -65,9 +65,8 @@ namespace Menu.PopUps
 
             // add golds to inventory manager
             int golds = 0;
-            InventoryManager.AddGolds(golds);
-
-            base.Initialize();  
+            InventoryManager.UpdateCurrency(ECurrency.Golds, golds, "LevelUp");
+            base.Initialize();
         }
 
         protected override void OnPrefabLoaded()
@@ -83,8 +82,6 @@ namespace Menu.PopUps
             m_Level                         = Finder.FindComponent<TMP_Text>(m_InfosSection, "Level");
             m_GoldsQty                      = Finder.FindComponent<TMP_Text>(m_InfosSection, "GoldsQty");
             m_ChestsRewardDisplay           = Finder.Find(m_InfosSection, "ChestsRewardDisplay");
-
-            SetUpUI();
         }
 
         #endregion
@@ -95,7 +92,7 @@ namespace Menu.PopUps
         /// <summary>
         /// Setup all UI Elements based on the Character
         /// </summary>
-        void SetUpUI()
+        protected override void SetUpUI()
         {
             DisplayCharacterPreview();
             DisplayCharacterInfos();

@@ -7,6 +7,7 @@
         // -- screens
         LoadingScreen,
         RewardsScreen,
+        AchievementRewardScreen,
         LevelUpScreen,
         ArenaPathScreen,
 
@@ -15,9 +16,6 @@
         CharacterInfoPopUp,
         StateEffectPopUp,
         RuneSelectionPopUp,
-
-        // -- menu PopUps
-        ProfilePopUp,
 
         // -- message PopUps
         MessagePopUp,
@@ -326,22 +324,32 @@
     public enum ELogTag
     {
         None = 0,
+        All = 1,
 
-        System, 
-        Network,
-        Debug,
+        System              = 2, 
+        Network             = 3,
+        Debug               = 4,
 
-        Gameplay,
-        Spells,
-        Rewards,
+        // Game
+        Game                = 100,    
+        Gameplay            = 101,
+        Spells              = 102,
+        Rewards             = 103,
 
         // AI
-        AI,
-        AIFinalDecision,
-        AICheckers,
-        AITaskAttack,
-        AITaskMove,
+        AI                  = 200,
+        AIFinalDecision     = 201,
+        AICheckers          = 202,
+        AITaskAttack        = 203,
+        AITaskMove          = 204,
 
+        // CloudData
+        CloudData           = 300,
+        StatCloudData       = 301,
+
+        // Services
+        Services            = 400,
+        Analytics           = 401,           
     }
 
     public enum ERewardType
@@ -399,6 +407,17 @@
         Pulse,
     }
 
+    public enum EComparator
+    {
+        None = 0,
+
+        Inf     = 1,
+        InfEq   = 2,
+        Equal   = 3,
+        SupEq   = 4,
+        Sup     = 5,
+    }
+
     public enum EOrdering
     {
         None,
@@ -407,6 +426,39 @@
         Descending,
     }
 
+    public enum ERewardContext
+    {
+        None = 0,
+
+        EndGameChest,
+        Shop,
+        Achievements,
+        ArenaReward,
+    }
+
+    public enum EAnalytics
+    {
+        GameEnded,
+        CurrencyChanged,
+        CollectableChanged,
+        ChestOpened,
+        AchievementRewardUnlocked,
+        ShopTransaction,
+    }
+
+    public enum EAnalyticsParam
+    {
+        // Game
+        GameMode        = 1,
+        Win             = 2,
+        Character       = 3,
+        CharacterLevel  = 4,
+
+        // Currency
+        Currency        = 101,
+        Context         = 102,
+        Qty             = 103,
+    }
 
     public enum ELeague
     {
@@ -426,21 +478,88 @@
 
         PlayedGames,
         Wins,
+        PvpWins,
+    }
+
+    public enum ETitle
+    {
+        None = 0,
+
+        Dicks_Slayer,
+        Noobs_Crucher,
+        Rank_1,
+        First,
+        Forever_Alone,
+        Le_Charclo,
+        TheMoneyMaker,
+        Cresus,
+    }
+
+    public enum EAvatar
+    {
+        None = 0,
+
+        Blessed         = 1,
+        FireDemon       = 2,
+        Meteor          = 3,
+        Coin            = 4,
+        MoneyMan        = 5,
+
+        BlueFlameChibi  = 101,
+        CosmicChibi     = 102,
+        DemonicChibi    = 103,
+        FireChibi       = 104,
+    }
+
+    public enum EBorder
+    {
+        None = 0,
+
+        // Ranking Borders
+        LeagueBronze    = 1,
+        LeagueSilver    = 2,
+        LeagueGold      = 3,
+        //LeaguePlatinium = 4,
+        //LeagueRubis     = 5,
+        //LeagueDiamant   = 6,
+        //LeagueLegend    = 7,
+
+        // Special ranking border
+        Rank1 = 11,
     }
 
     public enum EBadge
     {
         None = 0,
 
-        PlayedGame,
+        // Games
+        PlayedGame  = 1,
+        Wins        = 2,
+        Damages     = 3,
+        Heals       = 4,
+        // -- pvp
+        PvpGamesWon = 100,
+        // -- solo
+        SoloGames   = 201,
+
+        // Collectables
+        GoldCollector   = 501,
+        CardCollector   = 502,
+        XpCollector     = 503,
+
+        // Legendary
+        DemonLord   = 1001,
+        Gladiator   = 1002,
+        Rank1       = 1003,
     }
 
     public enum EAchievementReward
     {
-        None, 
+        None = 0,
 
-        Title,
-        Avatar,
-        Border
+        Badge       = 1,
+        Avatar      = 2,
+        Border      = 3,
+        Title       = 4,
     }
 }

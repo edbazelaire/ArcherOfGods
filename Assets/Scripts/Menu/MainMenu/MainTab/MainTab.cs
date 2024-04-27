@@ -1,7 +1,6 @@
 using Assets;
 using Data.GameManagement;
 using Enums;
-using Game;
 using Network;
 using Save;
 using System;
@@ -36,16 +35,9 @@ namespace Menu.MainMenu.MainTab
 
         #region Init & End 
 
-        public override void Initialize(TabButton tabButton)
+        protected override void FindComponents()
         {
-            base.Initialize(tabButton);
-
-            if (Main.Instance == null)
-            {
-                ErrorHandler.Warning("Main Instance not found : reloading release scene");
-                SceneManager.LoadScene("Release");
-                return;
-            }
+            base.FindComponents(); 
 
             m_CharacterPreviewSection           = Finder.FindComponent<CharacterPreviewSectionUI>(gameObject, c_CharacterPreviewSection);
             m_CharacterSelection                = Finder.FindComponent<CharacterSelectionUI>(gameObject, c_CharacterSelectionPopUp);
@@ -53,7 +45,12 @@ namespace Menu.MainMenu.MainTab
             m_PlayButton                        = Finder.FindComponent<Button>(gameObject, c_PlayButton);
             m_PlayButtonImage                   = Finder.FindComponent<Image>(m_PlayButton.gameObject);
             m_GameTypeDropDown                  = Finder.FindComponent<TMP_Dropdown>(gameObject, c_Dropdown);
+        }
 
+        public override void Initialize(TabButton tabButton)
+        {
+            base.Initialize(tabButton);
+                        
             // initialize GameSectionUI
             m_GameSectionUI.Initialize();
 
@@ -188,7 +185,7 @@ namespace Menu.MainMenu.MainTab
             Debug.LogWarning("MainTab.OnArenaLevelCompleted");
 
             var arenaData = AssetLoader.LoadArenaData(arenaType);
-            Main.DisplayRewards(arenaData.GetArenaLevelData(level).rewardsData);
+            Main.DisplayRewards(arenaData.GetArenaLevelData(level).rewardsData, ERewardContext.ArenaReward);
         }
 
         #endregion

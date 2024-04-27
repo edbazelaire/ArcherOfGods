@@ -90,7 +90,7 @@ namespace Menu.Common.Buttons
             switch (success)
             {
                 case true:
-                    Main.DisplayRewards(m_Rewards);
+                    Main.DisplayRewards(m_Rewards, ERewardContext.Shop);
                     break;
                 
                 case false:

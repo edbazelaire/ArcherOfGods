@@ -1,4 +1,5 @@
 ﻿using System;
+using TMPro;
 using Tools;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,20 +10,23 @@ namespace Menu
     {
         #region Members
 
-        [SerializeField] Color m_BorderColorActivated;
-        [SerializeField] Color m_BackgroundColorActivated;
+        [SerializeField] protected Color m_BorderColorActivated;
+        [SerializeField] protected Color m_BackgroundColorActivated;
+        [SerializeField] protected Color m_ColorActivated;
 
         public Action TabButtonClickedEvent;
 
-        Button m_Button;
-        Image m_Border;
-        Image m_BackgroundImage;
-        Image m_Icon;
+        protected Button    m_Button;
+        protected Image     m_Border;
+        protected Image     m_BackgroundImage;
+        protected Image     m_Icon;
+        protected TMP_Text  m_Text;
 
-        Color m_BaseBorderColor;
-        Color m_BaseBackgroundColor;
+        protected Color m_BaseBorderColor;
+        protected Color m_BaseBackgroundColor;
+        protected Color m_BaseColor;
 
-        bool m_Activated;
+        protected bool m_Activated;
 
         #endregion
 
@@ -32,14 +36,23 @@ namespace Menu
         protected virtual void FindComponents()
         {
             m_Button            = Finder.FindComponent<Button>(gameObject);
-            m_Border            = Finder.FindComponent<Image>(gameObject, "Border", false);
-            m_BackgroundImage   = Finder.FindComponent<Image>(gameObject, "BackgroundImage", false);
-            m_Icon              = Finder.FindComponent<Image>(gameObject, "TabIcon");
+            m_Border            = Finder.FindComponent<Image>(gameObject,       "Border",           false);
+            m_BackgroundImage   = Finder.FindComponent<Image>(gameObject,       "BackgroundImage",  false);
+            m_Icon              = Finder.FindComponent<Image>(gameObject,       "TabIcon",          false);
+            m_Text              = Finder.FindComponent<TMP_Text>(gameObject,    "TabText",          false);
 
             if (m_Border != null)
                 m_BaseBorderColor = m_Border.color;
             if (m_BackgroundImage != null)
                 m_BaseBackgroundColor = m_BackgroundImage.color;
+            if (m_ColorActivated != null)
+            {
+                if (m_Text != null)
+                    m_BaseColor = m_Text.color;
+                else if (m_Icon != null)
+                    m_BaseColor = m_Icon.color;
+            }
+                
 
             m_Button.onClick.AddListener(OnButtonClicked);
         }
@@ -55,18 +68,32 @@ namespace Menu
             if (m_Activated == activate)
                 return;
 
-            if (m_Border != null)
+            if (m_Border != null && m_BaseBackgroundColor != default)
                 m_Border.color                  = activate ? m_BaseBackgroundColor : m_BaseBorderColor;
-            if (m_BackgroundImage != null)
+            if (m_BackgroundImage != null && m_BackgroundColorActivated != default)
                 m_BackgroundImage.color         = activate ? m_BackgroundColorActivated : m_BaseBackgroundColor;
 
-            m_Icon.transform.localScale     = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
-            m_Activated                     = activate;
+            if (m_Icon != null)
+            {
+                m_Icon.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
+                if (m_ColorActivated != default)
+                    m_Icon.color = activate ? m_ColorActivated : m_BaseColor;
+            }
+
+            if (m_Text != null)
+            {
+                m_Text.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
+                if (m_ColorActivated != default)
+                    m_Text.color = activate ? m_ColorActivated : m_BaseColor;
+            }
+
+            m_Activated = activate;
         }
 
         protected virtual void OnDestroy()
         {
-            m_Button.onClick.RemoveAllListeners();
+            if (m_Button != null)
+                m_Button.onClick.RemoveAllListeners();
         }
 
         #endregion

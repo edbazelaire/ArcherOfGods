@@ -1,13 +1,9 @@
-﻿using Enums;
-using MyBox;
+﻿using MyBox;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using UnityEditor;
-using UnityEngine;
-using static UnityEngine.Rendering.VolumeComponent;
 
 namespace Tools
 {
@@ -85,11 +81,18 @@ namespace Tools
             return text.Contains(tag);
         }
 
-
         #endregion
 
 
         #region Format
+
+        public static string Split(string text, string by = "_")
+        {
+            if (! text.Contains(" "))
+                text = TextLocalizer.SplitCamelCase(text);
+
+            return text.Replace(by, " ");
+        }
 
         public static string FormatNumericalString(int number, string separator = " ")
         {

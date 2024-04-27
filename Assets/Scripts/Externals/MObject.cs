@@ -1,9 +1,13 @@
-﻿using System;
-using Tools;
+﻿using Tools;
 using UnityEngine;
 
 public class MObject : MonoBehaviour
 {
+    #region Members
+
+    bool m_Initialized = false;
+
+    #endregion
 
     #region Init & End
 
@@ -25,12 +29,18 @@ public class MObject : MonoBehaviour
     public virtual void Initialize()
     {
         FindComponents();
+        SetUpUI();
         RegisterListeners();
+
+        m_Initialized = true;
     }
+
     protected virtual void FindComponents() { }
+    protected virtual void SetUpUI() { }
     protected virtual void RegisterListeners() 
     {
-        UnRegisterListeners();
+        if (m_Initialized)
+            UnRegisterListeners();
     }
 
     protected virtual void UnRegisterListeners() { }

@@ -2,7 +2,7 @@
 
 namespace Menu.MainMenu
 {
-    public class TabContent : MonoBehaviour
+    public class TabContent : MObject
     {
         #region Members
 
@@ -22,6 +22,7 @@ namespace Menu.MainMenu
         /// <param name="tabButton"></param>
         public virtual void Initialize(TabButton tabButton)
         {
+            base.Initialize();
             m_TabButton = tabButton;
         }
 
@@ -39,11 +40,6 @@ namespace Menu.MainMenu
         /// Called on beeing un-registered from the "TabsManager"
         /// </summary>
         public virtual void UnRegister() { }
-
-        /// <summary>
-        /// Called before beeing destroyed
-        /// </summary>
-        protected virtual void OnDestroy() { }
 
         #endregion
 

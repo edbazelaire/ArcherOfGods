@@ -9,9 +9,76 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17da18073d87bd047971f63b1cb62a27, type: 3}
+  m_Script: {fileID: 11500000, guid: 9bf96ab3cd590dd4eb64ef847e4c7983, type: 3}
   m_Name: PlayedGames
   m_EditorClassIdentifier: 
-  Rarety: 0
-  Description: 
-  Stat: 0
+  Description: Number of game played
+  Analytics: 0
+  AnalyticsFilters: []
+  AchievementSubData:
+  - MaxValue: 10
+    AchivementRewardData:
+    - AchievementReward: 1
+      Title: 0
+      Avatar: 0
+      Border: 0
+      Badge: 1
+      League: 1
+    - AchievementReward: 2
+      Title: 0
+      Avatar: 103
+      Border: 0
+      Badge: 1
+      League: 2
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+  - MaxValue: 50
+    AchivementRewardData:
+    - AchievementReward: 1
+      Title: 0
+      Avatar: 0
+      Border: 0
+      Badge: 1
+      League: 2
+    - AchievementReward: 3
+      Title: 0
+      Avatar: 0
+      Border: 2
+      Badge: 1
+      League: 2
+    - AchievementReward: 2
+      Title: 0
+      Avatar: 102
+      Border: 2
+      Badge: 1
+      League: 2
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+  - MaxValue: 100
+    AchivementRewardData:
+    - AchievementReward: 1
+      Title: 0
+      Avatar: 0
+      Border: 0
+      Badge: 1
+      League: 3
+    - AchievementReward: 3
+      Title: 3
+      Avatar: 2
+      Border: 3
+      Badge: 1
+      League: 2
+    - AchievementReward: 4
+      Title: 3
+      Avatar: 2
+      Border: 0
+      Badge: 1
+      League: 2
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []

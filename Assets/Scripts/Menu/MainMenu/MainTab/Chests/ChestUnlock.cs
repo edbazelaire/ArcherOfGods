@@ -214,7 +214,7 @@ namespace Menu
                     // display rewards
                     var reward = new SRewardsData();
                     reward.Add(m_ChestData.ChestType, 1);
-                    Main.SetPopUp(EPopUpState.RewardsScreen, reward);
+                    Main.DisplayRewards(reward, ERewardContext.EndGameChest);
 
                     // remove chest in inventory
                     InventoryManager.RemoveChestAtIndex(m_Index);

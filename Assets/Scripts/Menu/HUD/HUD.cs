@@ -14,7 +14,6 @@ namespace Assets.Scripts.Menu
         #region Members
 
         GameObject m_ButtonsContainer;
-        Button m_ProfileButton;
 
         #endregion
 
@@ -31,7 +30,6 @@ namespace Assets.Scripts.Menu
             base.FindComponents();
 
             m_ButtonsContainer = Finder.Find(gameObject, "ButtonsContainer");
-            m_ProfileButton = Finder.FindComponent<Button>(m_ButtonsContainer, "ProfileButton");
         }
 
         #endregion
@@ -42,20 +40,11 @@ namespace Assets.Scripts.Menu
         protected override void RegisterListeners()
         {
             base.RegisterListeners();
-
-            m_ProfileButton.onClick.AddListener(OnProfileButtonClicked);
         }
 
         protected override void UnRegisterListeners()
         {
             base.UnRegisterListeners();
-
-            m_ProfileButton.onClick.RemoveAllListeners();
-        }
-
-        void OnProfileButtonClicked()
-        {
-            Main.ToggleProfileButton();
         }
 
         #endregion

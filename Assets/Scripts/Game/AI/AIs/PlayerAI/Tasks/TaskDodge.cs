@@ -1,11 +1,5 @@
 using AI;
-using Enums;
-using Game.Character;
-using Game.Spells;
-using System.Collections.Generic;
 using Tools;
-using UnityEditor.Experimental.GraphView;
-using UnityEngine;
 
 public class TaskDodge : TaskMove
 {

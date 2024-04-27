@@ -1,5 +1,6 @@
 ﻿using Data.GameManagement;
 using Enums;
+using Menu.Common.Buttons;
 using System.Globalization;
 using System.IO;
 using UnityEngine;
@@ -20,7 +21,7 @@ namespace Tools
         public const string c_SpellDataPath                 = c_DataPath + "Spells/";
         public const string c_StateEffectDataPath           = c_DataPath + "StateEffects/";
         public const string c_ItemsDataPath                 = c_DataPath + "Items/";
-        public const string c_AchievementsPath              = c_DataPath + "Achievements/";
+        public const string c_AchievementsDataPath          = c_DataPath + "Achievements/";
         public const string c_ChestsDataPath                = c_ItemsDataPath + "Chests/";
         public const string c_ManagementDataPath            = c_DataPath + "GameManagement/";
         public const string c_ArenaDataPath                 = c_ManagementDataPath + "Arenas/";
@@ -41,6 +42,7 @@ namespace Tools
         public const string c_UIPath                        = "UI/";
         // ---- Templates
         public const string c_TemplatesUIPath               = c_UIPath + "Templates/";
+        public const string c_AchievementsTemplatesPath     = c_TemplatesUIPath + "Achievements/";
         // ---- Commons
         public const string c_CommonPath                    = c_UIPath + "Common/";
         public const string c_ButtonPath                    = c_CommonPath + "Buttons/";
@@ -50,6 +52,7 @@ namespace Tools
         public const string c_MainUIComponentsInfosPath     = c_MainUIComponentsPath + "Infos/";
         public const string c_MainMenuPath                  = c_MainUIPath + "MainMenu/";
         public const string c_MainTabPath                   = c_MainMenuPath + "MainTab/";
+        public const string c_ProfileTabPath                    = c_MainMenuPath + "ProfileTab/";
         // ---- solo mode ui
         public const string c_SoloModeUIPath                = c_MainTabPath + "GameSection/SoloMode/";
         // ---- settings data
@@ -147,9 +150,40 @@ namespace Tools
             return Load<GameObject>(c_TemplatesUIPath + c_TemplatePrefix + suffix);
         }
 
+        public static T LoadTemplateItem<T>(string suffix = "") where T : Object
+        {
+            if (suffix != "")
+                return Load<T>(c_TemplatesUIPath + c_TemplatePrefix + suffix);
+
+            var allTemplates = LoadAll<T>(c_TemplatesUIPath);
+            
+            if (allTemplates.Length == 0)
+            {
+                ErrorHandler.Warning("Unable to find any template of type : " + typeof(T).ToString() + " - in " + c_TemplatesUIPath);
+                return null;
+            }
+
+            if (allTemplates.Length > 1)
+            {
+                ErrorHandler.Warning("Found multiple templates with type : " + typeof(T).ToString());
+            }
+
+            return allTemplates[0];
+        }
+
         public static GameObject LoadTemplateItem(System.Enum item)
         {
             return LoadTemplateItem(item.GetType().ToString().Split('.')[1][1..] + "Item");
+        }
+
+        public static AchievementRewardUI LoadAchievementRewardTemplate(EAchievementReward achievementReward)
+        {
+            string templateBaseName = achievementReward.ToString();
+            if (achievementReward == EAchievementReward.Border)
+            {
+                templateBaseName = EAchievementReward.Avatar.ToString();
+            }
+            return Load<AchievementRewardUI>(templateBaseName + "Button", c_AchievementsTemplatesPath);
         }
 
         public static GameObject LoadArenaButton(EArenaType arenaType)
@@ -258,7 +292,12 @@ namespace Tools
 
         public static Sprite LoadBadgeIcon(EBadge badge, ELeague league)
         {
-            return Load<Sprite>(badge.ToString() + (league != ELeague.None ? league.ToString() : ""), c_BadgesPath);
+            return LoadBadgeIcon(badge.ToString() + (league != ELeague.None ? league.ToString() : ""));
+        }
+
+        public static Sprite LoadBadgeIcon(string badge)
+        {
+            return Load<Sprite>(badge, c_BadgesPath);
         }
 
         #endregion

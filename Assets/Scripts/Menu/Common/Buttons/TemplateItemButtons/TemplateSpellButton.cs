@@ -21,7 +21,6 @@ namespace Menu.Common.Buttons
 
         #endregion
 
-
     
         #region GUI Manipulators
 

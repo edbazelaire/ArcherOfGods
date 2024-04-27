@@ -365,7 +365,7 @@ namespace Tools
         /// <summary>
         /// Display all commands
         /// </summary>
-        [Command(KeyCode.H)]
+        [Command]
         public void Help()
         {
             ConsoleUI.Log(" ");
@@ -428,6 +428,101 @@ namespace Tools
                 InventoryCloudData.Instance.SetCollectable(data);
             }
         }
+
+        #region Debug Achievements
+
+        [Command]
+        public void ResetAchievements()
+        {
+            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_ACHIEVEMENTS);
+        }
+
+        #endregion
+
+        #region Debug Achivement Rewards
+
+        [Command]
+        public void UnlockAllAR()
+        {
+            // reset all before unlocking all (to avoid Error throws)
+            ResetAllAR();
+
+            UnlockAllAvatars();
+            UnlockAllBorders();
+            UnlockAllTitles();
+            UnlockAllBadges();
+        }
+
+        [Command]
+        public void ResetAllAR()
+        {
+            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_ACHIEVEMENT_REWARDS);
+        
+            // -- also reset current profile data to avoid settings not unlocked
+            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_CURRENT_PROFILE_DATA);
+            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_CURRENT_BADGES);
+        }
+
+        [Command]
+        public void UnlockAllAvatars()
+        {
+            foreach (EAvatar value in Enum.GetValues(typeof(EAvatar)))
+            {
+                if (value == EAvatar.None)
+                    continue;
+
+                ProfileCloudData.AddAchievementReward(EAchievementReward.Avatar, value.ToString());
+            }
+        }
+
+        [Command]
+        public void UnlockAllBorders()
+        {
+            foreach (EBorder value in Enum.GetValues(typeof(EBorder)))
+            {
+                if (value == EBorder.None)
+                    continue;
+
+                ProfileCloudData.AddAchievementReward(EAchievementReward.Border, value.ToString());
+            }
+        }
+
+        [Command]
+        public void UnlockAllTitles()
+        {
+            foreach (ETitle value in Enum.GetValues(typeof(ETitle)))
+            {
+                if (value == ETitle.None)
+                    continue;
+
+                ProfileCloudData.AddAchievementReward(EAchievementReward.Title, value.ToString());
+            }
+        }
+
+        [Command]
+        public void UnlockAllBadges()
+        {
+            foreach (EBadge value in Enum.GetValues(typeof(EBadge)))
+            {
+                if (value == EBadge.None)
+                    continue;
+
+                foreach (ELeague league in Enum.GetValues(typeof(ELeague)))
+                {
+                    string badgeName = ProfileCloudData.BadgeToString(value, league);
+
+                    // check icon exists
+                    if (AssetLoader.LoadBadgeIcon(badgeName) == null)
+                        continue;
+
+                    ProfileCloudData.AddAchievementReward(EAchievementReward.Badge, badgeName);
+                }
+
+            }
+        }
+
+        #endregion
+
 
         [Command]
         public void DisplayErrors()

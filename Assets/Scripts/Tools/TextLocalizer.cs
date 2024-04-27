@@ -25,6 +25,9 @@ namespace Tools
 
         public static string SplitCamelCase(string input)
         {
+            if (input == null || input == "")
+                return "";
+
             // Use regular expression to split UpperCamelCase string with spaces
             string output = Regex.Replace(input, "(\\B[A-Z])", " $1");
 

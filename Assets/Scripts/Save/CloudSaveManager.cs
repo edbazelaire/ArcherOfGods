@@ -43,6 +43,7 @@ namespace Save
                 new ChestsCloudData(),
                 new ProfileCloudData(),
                 new StatCloudData(),
+                new ProgressionCloudData(),
             };
         }
 

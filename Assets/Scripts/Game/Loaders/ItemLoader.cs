@@ -10,12 +10,14 @@ namespace Game.Loaders
 
         static ChestRewardData[] m_ChestRewardData;
 
+        public static ChestRewardData[] ChestRewardData => m_ChestRewardData;
+
         #endregion
 
 
         #region Init & End
 
-        static void Initialize()
+        public static void Initialize()
         {
             m_ChestRewardData = AssetLoader.LoadAll<ChestRewardData>(AssetLoader.c_ChestsDataPath);
         }

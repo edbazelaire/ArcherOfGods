@@ -2,11 +2,13 @@
 using System.Collections;
 using Tools;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Menu.MainMenu
 {
     public enum EMainMenuTabs
     {
+        ProfileTab,
         MainTab,
         InventoryTab,
         ShopTab,
@@ -161,6 +163,13 @@ namespace Menu.MainMenu
             if (Enum.IsDefined(typeof(EMainMenuTabs), nextTab))
                 SelectTab((EMainMenuTabs)nextTab);
             
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            var pos = m_TabsContainerContent.transform.localPosition;
+            pos.x += eventData.delta.x;
+            m_TabsContainerContent.transform.localPosition = pos;
         }
 
         #endregion

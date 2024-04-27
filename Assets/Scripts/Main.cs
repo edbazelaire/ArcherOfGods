@@ -16,6 +16,8 @@ using System.Linq;
 using Data.GameManagement;
 using System.Collections.Generic;
 using Menu.PopUps.PopUps;
+using Scripts.Menu.PopUps;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -81,6 +83,8 @@ namespace Assets
             try
             {
                 PlayerPrefsHandler.Initialize();
+                AchievementLoader.Initialize();
+                ItemLoader.Initialize();
 
                 // register to state changes 
                 StateChangedEvent += OnStateChanged;
@@ -120,10 +124,12 @@ namespace Assets
         {
             float timer = 30f; // set a timer of 30s to avoid inf loop
             while (
-                CharacterLoader.Instance == null
-                || SpellLoader.Instance == null
-                || SceneLoader.Instance == null
-                || RelayHandler.Instance == null
+                CharacterLoader.Instance            == null
+                || SpellLoader.Instance             == null
+                || SceneLoader.Instance             == null
+                || ItemLoader.ChestRewardData       == null
+                || AchievementLoader.Achievements   == null
+                || RelayHandler.Instance            == null
                 || ! m_CloudSaveManager.LoadingCompleted
                 || ! m_SignedIn
             )
@@ -220,7 +226,11 @@ namespace Assets
 
                 // SCREENS -------------------------------------------------------
                 case EPopUpState.RewardsScreen:
-                    obj.GetComponent<RewardsScreen>().Initialize((SRewardsData)args[0]);
+                    obj.GetComponent<RewardsScreen>().Initialize((SRewardsData)args[0], (string)args[1]);
+                    break;
+
+                case EPopUpState.AchievementRewardScreen:
+                    obj.GetComponent<AchievementRewardScreen>().Initialize((List<SAchievementRewardData>)args[0]);
                     break;
 
                 case EPopUpState.ArenaPathScreen:
@@ -229,11 +239,6 @@ namespace Assets
 
                 case EPopUpState.LevelUpScreen:
                     obj.GetComponent<LevelUpScreen>().Initialize((ECharacter)args[0]);
-                    break;
-
-                // OPTIONS POP UPS -------------------------------------------------------
-                case EPopUpState.ProfilePopUp:
-                    obj.GetComponent<ProfilePopUp>().Initialize();
                     break;
 
                 // INFO POP UPS -------------------------------------------------------
@@ -260,9 +265,15 @@ namespace Assets
             }
         }
 
-        public static void DisplayRewards(SRewardsData rewardsData)
+        public static void DisplayRewards(SRewardsData rewardsData, ERewardContext context)
         {
-            Main.SetPopUp(EPopUpState.RewardsScreen, rewardsData);
+            Main.SetPopUp(EPopUpState.RewardsScreen, rewardsData, context.ToString());
+        }
+        
+
+        public static void DisplayAchievementRewards(List<SAchievementRewardData> rewardsData)
+        {
+            Main.SetPopUp(EPopUpState.AchievementRewardScreen, rewardsData);
         }
 
         public static void ConfirmBuyRewards(SPriceData priceData, SRewardsData rewardsData)
@@ -301,15 +312,6 @@ namespace Assets
         public static void StateEffectPopUp(SStateEffectData stateEffectData, int level)
         {
             SetPopUp(EPopUpState.StateEffectPopUp, stateEffectData, level);
-        }
-
-        public static void ToggleProfileButton()
-        {
-            ProfilePopUp popUp = Finder.FindComponent<ProfilePopUp>("ProfilePopUp", throwError: false);
-            if (popUp == null)
-                Main.SetPopUp(EPopUpState.ProfilePopUp);
-            else
-                popUp.Close();
         }
 
         #endregion

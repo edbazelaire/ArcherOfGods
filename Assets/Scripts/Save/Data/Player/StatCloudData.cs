@@ -1,7 +1,11 @@
 ﻿using Assets;
+using Data;
 using Enums;
+using MyBox;
+using Save.Data;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tools;
 using Unity.Services.CloudSave.Models;
 
@@ -14,19 +18,24 @@ namespace Save
         public new static StatCloudData Instance => Main.CloudSaveManager.GetCloudData(typeof(StatCloudData)) as StatCloudData;
 
         // ===============================================================================================
+        // CONSTANTS
+        public const string KEY_ANALYTICS = "Analytics";
+
+        // ===============================================================================================
         // ACTIONS
-        public static Action<EStatData> StatDataChangedEvent;
+        public static Action<EAnalytics> AnalyticsDataChanged;
 
         // ===============================================================================================
         // DATA
-        /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
-            { EStatData.PlayedGames.ToString(), 0 },
-            { EStatData.Wins.ToString(),        0 },
+            { EAnalytics.GameEnded.ToString(),              new List<SGameEndedCloudData>()         },
+            { EAnalytics.CurrencyChanged.ToString(),        new List<SCurrencyEventCloudData>()     },
         };
 
         // ===============================================================================================
         // DEPENDENT STATIC ACCESSORS
+        public static List<SGameEndedCloudData>     GameEndedData   => Instance.m_Data[EAnalytics.GameEnded.ToString()] as List<SGameEndedCloudData>;
+        public static List<SCurrencyEventCloudData> CurrencyData    => Instance.m_Data[EAnalytics.CurrencyChanged.ToString()] as List<SCurrencyEventCloudData>;
 
         #endregion
 
@@ -40,6 +49,12 @@ namespace Save
         /// <returns></returns>
         protected override object Convert(Item item)
         {
+            if (m_Data[item.Key].GetType() == typeof(List<SGameEndedCloudData>))
+                return item.Value.GetAs<List<SGameEndedCloudData>>();
+
+            if (m_Data[item.Key].GetType() == typeof(List<SCurrencyEventCloudData>))
+                return item.Value.GetAs<List<SCurrencyEventCloudData>>();
+
             return base.Convert(item);
         }
 
@@ -48,27 +63,79 @@ namespace Save
 
         #region Accessors
 
-        public static float GetData(EStatData statData)
+        public static int GetAnalyticsCount(EAnalytics analytics, List<SAnalyticsFilter> filters = default)
         {
-            if (! Instance.m_Data.ContainsKey(statData.ToString()))
+            int count = 0;
+
+            foreach (SAnalyticsData data in GetAnalytics(analytics))
             {
-                ErrorHandler.Error("Unabel to find statData " + statData + " in cloud data");
-                return 0f;
+                if (data.CheckFilters(filters))
+                    count += data.Count;
             }
 
-            if (float.TryParse(Instance.m_Data[statData.ToString()].ToString(), out float value))
-                return value;
-
-            ErrorHandler.Error("Unable to read " + statData.ToString() + " with value " + value + " as float");
-            return 0f;
+            ErrorHandler.Log($"Count of {analytics} : " + count, ELogTag.StatCloudData);
+            return count;
         }
 
-        public static void SetData(EStatData statData, float value)
+        public static List<SAnalyticsData> GetAnalytics(EAnalytics analytics)
         {
-            Instance.m_Data[statData.ToString()] = value;   
-            Instance.SaveValue(statData.ToString());
+            if (!Instance.m_Data.ContainsKey(analytics.ToString()))
+            {
+                ErrorHandler.Warning("Unable to find analytics " + analytics + " in cloud data");
+                return new List<SAnalyticsData>(); // Return an empty list if key is not found
+            }
 
-            StatDataChangedEvent?.Invoke(statData);
+            var data = Instance.m_Data[analytics.ToString()];
+            // Convert the list items to SAnalyticsData using LINQ
+            if (data is IEnumerable<SAnalyticsData> dataList)
+            {
+                // Select and convert each item to SAnalyticsData
+                List<SAnalyticsData> convertedList = dataList.Cast<SAnalyticsData>().ToList();
+                return convertedList;
+            }
+
+            ErrorHandler.Warning("Analytics data of " + analytics + " is not of expected type");
+            return new List<SAnalyticsData>(); // Return an empty list if type is unexpected
+        }
+
+        public static void AddAnalytics(EAnalytics analytics, SAnalyticsData data) 
+        {
+            var analyticsData = GetAnalytics(analytics);
+
+            // find matching data in the list of data
+            int index = analyticsData.FirstIndex(d => d.Equals(data));
+            if (index < 0)
+            {
+                // No match found, add new data
+                analyticsData.Add(data);
+            }
+            else
+            {
+                // Match found, increase count
+                analyticsData[index].Count++;
+            }
+
+            // save and fire event
+            Instance.m_Data[analytics.ToString()] = analyticsData;
+            Instance.SaveValue(analytics.ToString());
+            AnalyticsDataChanged?.Invoke(analytics);
+        }
+
+        #endregion
+
+
+        #region Default Data
+
+        void Reset(string key)
+        {
+            if (key == EAnalytics.GameEnded.ToString())
+                Instance.m_Data[key] = new List<SGameEndedCloudData>();
+
+            else if (key == EAnalytics.CurrencyChanged.ToString())
+                Instance.m_Data[key] = new List<SCurrencyEventCloudData>();
+
+            else
+                ErrorHandler.Error("Unhandled key : " + key);   
         }
 
         #endregion
@@ -76,7 +143,7 @@ namespace Save
 
         #region Checkers
 
-
+       
         #endregion
 
 
@@ -85,6 +152,12 @@ namespace Save
         protected override void OnCloudDataKeyLoaded(string key)
         {
             base.OnCloudDataKeyLoaded(key);
+
+            // default check
+            if (Instance.m_Data[key] == null)
+            {
+                Reset(key);
+            }
         }
 
         #endregion

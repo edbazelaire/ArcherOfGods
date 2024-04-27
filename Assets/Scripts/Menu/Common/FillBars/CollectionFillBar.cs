@@ -14,7 +14,9 @@ namespace Menu.Common
     {
         #region Members
 
-        const string COLLECTION_VALUE_FORMAT = "{0} / {1}";
+        const string COLLECTION_VALUE_FORMAT    = "{0} / {1}";
+        const string COLLECTION_FLOAT_FORMAT    = "{0} / {1}";
+        const string COLLECTION_PERC_FORMAT     = "{0}%";
 
         [SerializeField] float  m_CollectionAnimationDuration = 1.0f;
         [SerializeField] Color  m_FullColor;
@@ -28,9 +30,10 @@ namespace Menu.Common
         GameObject              m_Glow;
 
         SCollectableCloudData?  m_CollectableCloudData = null;
-        int                     m_CurrentCollection;
-        int                     m_MaxCollection;
+        float                   m_CurrentCollection;
+        float                   m_MaxCollection;
         float                   m_GlowPauseTimer;
+        bool                    m_IsPerc;
 
         Coroutine               m_Animation;
 
@@ -49,7 +52,7 @@ namespace Menu.Common
             RegisterListeners();
         } 
 
-        public void Initialize(int currentValue, int maxCollection)
+        public void Initialize(float currentValue, float maxCollection)
         {
             base.Initialize();
 
@@ -57,6 +60,12 @@ namespace Menu.Common
             m_MaxCollection = maxCollection;
 
             RefreshUI();
+        }
+
+        public void InitializePercentage(float percentage)
+        {
+            m_IsPerc = true;
+            Initialize(percentage, 100);
         }
 
         protected override void FindComponents()
@@ -118,7 +127,7 @@ namespace Menu.Common
                 return;
             }
 
-            m_CollectionFill.fillAmount = Mathf.Clamp((float)m_CurrentCollection / (float)m_MaxCollection, 0, 1);
+            m_CollectionFill.fillAmount = Mathf.Clamp(m_CurrentCollection / m_MaxCollection, 0, 1);
             if (m_CurrentCollection >= m_MaxCollection)
             {
                 m_CollectionFill.color = m_FullColor;
@@ -128,6 +137,23 @@ namespace Menu.Common
             {
                 m_CollectionFill.color = m_BaseColor;
                 m_Glow.SetActive(false);
+            }
+
+            DisplayText();
+        }
+
+        void DisplayText()
+        {
+            if (m_IsPerc)
+            {
+                m_CollectionValue.text = string.Format(COLLECTION_PERC_FORMAT, Mathf.Round(m_CurrentCollection));
+                return;
+            }
+
+            if (Mathf.Round(m_CurrentCollection) == m_CurrentCollection && Mathf.Round(m_MaxCollection) == m_MaxCollection)
+            {
+                m_CollectionValue.text = string.Format(COLLECTION_VALUE_FORMAT, (int)m_CurrentCollection, (int)m_MaxCollection);
+                return;
             }
 
             m_CollectionValue.text = string.Format(COLLECTION_VALUE_FORMAT, m_CurrentCollection, m_MaxCollection);
@@ -149,7 +175,7 @@ namespace Menu.Common
             UpdateCollection(m_CollectableCloudData.Value.Qty, CollectablesManagementData.GetLevelData(m_CollectableCloudData.Value.GetCollectable(), m_CollectableCloudData.Value.Level).RequiredQty);
         }
 
-        public void UpdateCollection(int newValue, int? maxCollection = null)
+        public void UpdateCollection(float newValue, float? maxCollection = null)
         {
             if (maxCollection != null)
                 m_MaxCollection = maxCollection.Value;
@@ -158,19 +184,19 @@ namespace Menu.Common
             RefreshUI();
         }
 
-        public void Add(int amount)
+        public void Add(float amount)
         {
             UpdateCollection(m_CurrentCollection + amount);
         }
 
-        public void AddCollectionAnimation(int amount)
+        public void AddCollectionAnimation(float amount)
         {
             m_Animation = StartCoroutine(CollectionAnimationCoroutine(amount));
         }
 
-        public IEnumerator CollectionAnimationCoroutine(int amount)
+        public IEnumerator CollectionAnimationCoroutine(float amount)
         {
-            int goal = m_CurrentCollection + amount;
+            float goal = m_CurrentCollection + amount;
             float newValue = m_CurrentCollection;
             while (m_CurrentCollection < goal) 
             {

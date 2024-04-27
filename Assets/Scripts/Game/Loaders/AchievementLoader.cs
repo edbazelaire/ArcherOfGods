@@ -10,9 +10,9 @@ namespace Game.Loaders
     {
         #region Members
 
-        static List<Achievement> m_Achievements;
+        static List<AchievementData> m_Achievements;
 
-        static List<Achievement> Achievements => m_Achievements;
+        public static List<AchievementData> Achievements => m_Achievements;
 
         #endregion
 
@@ -21,7 +21,7 @@ namespace Game.Loaders
         
         public static void Initialize()
         {
-            m_Achievements = AssetLoader.LoadAll<Achievement>(AssetLoader.c_AchievementsPath).ToList();
+            m_Achievements = AssetLoader.LoadAll<AchievementData>(AssetLoader.c_AchievementsDataPath).ToList();
         }
 
         #endregion
@@ -35,20 +35,23 @@ namespace Game.Loaders
         /// <param name="achievements"></param>
         /// <param name="statData"></param>
         /// <returns></returns>
-        public static List<Achievement> FilterAchievementsByStatData(List<Achievement> achievements, EStatData statData)
+        public static List<AchievementData> FilterAchievementsByStatData(List<AchievementData> achievements, EAnalytics analytics)
         {
-            if (statData == EStatData.None)
-                return achievements;
+            ErrorHandler.Warning("Call deactivated method : FilterAchievementsByStatData()");
+            return achievements;
 
-            List<Achievement> filteredAchivements = new();
+            //if (statData == EStatData.None)
+            //    return achievements;
 
-            foreach (Achievement achievement in achievements)
-            {
-                if (achievement.StatData == statData)
-                    filteredAchivements.Add(achievement);
-            }
+            //List<AchievementData> filteredAchivements = new();
 
-            return filteredAchivements;
+            //foreach (AchievementData achievement in achievements)
+            //{
+            //    if (achievement.Ac == statData)
+            //        filteredAchivements.Add(achievement);
+            //}
+
+            //return filteredAchivements;
         }
 
         #endregion

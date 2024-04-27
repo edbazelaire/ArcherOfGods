@@ -1,7 +1,9 @@
-﻿using Data.GameManagement;
+﻿using Analytics.Events;
+using Data.GameManagement;
 using Enums;
 using Game;
 using Inventory;
+using Managers;
 using Network;
 using Save;
 using System.Collections.Generic;
@@ -32,30 +34,35 @@ public class EndGameUI : MonoBehaviour
     #endregion
 
 
+    #region Init & End
+
     // Use this for initialization
     public void SetUpGameOver(bool win)
     {
         InitializeUI();
 
+        ErrorHandler.Log("END OF GAME : " + LobbyHandler.Instance.GameMode + " - " + (win ? "WIN" : "LOSS"));
+
         m_TitleText.text = win ? "Victory" : "Defeat";
         m_TitleText.color = win ? Color.green : Color.red;
 
         HandleReward(win);
-        HandleSoloDataUpdate(win);
+        HandleProgression(win);
+        HandleEndGameData(win);
 
         m_LeaveButton.onClick.AddListener(Leave);
     }
 
     void InitializeUI()
     {
-        m_TitleText             = Finder.FindComponent<TMP_Text>(gameObject, c_TitleText);
-        m_LeaveButton           = Finder.FindComponent<Button>(gameObject, c_LeaveButton);
-        m_RewardsContent        = Finder.Find(gameObject, "RewardsContent");
-        m_XpRewardDisplay       = Finder.Find(m_RewardsContent, "XpRewardDisplay");
-        m_XpQty                 = Finder.FindComponent<TMP_Text>(m_XpRewardDisplay, "Qty");
-        m_GoldsRewardDisplay    = Finder.Find(m_RewardsContent, "GoldsRewardDisplay");
-        m_GoldsQty              = Finder.FindComponent<TMP_Text>(m_GoldsRewardDisplay, "Qty");
-        m_ChestRewardIcon       = Finder.FindComponent<Image>(m_RewardsContent, "ChestRewardIcon");
+        m_TitleText = Finder.FindComponent<TMP_Text>(gameObject, c_TitleText);
+        m_LeaveButton = Finder.FindComponent<Button>(gameObject, c_LeaveButton);
+        m_RewardsContent = Finder.Find(gameObject, "RewardsContent");
+        m_XpRewardDisplay = Finder.Find(m_RewardsContent, "XpRewardDisplay");
+        m_XpQty = Finder.FindComponent<TMP_Text>(m_XpRewardDisplay, "Qty");
+        m_GoldsRewardDisplay = Finder.Find(m_RewardsContent, "GoldsRewardDisplay");
+        m_GoldsQty = Finder.FindComponent<TMP_Text>(m_GoldsRewardDisplay, "Qty");
+        m_ChestRewardIcon = Finder.FindComponent<Image>(m_RewardsContent, "ChestRewardIcon");
     }
 
     void Leave()
@@ -69,6 +76,8 @@ public class EndGameUI : MonoBehaviour
         // load MainMenu
         SceneLoader.Instance.LoadScene("MainMenu");
     }
+
+    #endregion
 
 
     #region Reward & EndGame
@@ -103,7 +112,7 @@ public class EndGameUI : MonoBehaviour
         {
             m_GoldsRewardDisplay.SetActive(true);
             m_GoldsQty.text = string.Format(GOLDS_FORMAT, golds);
-            InventoryManager.AddGolds(golds);
+            InventoryManager.UpdateCurrency(ECurrency.Golds, golds, ERewardContext.EndGameChest.ToString()) ;
         }
 
         // ----------------------------------------------------------------------------
@@ -131,16 +140,34 @@ public class EndGameUI : MonoBehaviour
         }
 
         ErrorHandler.Log("HandleReward() : end", ELogTag.Rewards);
-
     }
 
-    void HandleSoloDataUpdate(bool win)
+    void HandleProgression(bool win)
     {
-        if (LobbyHandler.Instance.GameMode == EGameMode.Solo)
+        switch (LobbyHandler.Instance.GameMode)
         {
-            ArenaData arenaData = AssetLoader.LoadArenaData(PlayerPrefsHandler.GetArenaType());
-            arenaData.UpdateStageValue(win);
+            case EGameMode.Solo:
+                ArenaData arenaData = AssetLoader.LoadArenaData(PlayerPrefsHandler.GetArenaType());
+                arenaData.UpdateStageValue(win);
+                break;
+
+            case EGameMode.Multi:
+                break;
+
+            default:
+                ErrorHandler.Error("Unhandled case : " + LobbyHandler.Instance.GameMode);
+                break;
         }
+    }
+
+    /// <summary>
+    /// Handle data display/save at the end of the game
+    /// </summary>
+    /// <param name="win"></param>
+    void HandleEndGameData(bool win)
+    {
+        // send analytics event (that also saves in StatCloudData)
+        MAnalytics.SendEvent(new GameEndedEvent(LobbyHandler.Instance.GameMode, win, StaticPlayerData.Character, StaticPlayerData.CharacterLevel)); ;
     }
 
     #endregion

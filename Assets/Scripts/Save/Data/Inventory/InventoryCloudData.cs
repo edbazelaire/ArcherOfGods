@@ -1,4 +1,5 @@
-﻿using Assets;
+﻿using Analytics.Events;
+using Assets;
 using Data.GameManagement;
 using Enums;
 using Game.Loaders;
@@ -186,10 +187,13 @@ namespace Save
 
         public override void SetData(string key, object value, bool save = false)
         {
+            object previousValue = m_Data[key];
+
             base.SetData(key, value, save);
 
             if (Enum.TryParse(key, out ECurrency currency))
             {
+                // fire event that currency has changed
                 CurrencyChangedEvent?.Invoke(currency, System.Convert.ToInt32(value));
             }
         }

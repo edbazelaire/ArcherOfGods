@@ -1,10 +1,12 @@
-﻿using Data.GameManagement;
+﻿using Analytics.Events;
+using Data.GameManagement;
 using Enums;
 using Game.Loaders;
 using Save;
 using System;
 using System.Collections.Generic;
 using Tools;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace Inventory
 {
@@ -41,7 +43,7 @@ namespace Inventory
             return (int)InventoryCloudData.Instance.Data[currency.ToString()];
         }
 
-        public static void UpdateCurrency(ECurrency currency, int amount)
+        public static void UpdateCurrency(ECurrency currency, int amount, string context)
         {
             var data = InventoryCloudData.Instance.Data;
 
@@ -52,12 +54,13 @@ namespace Inventory
             }
 
             var total = (int)data[currency.ToString()] + amount;
-            if (amount < 0)
+            if (total < 0)
             {
                 ErrorHandler.Error($"Not enought {currency} ({(int)data[currency.ToString()]}) to spend ({amount})");
                 return;
             }
 
+            MAnalytics.SendEvent(new CurrencyEvent(currency, amount, context));
             InventoryCloudData.Instance.SetData(currency.ToString(), total);
         }
 
@@ -76,7 +79,7 @@ namespace Inventory
         /// </summary>
         /// <param name="cost"></param>
         /// <returns></returns>
-        public static bool Spend(int cost, ECurrency currency)
+        public static bool Spend(int cost, ECurrency currency, string context)
         {
             if (cost < 0)
             {
@@ -90,44 +93,13 @@ namespace Inventory
                 return false;
             }
 
+            // fire analytics event that the currency has been spent
+            MAnalytics.SendEvent(new CurrencyEvent(currency, cost, context));
+
+            // save new currency value in cloud data
             InventoryCloudData.Instance.SetData(currency.ToString(), GetCurrency(currency) - cost);
+            
             return true;
-        }
-
-        /// <summary>
-        /// Add golds to cloud data
-        /// </summary>
-        /// <param name="qty"></param>
-        public static void AddGolds(int qty)
-        {
-            if (qty < 0)
-            {
-                ErrorHandler.Error($"Trying to add a negative amount of gold ({qty}) : use the Spend() method");
-                return;
-            }
-
-            InventoryCloudData.Instance.SetData(ECurrency.Golds, Golds + qty);
-        }
-
-        /// <summary>
-        /// Spend golds
-        /// </summary>
-        /// <param name="cost"></param>
-        public static void SpendGolds(int cost)
-        {
-            if (cost < 0)
-            {
-                ErrorHandler.Error($"Trying to add a spend a negative amount of gold ({cost}) : use the AddGolds() method");
-                return;
-            }
-
-            if (! CanBuy(cost)) 
-            {
-                ErrorHandler.Error($"Not enought golds ({Golds}) to buy the item ({cost}) : this situation should not happen");
-                return;
-            }
-
-            InventoryCloudData.Instance.SetData(ECurrency.Golds, Golds - cost);
         }
 
         #endregion
@@ -202,7 +174,7 @@ namespace Inventory
             SLevelData levelData = CollectablesManagementData.GetLevelData(collectable, data.Level);
 
             // UPGRADE : spend golds and cards to update the level
-            if (! Spend(levelData.RequiredGolds, ECurrency.Golds))
+            if (! Spend(levelData.RequiredGolds, ECurrency.Golds, "Upgrade" + collectable.GetType()))
                 return;
 
             data.Qty -= levelData.RequiredQty;
@@ -330,34 +302,6 @@ namespace Inventory
             Chests[index] = null;
             ChestsCloudData.Instance.SaveValue(ChestsCloudData.KEY_CHESTS);
         } 
-
-        /// <summary>
-        /// Add a list of rewards to the inventory
-        /// </summary>
-        /// <param name="rewards"></param>
-        public static void CollectRewards(List<SReward> rewards)
-        {
-            foreach (SReward reward in rewards) 
-            {
-                CollectReward(reward);
-            }
-        }
-
-        /// <summary>
-        /// Add a reward to the inventory
-        /// </summary>
-        /// <param name="reward"></param>
-        public static void CollectReward(SReward reward)
-        {
-            if (Enum.TryParse(reward.RewardName, out ECurrency currency))
-                UpdateCurrency(currency, reward.Qty);
-
-            else if (Enum.TryParse(reward.RewardName, out EChest chestType))
-                CollectRewards(ItemLoader.GetChestRewardData(chestType).GenerateRewards());
-
-            else
-                AddCollectable(CollectablesManagementData.Cast(reward.RewardName, reward.RewardType), reward.Qty);
-        }
 
         #endregion
     }

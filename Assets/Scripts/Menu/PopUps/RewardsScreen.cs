@@ -39,6 +39,7 @@ namespace Menu.PopUps
 
         // SPECIFIC DATA
         SRewardsData        m_RewardsData;
+        string              m_Context;
 
         int                 m_Depth = 0;
         GameObject          m_CurrentTemplateItem = null;
@@ -72,11 +73,12 @@ namespace Menu.PopUps
         /// </summary>
         /// <param name="chestType"></param>
         /// <param name="chestIndex"></param>
-        public void Initialize(SRewardsData rewardsData)
+        public void Initialize(SRewardsData rewardsData, string context)
         {
             base.Initialize();
 
             m_RewardsData = rewardsData;
+            m_Context = context;
             m_CurrentChestRewardData    = null;
         }
 
@@ -227,7 +229,7 @@ namespace Menu.PopUps
             m_CollectionFillBar.AddCollectionAnimation(qty);
 
             // add reward to collection of rewards
-            InventoryManager.UpdateCurrency(currency, qty);
+            InventoryManager.UpdateCurrency(currency, qty, m_Context);
         }
 
         IEnumerator DisplayCollectableReward(Enum collectable, int qty)
@@ -330,6 +332,7 @@ namespace Menu.PopUps
             componentUI.SetMysteryIcon(false);
 
             var raretyColor = CollectablesManagementData.GetRaretyData(componentUI.CollectableCloudData.GetCollectable()).Color;
+            raretyColor.a = 0.6f;
             AnimationHandler.AddRaycast(m_RewardIconSection, color: raretyColor);
 
             yield return new WaitForSeconds(0.45f);
