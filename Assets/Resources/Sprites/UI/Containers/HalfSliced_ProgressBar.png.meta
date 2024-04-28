@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      HalfSliced_ProgressBar_0: 9139814897584261932
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

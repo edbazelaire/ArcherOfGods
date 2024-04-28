@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      PadLockLock 1_0: -112196019713475268
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
