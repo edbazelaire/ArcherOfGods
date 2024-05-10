@@ -24,7 +24,7 @@ namespace Menu.MainMenu.MainTab
         const string            c_Dropdown                          = "Dropdown";
 
         CharacterPreviewSectionUI   m_CharacterPreviewSection;
-        CharacterSelectionUI        m_CharacterSelection;
+        CharacterSelectionWindow    m_CharacterSelection;
         GameSectionUI               m_GameSectionUI;
         Button                      m_PlayButton;
         Image                       m_PlayButtonImage;
@@ -40,7 +40,7 @@ namespace Menu.MainMenu.MainTab
             base.FindComponents(); 
 
             m_CharacterPreviewSection           = Finder.FindComponent<CharacterPreviewSectionUI>(gameObject, c_CharacterPreviewSection);
-            m_CharacterSelection                = Finder.FindComponent<CharacterSelectionUI>(gameObject, c_CharacterSelectionPopUp);
+            m_CharacterSelection                = Finder.FindComponent<CharacterSelectionWindow>(gameObject, c_CharacterSelectionPopUp);
             m_GameSectionUI                     = Finder.FindComponent<GameSectionUI>(gameObject, "GameSection");
             m_PlayButton                        = Finder.FindComponent<Button>(gameObject, c_PlayButton);
             m_PlayButtonImage                   = Finder.FindComponent<Image>(m_PlayButton.gameObject);
@@ -73,13 +73,6 @@ namespace Menu.MainMenu.MainTab
             ArenaData.ArenaLevelCompletedEvent += OnArenaLevelCompleted;
         }
 
-        public override void Activate(bool activate)
-        {
-            base.Activate(activate);
-
-            m_CharacterPreviewSection.Activate(activate);
-        }
-
         protected override void OnDestroy()
         {
             base.OnDestroy();
@@ -106,6 +99,27 @@ namespace Menu.MainMenu.MainTab
 
             // set value to last selected value
             m_GameTypeDropDown.value = modes.IndexOf(PlayerPrefsHandler.GetGameMode().ToString());
+        }
+
+        #endregion
+
+
+        #region Activation / Deactivation
+
+        public override void Activate(bool activate)
+        {
+            base.Activate(activate);
+
+            m_CharacterPreviewSection.Activate(activate);
+
+            if (!activate)
+                OnDeactivation();
+        }
+
+        void OnDeactivation()
+        {
+            if (m_CharacterSelection.IsOpened)
+                m_CharacterSelection.Close();
         }
 
         #endregion
@@ -142,7 +156,10 @@ namespace Menu.MainMenu.MainTab
             if (m_CharacterSelection == null)
                 return;
 
-            m_CharacterSelection.gameObject.SetActive(!m_CharacterSelection.gameObject.activeInHierarchy);
+            if (!m_CharacterSelection.gameObject.activeInHierarchy)
+                m_CharacterSelection.Open();
+            else
+                m_CharacterSelection.Close();
         }
 
         /// <summary>
@@ -150,8 +167,7 @@ namespace Menu.MainMenu.MainTab
         /// </summary>
         void OnPlay()
         {
-            if (!CharacterBuildsCloudData.IsCurrentBuildOk)
-            {
+            if (! CharacterBuildsCloudData.IsCurrentBuildOk){
                 Main.ErrorMessagePopUp("Current build is not valid");
                 return;
             }

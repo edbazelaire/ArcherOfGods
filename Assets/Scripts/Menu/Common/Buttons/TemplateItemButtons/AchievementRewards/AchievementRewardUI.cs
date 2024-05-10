@@ -31,8 +31,8 @@ namespace Menu.Common.Buttons
         {
             base.FindComponents();
 
-            m_Button    = Finder.FindComponent<Button>(gameObject);
-            m_Selected   = Finder.FindComponent<Image>(gameObject, "Selected", false);
+            m_Button        = Finder.FindComponent<Button>(gameObject);
+            m_Selected      = Finder.FindComponent<Image>(gameObject, "Selected", false);
         }
 
         public virtual void Initialize(string name, EAchievementReward aR)
@@ -44,7 +44,7 @@ namespace Menu.Common.Buttons
 
             SetSelected(false);
         }
-
+        
         #endregion
 
 
@@ -63,6 +63,9 @@ namespace Menu.Common.Buttons
 
         public virtual void SetAsCurrent()
         {
+            if (ProfileCloudData.CurrentProfileData[m_AchievementReward].Contains(m_Name) && m_Name != "None")
+                return;
+
             ProfileCloudData.SetCurrentData(m_AchievementReward, m_Name);
         }
 
@@ -71,6 +74,8 @@ namespace Menu.Common.Buttons
             ProfileCloudData.AddAchievementReward(m_AchievementReward, m_Name);
         }
 
-        #endregion  
+        #endregion
+
+
     }
 }

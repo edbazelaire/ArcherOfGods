@@ -1,5 +1,6 @@
 ﻿using Data;
 using Enums;
+using System;
 using System.Collections.Generic;
 using Tools;
 
@@ -14,9 +15,10 @@ namespace Save.Data
             Count = 1;
         }
 
-        public virtual object GetValue(EAnalyticsParam analyticsParam)
+        public virtual object GetValue(EAnalyticsParam analyticsParam, bool throwError = true)
         {
-            ErrorHandler.Warning("Trying to get value " + analyticsParam.ToString() + " but " + this.GetType() + " has no such value");
+            if (throwError)
+                ErrorHandler.Warning("Trying to get value " + analyticsParam.ToString() + " but " + this.GetType() + " has no such value");
             return null;
         }
 
@@ -47,5 +49,25 @@ namespace Save.Data
 
             return true;
         }
+
+
+        #region Debug
+
+        public new string ToString()
+        {
+            string str = GetType() + " : ";
+            foreach (EAnalyticsParam param in Enum.GetValues(typeof(EAnalyticsParam)))
+            {
+                var value = GetValue(param, false);
+                if (value == null)
+                    continue;
+
+                str += "\n    + " + param.ToString() + " : " + value;
+            }
+
+            return str;
+        }
+
+        #endregion
     }
 }

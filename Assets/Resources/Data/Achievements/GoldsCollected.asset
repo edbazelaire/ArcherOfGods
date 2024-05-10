@@ -16,7 +16,7 @@ MonoBehaviour:
   Analytics: 1
   AnalyticsFilters:
   - AnalyticParam: 101
-    Value: 0
+    Value: Golds
     Comparator: 3
   AchievementSubData:
   - MaxValue: 1000

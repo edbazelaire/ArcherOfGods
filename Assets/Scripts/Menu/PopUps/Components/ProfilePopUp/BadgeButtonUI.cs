@@ -1,4 +1,5 @@
-﻿using Enums;
+﻿using System.Linq;
+using Enums;
 using Menu.Common.Buttons;
 using Menu.PopUps.PopUps;
 using Save;
@@ -66,6 +67,13 @@ namespace Menu.PopUps.Components.ProfilePopUp
 
         public override void SetAsCurrent()
         {
+            if (ProfileCloudData.CurrentBadges.Contains(m_Badge) && m_Badge != EBadge.None)
+            {
+                // TODO : error message ?
+                ErrorHandler.Log("Badge " + m_Badge + " already used");
+                return;
+            }
+
             ProfileCloudData.SetCurrentBadge(m_Badge, ProfileCloudData.LastSelectedBadgeIndex);
         }
 

@@ -6,7 +6,7 @@ using Tools;
 using UnityEngine;
 
 
-public class CharacterSelectionUI : MonoBehaviour
+public class CharacterSelectionUI : MObject
 {
     #region Members
 
@@ -20,9 +20,9 @@ public class CharacterSelectionUI : MonoBehaviour
     #endregion
 
 
-    #region Initialization
+    #region Init & End
 
-    public void Initialize()
+    protected override void FindComponents()
     {
         // check if a specific container for the buttons was provided, otherwise use this parent as container
         m_ButtonsContainer = Finder.Find(gameObject, c_CharacterSelectionContainer, throwError: false);
@@ -30,16 +30,19 @@ public class CharacterSelectionUI : MonoBehaviour
             m_ButtonsContainer = gameObject;
 
         m_TemplateCharacterButton = AssetLoader.LoadTemplateItem("CharacterItem");
+    }
 
+    protected override void SetUpUI()
+    {
         CreateCharacterButtons();
     }
 
     #endregion
 
 
-    #region Public Accessors
+    #region GUI Manipulators
 
-    public void CreateCharacterButtons()
+    void CreateCharacterButtons()
     {
         // remove all children from the m_CharacterSelectionContainer
         UIHelper.CleanContent(m_ButtonsContainer);
@@ -58,5 +61,7 @@ public class CharacterSelectionUI : MonoBehaviour
     }
 
     #endregion
+
+
 
 }

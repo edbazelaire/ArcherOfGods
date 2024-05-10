@@ -112,7 +112,7 @@ namespace Save
             else
             {
                 // Match found, increase count
-                analyticsData[index].Count++;
+                analyticsData[index].Count += data.Count;
             }
 
             // save and fire event
@@ -158,6 +158,10 @@ namespace Save
             {
                 Reset(key);
             }
+
+            ErrorHandler.Log("Key Loaded : " + key);
+            ErrorHandler.Log("Data : ");
+            ErrorHandler.Log(TextHandler.ToString(Instance.m_Data[key]));
         }
 
         #endregion

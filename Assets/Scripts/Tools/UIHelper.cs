@@ -41,6 +41,14 @@ namespace Tools
             rectTransform.sizeDelta = Vector2.zero;
         }
 
+        public static void GetSize(GameObject gameObject, out float width, out float height)
+        {
+            RectTransform rectTransform = gameObject.GetComponent<RectTransform>();
+
+            width = rectTransform.rect.width;
+            height = rectTransform.rect.height;
+        }
+
         /// <summary>
         /// Check if mouse is over position of a gameobject
         /// </summary>

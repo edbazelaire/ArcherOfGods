@@ -15,7 +15,7 @@ MonoBehaviour:
   Description: Number of game won
   Analytics: 0
   AnalyticsFilters:
-  - AnalyticParam: 1
+  - AnalyticParam: 2
     Value: True
     Comparator: 3
   AchievementSubData:

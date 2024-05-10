@@ -1,8 +1,5 @@
-﻿using Data;
-using Enums;
+﻿using Enums;
 using System;
-using System.Collections.Generic;
-using Tools;
 
 namespace Save.Data
 {
@@ -19,7 +16,7 @@ namespace Save.Data
             Count       = qty;
         }
 
-        public override object GetValue(EAnalyticsParam analyticsParam)
+        public override object GetValue(EAnalyticsParam analyticsParam, bool throwError = true)
         {
             switch (analyticsParam)
             {
@@ -30,7 +27,7 @@ namespace Save.Data
                     return Context;
 
                 default:
-                    return base.GetValue(analyticsParam);
+                    return base.GetValue(analyticsParam, throwError);
             }
         }
 

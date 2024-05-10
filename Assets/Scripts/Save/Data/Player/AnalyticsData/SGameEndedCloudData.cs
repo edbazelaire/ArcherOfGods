@@ -20,7 +20,7 @@ namespace Save.Data
             ECharacter = character;
         }
 
-        public override object GetValue(EAnalyticsParam analyticsParam)
+        public override object GetValue(EAnalyticsParam analyticsParam, bool throwError = true)
         {
             switch (analyticsParam)
             {
@@ -34,7 +34,7 @@ namespace Save.Data
                     return ECharacter;
 
                 default:
-                    return base.GetValue(analyticsParam);
+                    return base.GetValue(analyticsParam, throwError);
             }
         }
 

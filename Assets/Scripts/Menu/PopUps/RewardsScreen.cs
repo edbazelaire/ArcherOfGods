@@ -236,15 +236,21 @@ namespace Menu.PopUps
         {
             // activate rewards display container
             m_RewardDisplayContainer.SetActive(true);
-            // deactivate chest container
+            // deactivate chest containers
             m_ChestContainer.SetActive(false);
 
+            // clean content before next display
             UIHelper.CleanContent(m_RewardIconSection);
 
+            // setup ui of the new collectable
             SetUpTemplateItem(collectable, qty);
             SetUpRewardInfos(collectable, qty);
 
+            // -- play collectable animation
             yield return PlayRewardAnimation();
+
+            // -- play collection fill bar animation
+            yield return m_CollectionFillBar.CollectionAnimationCoroutine(qty);
 
             // add reward to collection of rewards
             InventoryManager.AddCollectable(collectable, qty);
@@ -269,7 +275,6 @@ namespace Menu.PopUps
 
             // -- setup collection fill bar
             m_CollectionFillBar.Initialize(cloudData.Qty, CollectablesManagementData.GetLevelData(collectable, cloudData.Level).RequiredQty);
-            m_CollectionFillBar.AddCollectionAnimation(qty);
         }
 
         #endregion

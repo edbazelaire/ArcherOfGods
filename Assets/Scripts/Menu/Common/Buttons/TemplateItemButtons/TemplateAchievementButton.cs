@@ -1,6 +1,6 @@
 ﻿using Data;
+using Enums;
 using Save;
-using System.Collections;
 using TMPro;
 using Tools;
 using UnityEngine;
@@ -71,6 +71,7 @@ namespace Menu.Common.Buttons
             base.RegisterListeners();
 
             m_Button.onClick.AddListener(OnClicked);
+            StatCloudData.AnalyticsDataChanged += OnAnalyticsDataChanged;
         }
 
 
@@ -82,8 +83,13 @@ namespace Menu.Common.Buttons
                 return;
 
             m_Button.onClick.RemoveAllListeners();
+            StatCloudData.AnalyticsDataChanged -= OnAnalyticsDataChanged;
         }
 
+        /// <summary>
+        /// Action happening when the button is clicked : open the achievement
+        /// info popup
+        /// </summary>
         void OnClicked()
         {
             // ===========================================
@@ -97,6 +103,19 @@ namespace Menu.Common.Buttons
             }
 
             m_Achievement.Unlock();
+
+            RefreshUI();
+        }
+
+        /// <summary>
+        /// Refresh UI of the template when the Annalytics linked to this
+        /// achievement is updated in the cloud data
+        /// </summary>
+        /// <param name="analytics"></param>
+        void OnAnalyticsDataChanged(EAnalytics analytics)
+        {
+            if (m_Achievement.Analytics != analytics)
+                return;
 
             RefreshUI();
         }
