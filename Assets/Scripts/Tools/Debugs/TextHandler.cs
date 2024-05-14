@@ -88,6 +88,9 @@ namespace Tools
 
         public static string Split(string text, string by = "_")
         {
+            if (text == null || text == "")
+                return "";
+
             if (! text.Contains(" "))
                 text = TextLocalizer.SplitCamelCase(text);
 

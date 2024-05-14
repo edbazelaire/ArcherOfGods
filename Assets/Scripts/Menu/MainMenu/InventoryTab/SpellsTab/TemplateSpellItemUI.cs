@@ -20,7 +20,6 @@ namespace Menu.MainMenu
 
         // ========================================================================================
         // GameObjects & Components
-        GameObject          m_AutoTargettIconContainer;
         GameObject          m_SubButtons;
         Button              m_UseButton;
         Button              m_RemoveButton;
@@ -38,8 +37,6 @@ namespace Menu.MainMenu
         {
             base.FindComponents();
 
-            m_AutoTargettIconContainer = Finder.Find(gameObject, "AutoTargetIconContainer", false);
-
             m_SubButtons            = Finder.Find(gameObject, "SubButtons");
             m_UseButton             = Finder.FindComponent<Button>(m_SubButtons, "UseSubButton");
             m_RemoveButton          = Finder.FindComponent<Button>(m_SubButtons, "RemoveSubButton");
@@ -55,8 +52,6 @@ namespace Menu.MainMenu
         protected override void SetUpUI()
         {
             base.SetUpUI();
-
-            m_AutoTargettIconContainer?.SetActive(m_IsAutoTarget);
         }
 
         protected override void RegisterListeners()
@@ -96,8 +91,6 @@ namespace Menu.MainMenu
         public override void AsIconOnly(bool activate = true)
         {
             base.AsIconOnly(activate);
-
-            m_AutoTargettIconContainer?.SetActive(! activate && m_IsAutoTarget);
         }
 
         public override void SetUpCollectionFillBar(bool activate = true)
@@ -112,7 +105,6 @@ namespace Menu.MainMenu
         {
             bool alreadyActivated = m_SubButtons.activeInHierarchy;
             m_SubButtons.SetActive(! alreadyActivated);
-            m_AutoTargettIconContainer?.SetActive(alreadyActivated && m_IsAutoTarget);
 
             RefreshSubButtonUI();
         }
@@ -123,7 +115,6 @@ namespace Menu.MainMenu
         void CloseSubButtons()
         {
             m_SubButtons.SetActive(false);
-            m_AutoTargettIconContainer?.SetActive(m_IsAutoTarget);
         }
 
         /// <summary>

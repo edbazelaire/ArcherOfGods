@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using Enums;
+using System.Threading.Tasks;
+using Tools;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using Unity.Networking.Transport.Relay;
@@ -24,7 +26,7 @@ namespace Assets.Scripts.Network
 
         public async Task<string> CreateRelay()
         {
-            Debug.Log("RelayHandler.CreateRelay()");
+            ErrorHandler.Log("RelayHandler.CreateRelay()", ELogTag.System);
 
             try
             {
@@ -32,7 +34,7 @@ namespace Assets.Scripts.Network
 
                 string joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
-                Debug.Log("Created relay with code " + joinCode);
+                ErrorHandler.Log("Created relay with code " + joinCode, ELogTag.System);
 
                 RelayServerData relayServerData = new RelayServerData(allocation, "dtls");
 
@@ -54,7 +56,7 @@ namespace Assets.Scripts.Network
         {
             try
             {
-                Debug.Log("Joining relay with code " + joinCode);   
+                ErrorHandler.Log("Joining relay with code " + joinCode, ELogTag.System);   
                 
                 JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
                 RelayServerData relayServerData = new RelayServerData(joinAllocation, "dtls");
@@ -63,7 +65,7 @@ namespace Assets.Scripts.Network
 
                 NetworkManager.Singleton.StartClient();
 
-                Debug.Log("Client started with local id : " + NetworkManager.Singleton.LocalClientId);
+                ErrorHandler.Log("Client started with local id : " + NetworkManager.Singleton.LocalClientId, ELogTag.System);
 
             } catch (RelayServiceException e)
             {

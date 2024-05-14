@@ -15,7 +15,7 @@ MonoBehaviour:
   Description: Number of game won
   Analytics: 0
   AnalyticsFilters:
-  - AnalyticParam: 0
+  - AnalyticParam: 1
     Value: Solo
     Comparator: 3
   AchievementSubData:
@@ -43,6 +43,18 @@ MonoBehaviour:
       Currencies: []
       Chests: 
       Collectables: []
+  - MaxValue: 75
+    AchivementRewardData:
+    - AchievementReward: 4
+      Title: 5
+      Avatar: 0
+      Border: 0
+      Badge: 2
+      League: 3
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
   - MaxValue: 100
     AchivementRewardData:
     - AchievementReward: 1
@@ -50,12 +62,6 @@ MonoBehaviour:
       Avatar: 0
       Border: 0
       Badge: 201
-      League: 3
-    - AchievementReward: 4
-      Title: 5
-      Avatar: 0
-      Border: 0
-      Badge: 2
       League: 3
     Rewards:
       Currencies: []

@@ -2,8 +2,10 @@ using Enums;
 using Game;
 using Game.Spells;
 using Game.UI;
+using Managers;
 using Menu.Common.Buttons;
 using Save;
+using System;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
@@ -15,9 +17,9 @@ public class GameUIManager : MonoBehaviour
 
     static GameUIManager s_Instance;
 
-    [SerializeField] private EndGameUI m_EndGameUI;
+    [SerializeField] private IntroGameUI    m_IntroGameUI;
+    [SerializeField] private EndGameUI      m_EndGameUI;
 
-    const string        c_PlayerUIContainers        = "PlayerUIContainers";
     const string        c_PlayerUIContainerPrefix   = "PlayerUIContainer_";
     const string        c_SpellsContainer           = "SpellsContainer";
     const int           NUM_TEAMS                   = 2;
@@ -51,6 +53,7 @@ public class GameUIManager : MonoBehaviour
 
     // ==============================================================================================================
     // Public Accessors
+    public static IntroGameUI IntroGameUI               => Instance.m_IntroGameUI;
     public static bool LeftMovementButtonPressed        => Instance.m_LeftMovementButtonPressed;
     public static bool RightMovementButtonPressed       => Instance.m_RightMovementButtonPressed;
    
@@ -182,6 +185,35 @@ public class GameUIManager : MonoBehaviour
                 return spellItem;
         }
         return null;
+    }
+
+    #endregion
+
+
+    #region Intro UI
+
+    public void SetUpIntroScreen()
+    {
+        if (m_IntroGameUI == null)
+        {
+            ErrorHandler.Error("IntroGameUI not provided");
+            return;
+        }
+
+        Dictionary<ulong, SPlayerData> playerData = FetchPlayerData();
+
+        m_IntroGameUI.Initialize(playerData);
+    }
+
+    Dictionary<ulong, SPlayerData> FetchPlayerData()
+    {
+        var playerDataDict = new Dictionary<ulong, SPlayerData>();
+        foreach (Controller controller in GameManager.Instance.Controllers.Values)
+        {
+            playerDataDict.Add(controller.PlayerId, controller.PlayerData);
+        }
+
+        return playerDataDict;
     }
 
     #endregion

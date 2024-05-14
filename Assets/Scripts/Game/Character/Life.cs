@@ -109,17 +109,17 @@ public class Life : NetworkBehaviour
     /// Apply healing to the character
     /// </summary>
     /// <param name="heal"></param>
-    public void Heal(int heal)
+    public int Heal(int heal)
     {
         // only server can apply heals
         if (!IsServer)
-            return;
+            return 0;
 
         // check provided value
         if (heal < 0)
         {
             Debug.LogError($"Healing ({heal}) < 0");
-            return;
+            return 0;
         }
 
         // apply heals
@@ -127,6 +127,8 @@ public class Life : NetworkBehaviour
             m_Hp.Value = m_MaxHp.Value;
         else
             m_Hp.Value += heal;
+
+        return heal;
     }
 
     #endregion

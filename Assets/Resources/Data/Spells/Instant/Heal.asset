@@ -34,7 +34,7 @@ MonoBehaviour:
   AllyStateEffects: []
   PersistanceAfterEnd: 2
   Animation: 9
-  IsCancellable: 1
+  IsCancellable: 0
   AnimationTimer: 0.5
   CastAt: 1
   Cooldown: 15

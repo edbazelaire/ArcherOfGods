@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using Enums;
 using Menu.Common.Buttons;
-using Menu.PopUps.PopUps;
 using Save;
 using Tools;
 using UnityEngine.UI;
@@ -16,6 +15,8 @@ namespace Menu.PopUps.Components.ProfilePopUp
         // Data
         EBadge  m_Badge;
         ELeague m_League;
+
+        string m_BadgeName => ProfileCloudData.BadgeToString(m_Badge, m_League);
 
         // =================================================================================
         // GameObjects & Components
@@ -67,7 +68,7 @@ namespace Menu.PopUps.Components.ProfilePopUp
 
         public override void SetAsCurrent()
         {
-            if (ProfileCloudData.CurrentBadges.Contains(m_Badge) && m_Badge != EBadge.None)
+            if (ProfileCloudData.CurrentBadges.Contains(m_BadgeName) && m_Badge != EBadge.None)
             {
                 // TODO : error message ?
                 ErrorHandler.Log("Badge " + m_Badge + " already used");

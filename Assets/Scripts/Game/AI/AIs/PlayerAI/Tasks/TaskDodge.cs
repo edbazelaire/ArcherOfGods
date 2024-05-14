@@ -1,4 +1,5 @@
 using AI;
+using Enums;
 using Tools;
 
 public class TaskDodge : TaskMove
@@ -27,7 +28,7 @@ public class TaskDodge : TaskMove
 
         // TODO : get to closest safe spot
 
-        ErrorHandler.Log("TaskDodge()");
+        ErrorHandler.Log("TaskDodge()", ELogTag.AITaskMove);
         m_State = NodeState.RUNNING;
     }
 

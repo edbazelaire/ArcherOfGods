@@ -93,6 +93,8 @@ namespace Tools
         /// <param name="classType"></param>
         public void RegisterClass(object obj)
         {
+            ErrorHandler.Log("RegisterClass " + obj.GetType().ToString(), ELogTag.Debugger);
+
             if (IsRegistered(obj))
             {
                 ErrorHandler.Warning("Class " + obj.GetType().ToString() + " already registered");
@@ -112,6 +114,7 @@ namespace Tools
         /// <param name="classType"></param>
         public void UnregisterClass(object obj, List<string> skips = default)
         {
+            ErrorHandler.Log("UnregisterClass " + obj.GetType().ToString(), ELogTag.Debugger);
             if (! IsRegistered(obj))
                 return;
 
@@ -152,7 +155,7 @@ namespace Tools
                     continue;
 
                 // skip unregister if requested
-                if (skips == null || skips.Contains(method.Name))
+                if (skips != null && skips.Contains(method.Name))
                     continue;
 
                 UnregisterCommand(method.Name);
@@ -167,6 +170,8 @@ namespace Tools
         /// <param name="key"></param>
         public void RegisterCommand(Action callback, string command = "", KeyCode key = KeyCode.None)
         {
+            ErrorHandler.Log("Registering command : " + command, ELogTag.Debugger);
+
             bool hasError = false;
             foreach (SCommand sCommand in m_Commands)
             {
@@ -197,7 +202,9 @@ namespace Tools
         /// <returns></returns>
         public bool UnregisterCommand(string command)
         {
-            foreach(SCommand sCommand in m_Commands)
+            ErrorHandler.Log("Unregistering Command : " + command, ELogTag.Debugger);
+
+            foreach (SCommand sCommand in m_Commands)
             {
                 if (sCommand.name != command)
                     continue;
@@ -217,7 +224,9 @@ namespace Tools
         /// <returns></returns>
         public bool UnRegisterCommand(KeyCode key)
         {
-            foreach(SCommand sCommand in m_Commands)
+            Debug.Log("Unregistering Key : " + key);
+
+            foreach (SCommand sCommand in m_Commands)
             {
                 if (sCommand.keyCode != key)
                     continue;
@@ -460,7 +469,6 @@ namespace Tools
         
             // -- also reset current profile data to avoid settings not unlocked
             ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_CURRENT_PROFILE_DATA);
-            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_CURRENT_BADGES);
         }
 
         [Command]

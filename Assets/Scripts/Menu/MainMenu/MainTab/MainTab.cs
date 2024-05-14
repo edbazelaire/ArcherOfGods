@@ -40,7 +40,7 @@ namespace Menu.MainMenu.MainTab
             base.FindComponents(); 
 
             m_CharacterPreviewSection           = Finder.FindComponent<CharacterPreviewSectionUI>(gameObject, c_CharacterPreviewSection);
-            m_CharacterSelection                = Finder.FindComponent<CharacterSelectionWindow>(gameObject, c_CharacterSelectionPopUp);
+            m_CharacterSelection                = Finder.FindComponent<CharacterSelectionWindow>(gameObject, "CharacterSelectionWindow");
             m_GameSectionUI                     = Finder.FindComponent<GameSectionUI>(gameObject, "GameSection");
             m_PlayButton                        = Finder.FindComponent<Button>(gameObject, c_PlayButton);
             m_PlayButtonImage                   = Finder.FindComponent<Image>(m_PlayButton.gameObject);

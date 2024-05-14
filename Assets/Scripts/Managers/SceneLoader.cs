@@ -89,7 +89,7 @@ public class SceneLoader : MonoBehaviour
                     yield return null;
                 }
 
-                while (! GameManager.Instance.IsGameStarted)
+                while (! GameManager.Instance.IsGameLoaded)
                 {
                     progress = 1/nSteps + GameManager.Instance.ProgressGameStart.Value / nSteps;
                     m_LoadingScreen.SetProgress(Mathf.Clamp01(progress));

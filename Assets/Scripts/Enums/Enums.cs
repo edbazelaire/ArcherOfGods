@@ -329,12 +329,15 @@
         System              = 2, 
         Network             = 3,
         Debug               = 4,
+        Debugger            = 5,
 
         // Game
         Game                = 100,    
-        Gameplay            = 101,
-        Spells              = 102,
-        Rewards             = 103,
+        Gameplay            = 101,      
+        Spells              = 102,      // spell infos, start, end, stats, Colliders(), ...
+        Rewards             = 103,      // end game rewards handling
+        GameSystem          = 104,      // login, new player, stages, ...
+        SpellHandler        = 105,      // casting error/success messages, cancel, all stages of spell casting, spell ending, ...
 
         // AI
         AI                  = 200,
@@ -444,6 +447,10 @@
         ChestOpened,
         AchievementRewardUnlocked,
         ShopTransaction,
+        
+        InGame,
+        Damage,
+        Heal,
     }
 
     public enum EAnalyticsParam
@@ -454,10 +461,21 @@
         Character       = 3,
         CharacterLevel  = 4,
 
+        // InGame data
+        Spell           = 50,
+        HitType         = 51,
+
         // Currency
         Currency        = 101,
         Context         = 102,
         Qty             = 103,
+    }
+
+    public enum EHitType
+    {
+        Damage,
+        Heal,
+        LifeSteal
     }
 
     public enum ELeague
@@ -491,8 +509,9 @@
         First,
         Forever_Alone,
         Le_Charclo,
-        TheMoneyMaker,
+        The_Money_Maker,
         Cresus,
+        Lone_Wolf,
     }
 
     public enum EAvatar
@@ -504,11 +523,23 @@
         Meteor          = 3,
         Coin            = 4,
         MoneyMan        = 5,
+        Sakura          = 6,
+        ChibiSakura     = 7,
+        Tao             = 8,
+        ChibiTao        = 9,
 
         BlueFlameChibi  = 101,
         CosmicChibi     = 102,
         DemonicChibi    = 103,
         FireChibi       = 104,
+
+        Alexander       = 1000,
+        YoungAlexander  = 1001,
+        Marcus          = 1010,
+        Bruh            = 1020,
+        Kahnan          = 1030,
+        Srug            = 1040,
+
     }
 
     public enum EBorder
@@ -526,6 +557,10 @@
 
         // Special ranking border
         Rank1 = 11,
+
+        // Others
+        Sakura = 101,
+
     }
 
     public enum EBadge
@@ -541,6 +576,7 @@
         PvpGamesWon = 100,
         // -- solo
         SoloGames   = 201,
+        LoneWolf    = 202,
 
         // Collectables
         GoldCollector   = 501,

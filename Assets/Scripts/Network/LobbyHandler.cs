@@ -4,6 +4,7 @@ using Enums;
 using Game;
 using Managers;
 using Menu.MainMenu.MainTab;
+using Save;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -195,8 +196,6 @@ namespace Network
                     GameManager.Instance.AddPlayerDataServerRPC(
                         NetworkManager.Singleton.LocalClientId,
                         StaticPlayerData.ToStruct()
-
-                        //(ECharacter)Convert.ToInt16(playerData[PlayerData.KEY_CHARACTER].Value),   : old method (using lobby data) -> remove if not necessary
                     );
                     NextState();
                     return;
@@ -355,7 +354,7 @@ namespace Network
 
             ResetLobby();
 
-            Debug.Log("Lobby left");
+            ErrorHandler.Log("Lobby left", ELogTag.System);
         }
 
         /// <summary>
@@ -373,7 +372,7 @@ namespace Network
             }
             catch (LobbyServiceException e)
             {
-                Debug.Log("Failed to delete lobby: " + e.Message);
+                ErrorHandler.Error("Failed to delete lobby: " + e.Message);
             }
         }
 
@@ -384,7 +383,7 @@ namespace Network
 
         void SetState(ELobbyState state)
         {
-            Debug.Log("NEW LOBBY STATE : " + state);
+            ErrorHandler.Log("NEW LOBBY STATE : " + state, ELogTag.System);
 
             // if state changes : reset request in progress
             SetRequestInProgress(false);
@@ -470,7 +469,7 @@ namespace Network
                 );
             } catch (LobbyServiceException e)
             {
-                Debug.Log("Failed to update player name: " + e.Message);
+                ErrorHandler.Error("Failed to update player name: " + e.Message);
             }
         }
 
@@ -517,11 +516,11 @@ namespace Network
 
                 QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
 
-                Debug.Log("Lobbies found: " + queryResponse.Results.Count);
+                ErrorHandler.Log("Lobbies found: " + queryResponse.Results.Count, ELogTag.System);
 
                 foreach (var lobby in queryResponse.Results)
                 {
-                    Debug.Log("Lobby: " + lobby.Name + " - MaxPlayers : " + lobby.MaxPlayers);
+                    ErrorHandler.Log("Lobby: " + lobby.Name + " - MaxPlayers : " + lobby.MaxPlayers, ELogTag.System);
                 }
 
                 return queryResponse.Results;
@@ -529,7 +528,7 @@ namespace Network
             }
             catch (LobbyServiceException e)
             {
-                Debug.Log("Failed to list lobbies: " + e.Message);
+                ErrorHandler.Error("Failed to list lobbies: " + e.Message);
                 return new List<Lobby>();
             }
         }
@@ -548,7 +547,7 @@ namespace Network
             }
             catch (LobbyServiceException e)
             {
-                Debug.Log("Failed to migrate lobby host: " + e.Message);
+                ErrorHandler.Error("Failed to migrate lobby host: " + e.Message);
             }
         }
 

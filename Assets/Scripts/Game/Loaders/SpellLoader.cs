@@ -76,9 +76,6 @@ namespace Game.Loaders
                 if (spell.CastAt > 1)
                     ErrorHandler.FatalError($"SpellLoader : Spell {spell.Spell} has a CastAt > 1");
 
-                if (spell.Cooldown <= 0)
-                    spell.Cooldown = 0.1f;
-
                 m_Spells.Add(spell.Spell, spell);
             }
         }

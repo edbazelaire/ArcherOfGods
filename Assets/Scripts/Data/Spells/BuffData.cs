@@ -1,6 +1,7 @@
 ﻿using Enums;
 using Game.Loaders;
 using Game.Spells;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,6 +12,8 @@ namespace Data
     public class BuffData : SpellData
     {
         public override ESpellType SpellType => ESpellType.Buff;
+
+        public override float Duration => (float)Math.Round(m_Duration * LevelScaleFactor);
 
 
         #region State Effect

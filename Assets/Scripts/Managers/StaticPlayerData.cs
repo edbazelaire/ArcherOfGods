@@ -15,21 +15,23 @@ namespace Managers
     [Serializable]
     public struct SPlayerData : INetworkSerializable
     {
-        public string       PlayerName;
-        public int          CharacterLevel;
-        public ECharacter   Character;
-        public ERune        Rune;
-        public ESpell[]     Spells;
-        public int[]        SpellLevels;
+        public string               PlayerName;
+        public int                  CharacterLevel;
+        public ECharacter           Character;
+        public ERune                Rune;
+        public ESpell[]             Spells;
+        public int[]                SpellLevels;
+        public SProfileCurrentData  ProfileData;
 
-        public SPlayerData(string playerName, int characterLevel, ECharacter character, ERune rune, ESpell[] spells, int[] spellLevels)
+        public SPlayerData(string playerName, int characterLevel, ECharacter character, ERune rune, ESpell[] spells, int[] spellLevels, SProfileCurrentData profileData)
         {
-            PlayerName = playerName;
-            CharacterLevel = characterLevel;
-            Character = character;
-            Rune = rune;
-            Spells = spells;
-            SpellLevels = spellLevels;
+            PlayerName      = playerName;
+            CharacterLevel  = characterLevel;
+            Character       = character;
+            Rune            = rune;
+            Spells          = spells;
+            SpellLevels     = spellLevels;
+            ProfileData     = profileData;
         }
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -40,6 +42,7 @@ namespace Managers
             serializer.SerializeValue(ref Rune);
             serializer.SerializeValue(ref Spells);
             serializer.SerializeValue(ref SpellLevels);
+            ProfileData.NetworkSerialize(serializer);
         }
     }
 
@@ -85,7 +88,7 @@ namespace Managers
         /// <returns></returns>
         public static SPlayerData ToStruct()
         {
-            return new SPlayerData(PlayerName, CharacterLevel, Character, Rune, Spells, SpellLevels);
+            return new SPlayerData(PlayerName, CharacterLevel, Character, Rune, Spells, SpellLevels, ProfileCloudData.CurrentProfileData);
         }
 
         /// <summary>

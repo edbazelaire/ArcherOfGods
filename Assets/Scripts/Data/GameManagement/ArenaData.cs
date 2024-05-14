@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 namespace Data.GameManagement
 {
@@ -54,47 +55,6 @@ namespace Data.GameManagement
         #region Accessors
 
         /// <summary>
-        /// Create PlayerData from AI ArenaData
-        /// </summary>
-        /// <returns></returns>
-        public SPlayerData CreatePlayerData()
-        {
-            ERune rune;
-            switch (ArenaType)
-            {
-                case EArenaType.FireArena:
-                    rune = ERune.FireRune;
-                    break;
-
-                case EArenaType.FrostArena:
-                    rune = ERune.FrostRune;
-                    break;
-
-                default:
-                    rune = ERune.None;
-                    break;
-            }
-
-            // set spell levels equal to character level
-            List<int> spellLevels = new List<int>();
-            for (int i = 0; i < CurrentArenaLevelData.Spells.Count; i++)
-            {
-                // make sure that character level is not > to max spell level
-                spellLevels.Add(Math.Min(CurrentStageData.CharacterLevel, CollectablesManagementData.GetMaxLevel(ESpell.AxeThrow)));
-            }
-
-            // create & return PlayerData
-            return new SPlayerData(
-                playerName:             CurrentStageData.Character.ToString(),              
-                characterLevel:         CurrentStageData.CharacterLevel,
-                character:              CurrentStageData.Character,
-                rune:                   rune,
-                spells:                 CurrentArenaLevelData.Spells.ToArray(),
-                spellLevels:            spellLevels.ToArray()
-            );;
-        }
-
-        /// <summary>
         /// Get data of the requested level
         /// </summary>
         /// <param name="arenaLevel"></param>
@@ -137,6 +97,88 @@ namespace Data.GameManagement
         {
             LastLevel = CurrentLevel;
             LastStage = CurrentStage;
+        }
+
+        #endregion
+
+
+        #region Player Data Manipulators
+
+        /// <summary>
+        /// Create PlayerData from AI ArenaData
+        /// </summary>
+        /// <returns></returns>
+        public SPlayerData CreatePlayerData()
+        {
+            ERune rune;
+            switch (ArenaType)
+            {
+                case EArenaType.FireArena:
+                    rune = ERune.FireRune;
+                    break;
+
+                case EArenaType.FrostArena:
+                    rune = ERune.FrostRune;
+                    break;
+
+                default:
+                    rune = ERune.None;
+                    break;
+            }
+
+            // set spell levels equal to character level
+            List<int> spellLevels = new List<int>();
+            for (int i = 0; i < CurrentArenaLevelData.Spells.Count; i++)
+            {
+                // make sure that character level is not > to max spell level
+                spellLevels.Add(Math.Min(CurrentStageData.CharacterLevel, CollectablesManagementData.GetMaxLevel(ESpell.AxeThrow)));
+            }
+
+            // create & return PlayerData
+            return new SPlayerData(
+                playerName: CurrentStageData.Character.ToString(),
+                characterLevel: CurrentStageData.CharacterLevel,
+                character: CurrentStageData.Character,
+                rune: rune,
+                spells: CurrentArenaLevelData.Spells.ToArray(),
+                spellLevels: spellLevels.ToArray(),
+                profileData: CreateProfileData()
+            );
+        }
+
+        /// <summary>
+        /// Create ProfileData for the AI depending on character & progression
+        /// </summary>
+        /// <returns></returns>
+        public SProfileCurrentData CreateProfileData()
+        {
+            return new SProfileCurrentData(
+                gamerTag: CurrentStageData.Character.ToString(),
+                avatar: CurrentStageData.Character.ToString(),
+                border: GetBorder().ToString(),
+                title: ETitle.None.ToString()
+            );
+        }
+
+        /// <summary>
+        /// Get Border of the "profile" depending on current level
+        /// </summary>
+        /// <returns></returns>
+        public EBorder GetBorder()
+        {
+            if (CurrentLevel == 0)
+                return EBorder.None;
+
+            if (CurrentLevel == 1)
+                return EBorder.LeagueBronze;
+
+            if (CurrentLevel == 2)
+                return EBorder.LeagueSilver;
+
+            if (CurrentLevel == 3)
+                return EBorder.LeagueGold;
+
+            return EBorder.Rank1;
         }
 
         #endregion

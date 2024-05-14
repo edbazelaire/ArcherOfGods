@@ -5,6 +5,8 @@ using Game.Loaders;
 using Game.Spells;
 using Managers;
 using Network;
+using Newtonsoft.Json.Linq;
+using Save;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -56,7 +58,11 @@ namespace Game
         // PUBLIC ACCESSORS 
         public Dictionary<ulong, Controller>    Controllers                 => m_Controllers;
         public NetworkVariable<float>           ProgressGameStart           => m_ProgressGameStart;
-        public bool                             IsGameStarted               => m_State.Value >= EGameState.Intro;
+        /// <summary> intro starting : game fully loaded </summary>
+        public bool                             IsGameLoaded                => m_State.Value >= EGameState.Intro;
+        /// <summary> intro completed : game starts </summary>
+        public bool                             IsGameStarted               => m_State.Value > EGameState.Intro;       
+        /// <summary> game is over </summary>
         public static bool                      IsGameOver                  => ! GameManager.FindInstance() || Instance.m_State.Value >= EGameState.GameOver;
 
         #endregion
@@ -147,7 +153,7 @@ namespace Game
             if (!IsServer)
                 return;
 
-            Debug.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + playerData.Character.ToString());
+            ErrorHandler.Log("AddPlayerDataServerRPC + clientId " + clientId + " with character " + playerData.Character.ToString(), ELogTag.GameSystem);
             m_PlayersData.Add(clientId, playerData);
 
             m_ProgressGameStart.Value += 1f / ((float)LobbyHandler.Instance.MaxPlayers * N_LOADING_STEPS);
@@ -223,11 +229,15 @@ namespace Game
             Controller poutchController = Finder.FindComponent<Controller>(poutch);
 
             // initialize player data
+            var aiPlayerData = GetAIPlayerData();
             poutchController.Initialize(
-                playerData: GetAIPlayerData(),
+                playerData: aiPlayerData,
                 team: 1,
                 false
             );
+
+            // add AI player data to dict of player data
+            m_PlayersData.Add(poutchController.PlayerId, aiPlayerData);
 
             // add event listener to the player's hp
             poutchController.Life.Hp.OnValueChanged += CheckPlayerDeath;
@@ -301,7 +311,7 @@ namespace Game
         [ServerRpc(RequireOwnership=false)]
         void SetClientIntializedServerRPC(ulong clientId)
         {
-            Debug.Log("Client Initialized : " + clientId);
+            ErrorHandler.Log("Client Initialized : " + clientId, ELogTag.GameSystem);
 
             if (! m_ClientsInitialized.Contains(clientId))
                 m_ClientsInitialized.Add(clientId);
@@ -317,6 +327,9 @@ namespace Game
             {
                 controller.InitializeUI();
             }
+
+            ErrorHandler.Log("SetupUIClientRPC()", ELogTag.GameSystem);
+            GameUIManager.Instance.SetUpIntroScreen();
         }
 
         /// <summary>
@@ -333,6 +346,10 @@ namespace Game
             }
         }
 
+        /// <summary>
+        /// Convert AI data into player data
+        /// </summary>
+        /// <returns></returns>
         SPlayerData GetAIPlayerData()
         {
             // AI SOLO MODE
@@ -349,13 +366,19 @@ namespace Game
             }
 
             // AI MULTI PLAYER MODE
+            ECharacter character = ECharacter.Alexander;
+            SProfileCurrentData profileCurrentData = new SProfileCurrentData(
+                gamerTag: character.ToString()
+            );
+
             return new SPlayerData(
-                ECharacter.Alexander.ToString(),
+                character.ToString(),
                 1,
-                ECharacter.Alexander,
+                character,
                 ERune.None,
-                new ESpell[] { ESpell.Heal, ESpell.RockShower},
-                new int[] { 1, 1 }
+                new ESpell[] { ESpell.Heal, ESpell.RockShower },
+                new int[] { 1, 1 },
+                profileCurrentData
             );
 
         }
@@ -372,7 +395,34 @@ namespace Game
             if (!IsServer)
                 return;
 
+            StartCoroutine(PlayIntro());
+        }
+
+        IEnumerator PlayIntro()
+        {
+            // call clients to start intro animation
+            PlayIntroAnimationClientRPC();
+            yield return new WaitForSeconds(2.5f);
+
+            // call clients to start intro countdown
+            PlayCountDownClientRPC();
+            yield return new WaitForSeconds(3);
+
+            // set state that game is running
             SetState(EGameState.GameRunning);
+        }
+
+        [ClientRpc]
+        void PlayIntroAnimationClientRPC() 
+        {
+            ErrorHandler.Log("Play Intro Animation");
+            GameUIManager.IntroGameUI.PlayEnterAnimation();
+        }
+
+        [ClientRpc]
+        void PlayCountDownClientRPC() 
+        {
+            GameUIManager.IntroGameUI.PlayExitAnimation();
         }
 
         #endregion
@@ -387,7 +437,7 @@ namespace Game
         [ClientRpc]
         void GameOverClientRPC(int team)
         {
-            Debug.LogWarning("GameOverClientRPC");
+            ErrorHandler.Log("GameOverClientRPC", ELogTag.GameSystem);
 
             // set "Game Ended" mode for each player
             foreach (Controller controller in m_Controllers.Values) 
@@ -464,7 +514,7 @@ namespace Game
         #endregion
 
 
-        #region Private Manipulators
+        #region State Manipulators
 
         /// <summary>
         /// Set the state of the game
@@ -480,9 +530,21 @@ namespace Game
 
             // fire event that game has started if state becomes GameRunning
             if (state == EGameState.GameRunning && m_State.Value != EGameState.GameRunning)
+            {
+                // fire event that game has started (for Server)
                 GameStartedEvent?.Invoke();
+
+                // fire event that game has started (for Clients)
+                GameStartedEventClientRPC();
+            }
               
             m_State.Value = state;
+        }
+
+        [ClientRpc]
+        void GameStartedEventClientRPC()
+        {
+            GameStartedEvent?.Invoke();
         }
 
         #endregion
@@ -551,7 +613,7 @@ namespace Game
 
         void OnStateValueChanged(EGameState oldValue, EGameState newState)
         {
-            Debug.Log("New state : " + newState);
+            ErrorHandler.Log("New state : " + newState, ELogTag.GameSystem);
             switch (newState) 
             {
                 case EGameState.WaitingForConnection:

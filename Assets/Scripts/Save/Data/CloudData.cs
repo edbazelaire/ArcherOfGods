@@ -77,14 +77,14 @@ namespace Save
 
         public virtual async void SaveValue(string key)
         {
-            if (! m_Data.ContainsKey(key))
+            if (!m_Data.ContainsKey(key))
             {
                 ErrorHandler.Error("Unable to find key " + key + " in data of " + this.GetType().FullName);
                 return;
             }
 
             var playerData = new Dictionary<string, object> { { key, m_Data[key] } };
-            
+
             if (playerData == null)
             {
                 ErrorHandler.Error($"Data of key ({key}) is null");
@@ -97,11 +97,70 @@ namespace Save
             try
             {
                 await CloudSaveService.Instance.Data.Player.SaveAsync(playerData);
-            } catch (Exception ex)
+            }
+            catch (CloudSaveConflictException ex)
+            {
+                ErrorHandler.Error($"Conflict error saving key ({key}) : " + ex.Message + "\nData : " + TextHandler.ToString(m_Data[key]));
+                ErrorHandler.Warning("Trace : \n" + error.GetTraceString());
+                await ResolveConflictAsync(key, playerData);
+            }
+            catch (Exception ex)
             {
                 ErrorHandler.Error($"Error saving key ({key}) : " + ex.Message + "\nData : " + TextHandler.ToString(m_Data[key]));
-                ErrorHandler.Warning("Trace : + \n" + error.GetTraceString());
+                ErrorHandler.Warning("Trace : \n" + error.GetTraceString());
             }
+        }
+
+        #endregion
+
+
+        #region Loading / Saving Error Management
+
+        private async Task ResolveConflictAsync(string key, Dictionary<string, object> newPlayerData)
+        {
+            // Fetch existing value
+            try
+            {
+                var existingData = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { key });
+
+                if (existingData.TryGetValue(key, out var existingValue))
+                {
+                    // Implement your conflict resolution logic here
+                    ErrorHandler.Warning($"Existing value for {key}: {existingValue}");
+
+                    // Example: decide to overwrite or merge
+                    var mergedValue = MergeValues(existingValue, newPlayerData[key]);
+
+                    // Save the resolved value
+                    await SaveResolvedValueAsync(key, mergedValue);
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.Error($"Error resolving conflict for key ({key}) : " + ex.Message + "\nData : " + TextHandler.ToString(newPlayerData[key]));
+            }
+        }
+
+        private async Task SaveResolvedValueAsync(string key, object resolvedValue)
+        {
+            var resolvedData = new Dictionary<string, object> { { key, resolvedValue } };
+
+            try
+            {
+                await CloudSaveService.Instance.Data.Player.SaveAsync(resolvedData);
+                ErrorHandler.Log($"Successfully saved resolved value for {key}");
+            }
+            catch (Exception ex)
+            {
+                ErrorHandler.Error($"Error saving resolved value for key ({key}) : " + ex.Message + "\nData : " + TextHandler.ToString(resolvedValue));
+            }
+        }
+
+        private object MergeValues(object existingValue, object newValue)
+        {
+            // Implement your merging logic
+            // This example simply returns the new value, but you can merge dictionaries, lists, etc.
+            return newValue;
         }
 
         #endregion
@@ -181,6 +240,9 @@ namespace Save
 
             if (m_KeysToLoad.Count == 0)
                 OnCloudDataLoadingCompleted();
+
+            ErrorHandler.Log("Key Loaded : " + key, ELogTag.CloudData);
+            ErrorHandler.Log(TextHandler.ToString(m_Data[key]), ELogTag.CloudData);
         }
 
         protected virtual void OnCloudDataLoadingCompleted()

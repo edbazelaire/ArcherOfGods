@@ -1,9 +1,6 @@
 ﻿using Data;
-using Enums;
 using Game.Loaders;
 using Menu.Common.Buttons;
-using Menu.PopUps.PopUps;
-using Save;
 using Tools;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +11,7 @@ namespace Menu.MainMenu
     {
         #region Members
 
-        ProfileDisplayUI    m_ProfileDisplay;
+        ProfileDisplayBE    m_ProfileDisplayBE;
         ScrollRect          m_AchievementScroller;
         GameObject          m_AchievementsContainer;
 
@@ -29,7 +26,7 @@ namespace Menu.MainMenu
         {
             base.FindComponents();
 
-            m_ProfileDisplay            = Finder.FindComponent<ProfileDisplayUI>(gameObject, "ProfileDisplay");
+            m_ProfileDisplayBE          = Finder.FindComponent<ProfileDisplayBE>(gameObject, "ProfileDisplay");
             m_AchievementScroller       = Finder.FindComponent<ScrollRect>(gameObject, "AchievementScroller");
             m_AchievementsContainer     = Finder.Find(m_AchievementScroller.gameObject, "AchievementsContainer");
 
@@ -39,7 +36,7 @@ namespace Menu.MainMenu
         protected override void SetUpUI()
         {
             InitAchievementScroller();
-            m_ProfileDisplay.Initialize();
+            m_ProfileDisplayBE.Initialize();
         }
 
         #endregion

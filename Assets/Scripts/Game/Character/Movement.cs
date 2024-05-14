@@ -42,6 +42,9 @@ namespace Game.Character
 
         void Update()
         {
+            if (! m_Controller.GameRunning)
+                return;
+
             CheckInputs();
 
             if (!IsServer)
@@ -208,6 +211,7 @@ namespace Game.Character
                     ! m_Controller.StateHandler.IsStunned 
                     && ! m_MovementBlocked.Value
                     && ! m_MovementCancelled.Value
+                    && ! m_Controller.SpellHandler.IsCastingUncancellable
                     && ! m_Controller.StateHandler.HasState(EStateEffect.Frozen) 
                     && ! m_Controller.StateHandler.HasState(EStateEffect.Scorched) 
                     && ! m_Controller.CounterHandler.IsBlockingMovement.Value

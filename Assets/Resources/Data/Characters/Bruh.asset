@@ -15,8 +15,8 @@ MonoBehaviour:
   Rarety: 1
   AutoAttack: 11
   Ultimate: 12
-  Size: 1
+  Size: 0.9
   Speed: 1.1
-  MaxHealth: 90
+  MaxHealth: 850
   MaxEnergy: 100
   CharacterStatScaling: []

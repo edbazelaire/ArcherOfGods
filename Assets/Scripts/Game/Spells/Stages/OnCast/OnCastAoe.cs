@@ -1,6 +1,4 @@
-﻿using System.Threading;
-using Tools;
-using Unity.Netcode;
+﻿using Tools;
 using UnityEngine;
 
 namespace Game.Spells

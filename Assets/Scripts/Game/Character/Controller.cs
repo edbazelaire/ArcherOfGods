@@ -19,18 +19,22 @@ public class Controller : NetworkBehaviour
     // ===================================================================================
     // PRIVATE VARIABLES 
     // -- Network Variables
-    NetworkVariable<FixedString64Bytes> m_PlayerName        = new NetworkVariable<FixedString64Bytes>("");
-    NetworkVariable<ECharacter>         m_Character         = new NetworkVariable<ECharacter>(ECharacter.Count);
-    NetworkVariable<int>                m_CharacterLevel    = new NetworkVariable<int>(1);
-    NetworkVariable<int>                m_Team              = new NetworkVariable<int>(-1);
-    NetworkVariable<bool>               m_IsPlayer          = new NetworkVariable<bool>(true);
-    NetworkVariable<bool>               m_IsInitialized     = new NetworkVariable<bool>(false);
+    NetworkVariable<FixedString64Bytes>     m_PlayerName        = new NetworkVariable<FixedString64Bytes>("");
+    NetworkVariable<SPlayerData>            m_PlayerData        = new NetworkVariable<SPlayerData>();
+    NetworkVariable<ECharacter>             m_Character         = new NetworkVariable<ECharacter>(ECharacter.Count);
+    NetworkVariable<int>                    m_CharacterLevel    = new NetworkVariable<int>(1);
+    NetworkVariable<int>                    m_Team              = new NetworkVariable<int>(-1);
+    NetworkVariable<bool>                   m_IsPlayer          = new NetworkVariable<bool>(true);
+    NetworkVariable<bool>                   m_IsInitialized     = new NetworkVariable<bool>(false);
 
     // -- Server Variable
     RuneData m_RuneData;
 
+    // -- local variables
+    bool m_GameRunning = false;
+
     // -- Components & GameObjects
-    BehaviorTree            m_BehaviorTree;
+    BehaviorTree m_BehaviorTree;
     GameObject              m_CharacterPreview;
     Game.Character.AnimationHandler        m_AnimationHandler;
     Movement                m_Movement;
@@ -39,12 +43,14 @@ public class Controller : NetworkBehaviour
     SpellHandler            m_SpellHandler;
     StateHandler            m_StateHandler;
     CounterHandler          m_CounterHandler;
+    ClientAnalytics         m_ClientAnalytics;
     Collider2D              m_Collider;     
 
     // ===================================================================================
     // PUBLIC ACCESSORS
 
     // -- Data
+    public SPlayerData      PlayerData          => m_PlayerData.Value;
     public string           PlayerName          => m_PlayerName.Value.ToString();
     public ECharacter       Character           => m_Character.Value;
     public int              CharacterLevel      => m_CharacterLevel.Value;
@@ -52,10 +58,11 @@ public class Controller : NetworkBehaviour
     public int              Team                => m_Team.Value;
     public bool             IsPlayer            => m_IsPlayer.Value;
     public ulong            PlayerId            => IsPlayer ? OwnerClientId : GameManager.POUTCH_CLIENT_ID;
+    public bool             GameRunning         => m_GameRunning;
 
 
     // -- Components & GameObjects
-    public BehaviorTree     BehaviorTree    => m_BehaviorTree;
+    public BehaviorTree     BehaviorTree        => m_BehaviorTree;
     public GameObject       CharacterPreview    => m_CharacterPreview;
     public Game.Character.AnimationHandler AnimationHandler    => m_AnimationHandler;
     public Movement         Movement            => m_Movement;
@@ -63,6 +70,7 @@ public class Controller : NetworkBehaviour
     public SpellHandler     SpellHandler        => m_SpellHandler;
     public StateHandler     StateHandler        => m_StateHandler;
     public CounterHandler   CounterHandler      => m_CounterHandler;
+    public ClientAnalytics  ClientAnalytics     => m_ClientAnalytics;
     public EnergyHandler    EnergyHandler       => m_EnergyHandler;
     public Collider2D       Collider            => m_Collider;
 
@@ -77,7 +85,7 @@ public class Controller : NetworkBehaviour
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        Debug.Log("Controller.OnNetworkSpawn()");   
+        ErrorHandler.Log("Controller.OnNetworkSpawn()", ELogTag.GameSystem);   
 
         m_Collider = Finder.FindComponent<Collider2D>(gameObject);
 
@@ -89,6 +97,7 @@ public class Controller : NetworkBehaviour
         m_AnimationHandler  = Finder.FindComponent<Game.Character.AnimationHandler>(gameObject);
         m_StateHandler      = Finder.FindComponent<StateHandler>(gameObject);
         m_CounterHandler    = Finder.FindComponent<CounterHandler>(gameObject);
+        m_ClientAnalytics   = Finder.FindComponent<ClientAnalytics>(gameObject);
 
         // check behavior tree
         m_BehaviorTree = Finder.FindComponent<BehaviorTree>(gameObject, throwError: false);
@@ -96,20 +105,21 @@ public class Controller : NetworkBehaviour
         // add event to call UI initialization after NetworkVariable update 
         m_IsInitialized.OnValueChanged += OnInitializedChanged;
 
-        if (IsServer)
-        {
-            GameManager.GameStartedEvent    += OnGameStarted;
-        }
+        GameManager.GameStartedEvent    += OnGameStarted;
     }
 
-
+    /// <summary>
+    /// Wait for all data to be initialized on the server side before starting display and setup (ui, etc...)
+    /// </summary>
+    /// <param name="old"></param>
+    /// <param name="newValue"></param>
     void OnInitializedChanged(bool old, bool newValue)
     {
-        Debug.LogWarning("==============================================================");
-        Debug.Log("Initialized : ");
-        Debug.Log("     + LocalClient : " + NetworkManager.Singleton.LocalClientId);
-        Debug.Log("     + Owner : " + OwnerClientId);
-        Debug.LogWarning("==============================================================");
+        ErrorHandler.Log("==============================================================", ELogTag.GameSystem);
+        ErrorHandler.Log("Initialized : ", ELogTag.GameSystem);
+        ErrorHandler.Log("     + LocalClient : " + NetworkManager.Singleton.LocalClientId, ELogTag.GameSystem);
+        ErrorHandler.Log("     + Owner : " + OwnerClientId, ELogTag.GameSystem);
+        ErrorHandler.Log("==============================================================");
 
         // add controller on client side
         if (newValue)
@@ -175,7 +185,8 @@ public class Controller : NetworkBehaviour
         SetupSpellUI();
 
         // select auto attack by default (if not IsAutoTarget)
-        if (! SpellLoader.GetSpellData(m_SpellHandler.AutoAttack).IsAutoTarget)
+        bool isAutoTarget = true;           // TODO : use PlayerPref to set isAutoTarget or not by default
+        if (! (isAutoTarget || SpellLoader.GetSpellData(m_SpellHandler.AutoAttack).IsAutoTarget))
             m_SpellHandler.AskSpellSelectionServerRPC(m_SpellHandler.AutoAttack);
     }
 
@@ -186,6 +197,8 @@ public class Controller : NetworkBehaviour
     {
         if (! IsServer)
             return;
+
+        m_PlayerData.Value      = playerData;
 
         m_PlayerName.Value      = playerData.PlayerName;
         m_Character.Value       = playerData.Character;
@@ -206,6 +219,9 @@ public class Controller : NetworkBehaviour
         // init health and energy
         m_Life.Initialize(characterData.MaxHealth);
         m_EnergyHandler.Initialize(10, characterData.MaxEnergy);
+
+        // init client data
+        m_ClientAnalytics.Initialize();
 
         // init BehaviorTree
         if (m_BehaviorTree != null)
@@ -264,6 +280,9 @@ public class Controller : NetworkBehaviour
     /// </summary>
     void OnGameStarted()
     {
+        // set to "true" the variable that the game has started
+        m_GameRunning = true;
+
         if (!IsServer)
             return;
 

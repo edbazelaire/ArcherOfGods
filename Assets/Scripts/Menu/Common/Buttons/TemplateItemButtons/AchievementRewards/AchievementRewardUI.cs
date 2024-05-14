@@ -1,5 +1,6 @@
 ﻿using Enums;
 using Save;
+using System.Linq;
 using Tools;
 using UnityEngine.UI;
 
@@ -48,7 +49,7 @@ namespace Menu.Common.Buttons
         #endregion
 
 
-        #region BUI Manipulators
+        #region GUI Manipulators
 
         public void SetSelected(bool selected)
         {
@@ -63,9 +64,6 @@ namespace Menu.Common.Buttons
 
         public virtual void SetAsCurrent()
         {
-            if (ProfileCloudData.CurrentProfileData[m_AchievementReward].Contains(m_Name) && m_Name != "None")
-                return;
-
             ProfileCloudData.SetCurrentData(m_AchievementReward, m_Name);
         }
 

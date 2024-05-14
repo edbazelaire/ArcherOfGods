@@ -18,7 +18,9 @@ namespace Data
 {
     [CreateAssetMenu(fileName = "Spell", menuName = "Game/Spells/Default")]
     public class SpellData : CollectionData
-    {      
+    {
+        #region Members
+
         [Description("Is this spell linked to a specific character")]
         public bool                 Linked;
 
@@ -44,14 +46,14 @@ namespace Data
         [Description("Request amount on energy to be able to cast this spell")]
         public int                  EnergyCost      = 0;
         [Description("Damage of the spell")]
-        public int                  Damage          = 0;
+        [SerializeField] public int     m_Damage          = 0;
         [Description("Heals provided to the target")]
-        public int                  Heal            = 0;
+        [SerializeField] public int     m_Heal            = 0;
         [Description("Max distance of the spell")]
         public float                Distance        = -1f;
 
         [Description("Duration of the spell")]
-        public float                Duration        = 0f;
+        [SerializeField] public float m_Duration = 0f;
         [Description("Delay of the spell to be instantiated after cast")]
         public float                Delay           = 0f;
 
@@ -81,7 +83,7 @@ namespace Data
         [Description("Percentage of time during the animation when the spell will be casted")]
         public float CastAt = 1f;
         [Description("Cooldown to be able to re-use that ability")]
-        public float Cooldown;
+        [SerializeField] protected float m_Cooldown;
 
         // ===========================================================================
         // Dependent Members
@@ -90,6 +92,15 @@ namespace Data
         protected override Type m_EnumType => typeof(ESpell);
         public ESpell Spell => (ESpell)Id;
 
+        // ===========================================================================
+        // Level Dependent Members
+        public virtual float LevelScaleFactor   => (float)Math.Pow(Settings.SpellScaleFactor, m_Level - 1);
+        public virtual float Cooldown           => Mathf.Max(Mathf.Round(100f * m_Cooldown / LevelScaleFactor) / 100f, 0.5f);
+        public virtual int Damage               => (int)Math.Round(m_Damage * LevelScaleFactor);
+        public virtual int Heal                 => (int)Math.Round(m_Heal * LevelScaleFactor);
+        public virtual float Duration           => m_Duration;
+
+        #endregion
 
         #region Instantiate & Spawns
 
@@ -221,7 +232,7 @@ namespace Data
             return SpellLoader.GetSpellPrefab(Name, SpellType);
         }
 
-        protected void CalculateTarget(ref Vector3 target, ulong clientId) 
+        public void CalculateTarget(ref Vector3 target, ulong clientId) 
         {
             if (!IsAutoTarget)
                 return;
@@ -474,25 +485,6 @@ namespace Data
         public new SpellData Clone(int level = 0)
         {
             return (SpellData)base.Clone(level);
-        }
-
-        protected override void SetLevel(int level)
-        {
-            // TODO : factor management 
-            var scaleFactor = 1.1f;
-
-            // factor of current level
-            float currentFactor = (float)Math.Pow(scaleFactor, m_Level - 1);
-            // factor of the level we are setting
-            float newFactor = (float)Math.Pow(scaleFactor, level - 1);
-            
-            // cooldown cant be below base cooldown
-            if (Cooldown > 0)
-                Cooldown    = Mathf.Max(Mathf.Round(100f * currentFactor * Cooldown / newFactor) / 100f, 0.5f);
-            Damage      = (int)Math.Round(Damage    * newFactor / currentFactor );
-            Heal        = (int)Math.Round(Heal      * newFactor / currentFactor);
-
-            base.SetLevel(level);
         }
 
         #endregion

@@ -112,6 +112,7 @@ GameObject:
   - component: {fileID: 6285027811574116592}
   - component: {fileID: -3965553549312345165}
   - component: {fileID: -5779417410852913318}
+  - component: {fileID: 4476013101443033750}
   m_Layer: 7
   m_Name: PlayerAI
   m_TagString: Player
@@ -216,7 +217,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1722083933
+  GlobalObjectIdHash: 3061309347
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
@@ -248,7 +249,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17d84a81547c3094fa5e2fa0bc1e276f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BASE_PLAYER_SPEED: 3.5
 --- !u!114 &7458529212983236836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -361,6 +361,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cac3a455852934bd58420354c7c24dc0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &4476013101443033750
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6187705959729963238}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d74266589c7084242b4570b3aecccdb3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &8130017764725158727

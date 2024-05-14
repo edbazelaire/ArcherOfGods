@@ -461,10 +461,23 @@ namespace Game.Spells
         /// <returns></returns>
         public virtual string GetDescription()
         {
-            List<object> values = new List<object>();
+            List<string> values = new List<string>();
             foreach(EStateEffectProperty property in m_DescriptionVariables)
             {
-                values.Add(GetProperty(property));
+                var value = GetProperty(property);
+
+                if (value is float floatValue)
+                {
+                    values.Add(floatValue.ToString("F2"));
+                }
+                else if (value is double doubleValue)
+                {
+                    values.Add(doubleValue.ToString("F2"));
+                }
+                else
+                {
+                    values.Add(value.ToString());
+                }
             }
 
             return string.Format(m_Description, values.ToArray());

@@ -15,8 +15,9 @@ using Data;
 using System.Linq;
 using Data.GameManagement;
 using System.Collections.Generic;
-using Menu.PopUps.PopUps;
 using Scripts.Menu.PopUps;
+using Unity.Services.Core.Environments;
+
 
 
 #if UNITY_EDITOR
@@ -95,7 +96,9 @@ namespace Assets
                 StartCoroutine(CheckInitialization());
 
                 // initialize UnituServices
-                await UnityServices.InitializeAsync();
+                var options = new InitializationOptions();
+                options.SetEnvironmentName("dev");
+                await UnityServices.InitializeAsync(options);
 
                 // listen to Auth Service and try to signe in anonymously
                 AuthenticationService.Instance.SignedIn += OnSignedIn;

@@ -1,6 +1,9 @@
-﻿using Data;
+﻿using Analytics.Events;
+using Data;
 using Enums;
 using Game.Loaders;
+using Managers;
+using Network;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -231,13 +234,16 @@ namespace Game.Spells
             
             // get final damages after shields and resistances
             int finalDamages = controller.Life.Hit(damages);
+            if (finalDamages > 0)
+                m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Damage, finalDamages);
 
             // apply lifesteal if any (remove 1 because floats values are always based on 1 as default value)
             float lifeSteal = Mathf.Max(0f, m_Controller.StateHandler.GetFloat(EStateEffectProperty.LifeSteal) - 1);
-
             if (lifeSteal > 0 && finalDamages > 0)
             {
                 m_Controller.Life.Heal((int)Mathf.Round(lifeSteal * finalDamages));
+                m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Heal, (int)Mathf.Round(lifeSteal * finalDamages));
+                m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.LifeSteal, (int)Mathf.Round(lifeSteal * finalDamages));
             }
 
             // if spell is AutoAttack & controller has a "AutoAttackRune" : add effects of the rune to the spell
@@ -266,6 +272,7 @@ namespace Game.Spells
                 return false;
                         
             controller.Life.Heal(m_SpellData.Heal);
+            m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Heal, m_SpellData.Heal);
             ApplyAllyStateEffects(controller);
 
             return true;

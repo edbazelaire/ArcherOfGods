@@ -11,13 +11,13 @@ namespace Save.Data
     {
         public EGameMode GameMode;
         public bool Win;
-        public ECharacter ECharacter;
+        public ECharacter Character;
 
         public SGameEndedCloudData(EGameMode gameMode, bool win, ECharacter character) : base()
         {
-            GameMode = gameMode;
-            Win = win;
-            ECharacter = character;
+            GameMode    = gameMode;
+            Win         = win;
+            Character   = character;
         }
 
         public override object GetValue(EAnalyticsParam analyticsParam, bool throwError = true)
@@ -31,7 +31,7 @@ namespace Save.Data
                     return Win;
 
                 case EAnalyticsParam.Character:
-                    return ECharacter;
+                    return Character;
 
                 default:
                     return base.GetValue(analyticsParam, throwError);
@@ -44,7 +44,7 @@ namespace Save.Data
             {
                 return this.GameMode == other.GameMode
                        && this.Win == other.Win
-                       && this.ECharacter == other.ECharacter;
+                       && this.Character == other.Character;
             }
 
             return false;
@@ -52,7 +52,7 @@ namespace Save.Data
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(GameMode, Win, ECharacter);
+            return HashCode.Combine(GameMode, Win, Character);
         }
     }
 }

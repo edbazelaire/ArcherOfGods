@@ -246,9 +246,11 @@ namespace Menu.PopUps
             SetUpTemplateItem(collectable, qty);
             SetUpRewardInfos(collectable, qty);
 
+            // skip one frame to be sure that the layout components are adjusted properly
+            yield return null;
+
             // -- play collectable animation
             yield return PlayRewardAnimation();
-
             // -- play collection fill bar animation
             yield return m_CollectionFillBar.CollectionAnimationCoroutine(qty);
 

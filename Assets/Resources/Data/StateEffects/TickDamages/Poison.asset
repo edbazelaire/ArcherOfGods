@@ -17,9 +17,12 @@ MonoBehaviour:
   m_DescriptionVariables: 0d0000000c00000001000000
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 0.40980083, g: 0.5566038, b: 0, a: 1}
-  m_Duration: 8
+  m_Animation: 0
+  m_Duration: 6
   m_MaxStacks: 5
   m_SpeedBonus: 0
+  m_CastSpeed: 0
+  m_AttackSpeed: 0
   m_Shield: 0
   m_ResistanceFix: 0
   m_ResistancePerc: 0
@@ -37,6 +40,6 @@ MonoBehaviour:
   m_Damages: 0
   m_Heal: 0
   m_Tick: 1
-  m_TickDamages: 1
+  m_TickDamages: 5
   m_TickHeal: 0
   m_TickShield: 0

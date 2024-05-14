@@ -17,7 +17,7 @@ MonoBehaviour:
   Ultimate: 8
   Size: 1.2
   Speed: 0.9
-  MaxHealth: 150
+  MaxHealth: 1500
   MaxEnergy: 100
   CharacterStatScaling:
   - StateEffectProperty: 5

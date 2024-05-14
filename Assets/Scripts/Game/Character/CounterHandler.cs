@@ -142,42 +142,30 @@ namespace Game.Character
 
         private void SetIsBlockingMovement(bool blockingMovement)
         {
-            Debug.LogWarning("SetIsBlockingMovement() : " + blockingMovement);
-
             if (!IsServer)
                 return;
 
             if (blockingMovement == m_IsBlockingMovement.Value)
                 return;
 
-            Debug.Log("     + Before : " + m_IsBlockingMovement.Value);
-
             if (blockingMovement)
                 m_Controller.Movement.CancelMovement(true);
 
             m_IsBlockingMovement.Value = blockingMovement;
-
-            Debug.Log("     + After : " + m_IsBlockingMovement.Value);
         }
 
         private void SetIsBlockingCast(bool blockingCast)
         {
-            Debug.LogWarning("SetIsBlockingCast() : " + blockingCast);
-
             if (!IsServer)
                 return;
 
             if (blockingCast == m_IsBlockingCast.Value)
                 return;
 
-            Debug.Log("     + Before : " + m_IsBlockingCast.Value);
-           
             if (blockingCast)
                 m_Controller.SpellHandler.CancelCast();
 
             m_IsBlockingCast.Value = blockingCast;
-
-            Debug.Log("     + Before : " + m_IsBlockingCast.Value);
         }
 
         #endregion

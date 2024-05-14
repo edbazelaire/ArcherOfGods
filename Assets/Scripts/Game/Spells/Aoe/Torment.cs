@@ -13,8 +13,6 @@ namespace Game.Spells
         
         protected override void ApplyEnemyStateEffects(Controller targetController)
         {
-            Debug.Log("Torment.ApplyEnemyOnHitEffects()");
-
             // if has no cursed effect, apply it 
             if (! targetController.StateHandler.HasState(EStateEffect.Cursed))
             {

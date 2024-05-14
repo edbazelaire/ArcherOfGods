@@ -16,7 +16,7 @@ MonoBehaviour:
   AutoAttack: 22
   Ultimate: 20
   Size: 1
-  Speed: 1
-  MaxHealth: 100
+  Speed: 0.95
+  MaxHealth: 1150
   MaxEnergy: 100
   CharacterStatScaling: []

@@ -30,10 +30,6 @@ namespace Game.UI
 
         public void Initialize(ulong clientId)
         {
-            Debug.Log("Initialize PlayerUI");
-            Debug.Log($"        + ClientID: {clientId}");
-            Debug.Log($"        + LocalId: {NetworkManager.Singleton.LocalClientId}");
-
             var controller = GameManager.Instance.GetPlayer(clientId);
             m_Controller = controller;
 

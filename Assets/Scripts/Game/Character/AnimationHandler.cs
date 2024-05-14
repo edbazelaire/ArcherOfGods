@@ -160,7 +160,7 @@ namespace Game.Character
         /// </summary>
         public void UpdateMovementSpeed()
         {
-            Debug.Log("Setting Animation MovementSpeed factor : " + m_Controller.Movement.Speed);
+            ErrorHandler.Log("Setting Animation MovementSpeed factor : " + m_Controller.Movement.Speed, ELogTag.GameSystem);
             m_Animator.SetFloat("MovementSpeed", m_Controller.Movement.Speed);
         }
 

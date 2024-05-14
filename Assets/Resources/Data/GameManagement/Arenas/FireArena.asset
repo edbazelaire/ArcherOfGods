@@ -84,7 +84,7 @@ MonoBehaviour:
       CharacterLevel: 4
     - Character: 2
       CharacterLevel: 4
-    - Character: 0
+    - Character: 4
       CharacterLevel: 5
     - Character: 3
       CharacterLevel: 5
@@ -133,7 +133,5 @@ MonoBehaviour:
       CharacterLevel: 9
     - Character: 0
       CharacterLevel: 10
-  CurrentLevel: 1
-  CurrentStage: 1
   LastLevel: 0
   LastStage: 0

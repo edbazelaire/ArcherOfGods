@@ -83,19 +83,21 @@ namespace Save
                     return;
 
                 arenaCloudData.CurrentStage--;
-                return;
-            }
-
-            ArenaData arenaData = AssetLoader.LoadArenaData(arenaType);
-
-            // ADD stage level
-            if (arenaCloudData.CurrentStage == arenaData.CurrentArenaLevelData.StageData.Count - 1)
+            } 
+            
+            else
             {
-                UpgradeArenaLevel(arenaType);
-                return;
-            }
+                ArenaData arenaData = AssetLoader.LoadArenaData(arenaType);
 
-            arenaCloudData.CurrentStage++;
+                // ADD stage level
+                if (arenaCloudData.CurrentStage == arenaData.CurrentArenaLevelData.StageData.Count - 1)
+                {
+                    UpgradeArenaLevel(arenaType);
+                    return;
+                }
+
+                arenaCloudData.CurrentStage++;
+            }
 
             SoloArenas[arenaType] = arenaCloudData;
             Instance.SaveValue(KEY_SOLO_ARENAS);

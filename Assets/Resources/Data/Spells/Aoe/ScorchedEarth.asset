@@ -37,8 +37,9 @@ MonoBehaviour:
     Duration: 0
     SpeedBonus: 0
   AllyStateEffects: []
+  PersistanceAfterEnd: 0
   Animation: 6
-  IsCancellable: 1
+  IsCancellable: 0
   AnimationTimer: 0.6
   CastAt: 1
   Cooldown: 25

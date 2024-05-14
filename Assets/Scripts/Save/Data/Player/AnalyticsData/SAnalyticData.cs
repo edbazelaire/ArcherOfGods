@@ -43,6 +43,9 @@ namespace Save.Data
         {
             foreach (SAnalyticsFilter filter in filters)
             {
+                if (filter.AnalyticParam == 0)
+                    ErrorHandler.Error("Bad analytic");
+
                 if (!filter.Check(GetValue(filter.AnalyticParam), validateOnNull))
                     return false;
             }

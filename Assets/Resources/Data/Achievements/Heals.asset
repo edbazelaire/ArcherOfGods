@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bf96ab3cd590dd4eb64ef847e4c7983, type: 3}
+  m_Name: Heals
+  m_EditorClassIdentifier: 
+  Description: Damages delt to enemies
+  Analytics: 6
+  AnalyticsFilters:
+  - AnalyticParam: 51
+    Value: Heal
+    Comparator: 3
+  AchievementSubData:
+  - MaxValue: 5000
+    AchivementRewardData:
+    - AchievementReward: 1
+      Title: 0
+      Avatar: 0
+      Border: 0
+      Badge: 4
+      League: 1
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+  - MaxValue: 25000
+    AchivementRewardData:
+    - AchievementReward: 1
+      Title: 0
+      Avatar: 0
+      Border: 0
+      Badge: 4
+      League: 2
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+  - MaxValue: 100000
+    AchivementRewardData:
+    - AchievementReward: 1
+      Title: 0
+      Avatar: 0
+      Border: 0
+      Badge: 4
+      League: 3
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []

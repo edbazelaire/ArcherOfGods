@@ -41,7 +41,7 @@ public class EndGameUI : MonoBehaviour
     {
         InitializeUI();
 
-        ErrorHandler.Log("END OF GAME : " + LobbyHandler.Instance.GameMode + " - " + (win ? "WIN" : "LOSS"));
+        ErrorHandler.Log("END OF GAME : " + LobbyHandler.Instance.GameMode + " - " + (win ? "WIN" : "LOSS"), ELogTag.GameSystem);
 
         m_TitleText.text = win ? "Victory" : "Defeat";
         m_TitleText.color = win ? Color.green : Color.red;
@@ -147,6 +147,7 @@ public class EndGameUI : MonoBehaviour
         switch (LobbyHandler.Instance.GameMode)
         {
             case EGameMode.Solo:
+                Debug.Log("Loading Arena Data : " + PlayerPrefsHandler.GetArenaType().ToString());
                 ArenaData arenaData = AssetLoader.LoadArenaData(PlayerPrefsHandler.GetArenaType());
                 arenaData.UpdateStageValue(win);
                 break;

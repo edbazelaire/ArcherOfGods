@@ -30,12 +30,14 @@ namespace Save
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
             { EAnalytics.GameEnded.ToString(),              new List<SGameEndedCloudData>()         },
             { EAnalytics.CurrencyChanged.ToString(),        new List<SCurrencyEventCloudData>()     },
+            { EAnalytics.InGame.ToString(),                 new List<SInGameEventCloudData>()       },
         };
 
         // ===============================================================================================
         // DEPENDENT STATIC ACCESSORS
         public static List<SGameEndedCloudData>     GameEndedData   => Instance.m_Data[EAnalytics.GameEnded.ToString()] as List<SGameEndedCloudData>;
         public static List<SCurrencyEventCloudData> CurrencyData    => Instance.m_Data[EAnalytics.CurrencyChanged.ToString()] as List<SCurrencyEventCloudData>;
+        public static List<SInGameEventCloudData>   InGameData      => Instance.m_Data[EAnalytics.InGame.ToString()] as List<SInGameEventCloudData>;
 
         #endregion
 
@@ -54,6 +56,9 @@ namespace Save
 
             if (m_Data[item.Key].GetType() == typeof(List<SCurrencyEventCloudData>))
                 return item.Value.GetAs<List<SCurrencyEventCloudData>>();
+
+            if (m_Data[item.Key].GetType() == typeof(List<SInGameEventCloudData>))
+                return item.Value.GetAs<List<SInGameEventCloudData>>();
 
             return base.Convert(item);
         }
@@ -158,10 +163,6 @@ namespace Save
             {
                 Reset(key);
             }
-
-            ErrorHandler.Log("Key Loaded : " + key);
-            ErrorHandler.Log("Data : ");
-            ErrorHandler.Log(TextHandler.ToString(Instance.m_Data[key]));
         }
 
         #endregion

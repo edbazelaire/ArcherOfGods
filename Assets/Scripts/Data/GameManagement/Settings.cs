@@ -18,17 +18,23 @@ namespace Data.GameManagement
     {
         #region Members
 
+        // GAME Speed & Size
+        [Header("Game Speed & Size")]
         [SerializeField] float m_GlobalSpeed;
         [SerializeField] float m_CharacterSizeFactor;
         [SerializeField] float m_CharacterSpeedFactor;
-
         [SerializeField] float m_SpellSizeFactor;
         [SerializeField] float m_SpellSpeedFactor;
+
+        // Level Up Management
+        [Header("Level Management")]
+        [SerializeField] float m_SpellScaleFactor;
 
         public static float CharacterSizeFactor     { get => Instance.m_CharacterSizeFactor;    set => Instance.m_CharacterSizeFactor = value; }
         public static float CharacterSpeedFactor    { get => Instance.m_CharacterSpeedFactor;   set => Instance.m_CharacterSpeedFactor = value; }
         public static float SpellSizeFactor         { get => Instance.m_SpellSizeFactor;        set => Instance.m_SpellSizeFactor = value; }
         public static float SpellSpeedFactor        { get => Instance.m_SpellSpeedFactor;       set => Instance.m_SpellSpeedFactor = value; }
+        public static float SpellScaleFactor        { get => Instance.m_SpellScaleFactor; }
 
         #endregion
 
