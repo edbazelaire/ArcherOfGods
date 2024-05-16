@@ -426,7 +426,7 @@ namespace Save
         /// </summary>
         /// <param name="achievementReward"></param>
         /// <param name="value"></param>
-        public static void AddAchievementReward(EAchievementReward achievementReward, string value)
+        public static void AddAchievementReward(EAchievementReward achievementReward, string value, bool save = true)
         {
             if (AchievementRewards[achievementReward].Contains(value))
             {
@@ -436,7 +436,8 @@ namespace Save
 
             // add & save data
             AchievementRewards[achievementReward].Add(value);
-            Instance.SaveValue(KEY_ACHIEVEMENT_REWARDS);
+            if (save)
+                Instance.SaveValue(KEY_ACHIEVEMENT_REWARDS);
 
             // fire event that a new reward has been collected
             AchievementRewardCollectedEvent?.Invoke(achievementReward, value);
@@ -446,7 +447,7 @@ namespace Save
                 UpdateBadgeLeague(value);
         }
 
-        void RemoveAchievementReward(EAchievementReward achievementReward, string value)
+        void RemoveAchievementReward(EAchievementReward achievementReward, string value, bool save = true)
         {
             if (! AchievementRewards[achievementReward].Contains(value))
             {
@@ -455,6 +456,9 @@ namespace Save
             }
 
             AchievementRewards[achievementReward].Remove(value);
+
+            if (save)
+                Instance.SaveValue(KEY_ACHIEVEMENT_REWARDS);
         } 
 
         #endregion
@@ -623,7 +627,9 @@ namespace Save
         {
             if (key == KEY_CURRENT_PROFILE_DATA)
             {
-                Instance.m_Data[key] = new SProfileCurrentData();
+                var data = new SProfileCurrentData();
+                data.Check();
+                Instance.m_Data[key] = data;
                 return;
             }
 
@@ -718,8 +724,7 @@ namespace Save
             // REMOVE VALUES
             foreach (var item in valuesToRemove)
                 foreach (var value in item.Value)
-                    RemoveAchievementReward(item.Key, value);
-
+                    RemoveAchievementReward(item.Key, value, false);
 
             // TODO : REMOVE DUPLICATES
         }
@@ -734,7 +739,7 @@ namespace Save
 
             var data = CurrentProfileData;
             data.Check();
-            Instance.SetData(KEY_CURRENT_PROFILE_DATA, data);
+            Instance.SetData(KEY_CURRENT_PROFILE_DATA, data, false);
         }
 
         #endregion

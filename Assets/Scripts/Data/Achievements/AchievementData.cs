@@ -171,11 +171,14 @@ namespace Data
             SAchievementSubData achievementData = Current.Value;
 
             // ACHIEVEMENT REWARDS
+            bool saveAR = false;
             foreach (SAchievementRewardData data in achievementData.AchivementRewardData)
             {
                 ErrorHandler.Log("Unlocking AchievementReward : " + data.AchievementReward + " - " + data.Value);
-                ProfileCloudData.AddAchievementReward(data.AchievementReward, data.Value);
+                ProfileCloudData.AddAchievementReward(data.AchievementReward, data.Value, false);
             }
+            if (saveAR)
+                ProfileCloudData.Instance.SaveValue(ProfileCloudData.KEY_ACHIEVEMENT_REWARDS);
 
             // save that the achievement was completed
             ProfileCloudData.CompleteAchievement(Name);

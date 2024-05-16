@@ -24,10 +24,10 @@ MonoBehaviour:
   MaxHit: 0
   EnergyGain: 10
   EnergyCost: 0
-  Damage: 5
-  Heal: 0
+  m_Damage: 15
+  m_Heal: 0
   Distance: 0
-  Duration: 3
+  m_Duration: 3
   Delay: 1
   m_Size: 3
   TriggerPlayer: 1
@@ -42,7 +42,7 @@ MonoBehaviour:
   IsCancellable: 0
   AnimationTimer: 0.6
   CastAt: 1
-  Cooldown: 25
+  m_Cooldown: 20
   DurationTick: 0.5
   GrowSizeFactor: 0
   MaxSizeAt: 1

@@ -15,7 +15,6 @@ using TMPro;
 using Tools;
 using Tools.Animations;
 using Unity.VisualScripting;
-using Unity.VisualScripting.Dependencies.NCalc;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -113,7 +112,7 @@ namespace Menu.PopUps
         {
             // depth of the current coroutine 
             int myDepth = m_Depth;
-
+            
             foreach (SReward reward in rewards)
             {
                 yield return DisplayReward(reward);
@@ -131,11 +130,11 @@ namespace Menu.PopUps
         {
             if (Enum.TryParse(reward.RewardName, out EChest chestType))
             {
-                DisplayChestReward(chestType, reward.Qty);
+                yield return DisplayChestReward(chestType, reward.Qty);
             } 
             else if (Enum.TryParse(reward.RewardName, out ECurrency currency))
             {
-                DisplayCurrencyReward(currency, reward.Qty);
+                yield return DisplayCurrencyReward(currency, reward.Qty);
             }
             else
             {
@@ -148,12 +147,12 @@ namespace Menu.PopUps
 
         #region Chests
 
-        void DisplayChestReward(EChest chestType, int qty)
+        IEnumerator DisplayChestReward(EChest chestType, int qty)
         {
             if (qty > 1)
                 ErrorHandler.Warning("Multiple Chests not handled yet");
 
-            // displaying a chest add a new depth in the coroutine management
+            // displaying a list of rewards add a new depth in the coroutine management
             m_Depth++;
 
             // deactivate rewards display container
@@ -169,32 +168,19 @@ namespace Menu.PopUps
 
             // instantiate chest prefab
             m_ChestUI = m_CurrentChestRewardData.Instantiate(m_ChestContainer);
-            m_ChestUI.OpenAnimationEndedEvent += OnOpenAnimationEnded;
             m_ChestUI.ActivateIdle(true);
 
-            // set button interactable 
-            m_ChestContainer.GetComponent<Button>().interactable = true;
+            // wait until touch to display reward
+            yield return new WaitUntil(() => Input.touchCount > 0 || Input.GetMouseButtonDown(0));
+
+            yield return OpenChest();
+
+            yield return DisplayRewards(m_CurrentChestRewardData.GenerateRewards());
         }
 
-        void OpenChest()
+        IEnumerable OpenChest()
         {
-            m_ChestUI.ActivateOpen(true);
-        }
-
-        void OnChestClicked()
-        {
-            // set button not interactable
-            m_ChestContainer.GetComponent<Button>().interactable = false;
-
-            // animate chest opening and display rewards
-            OpenChest();
-        }
-
-        void OnOpenAnimationEnded()
-        {
-            m_ChestUI.OpenAnimationEndedEvent -= OnOpenAnimationEnded;
-
-            StartCoroutine(DisplayRewards(m_CurrentChestRewardData.GenerateRewards()));
+            yield return m_ChestUI.PlayOpenAnimation();
         }
 
         #endregion
@@ -202,7 +188,7 @@ namespace Menu.PopUps
 
         #region Single 
 
-        void DisplayCurrencyReward(ECurrency currency, int qty)
+        IEnumerator DisplayCurrencyReward(ECurrency currency, int qty)
         {
             // activate rewards display container
             m_RewardDisplayContainer.SetActive(true);
@@ -226,7 +212,7 @@ namespace Menu.PopUps
 
             // -- setup collection fill bar
             m_CollectionFillBar.Initialize(currentlyOwnValue, currentlyOwnValue + qty);
-            m_CollectionFillBar.AddCollectionAnimation(qty);
+            yield return m_CollectionFillBar.CollectionAnimationCoroutine(qty);
 
             // add reward to collection of rewards
             InventoryManager.UpdateCurrency(currency, qty, m_Context);
@@ -365,25 +351,6 @@ namespace Menu.PopUps
             foreach (Transform child in m_RewardInfosSection.transform)
             {
                 child.gameObject.SetActive(b);
-            }
-        }
-
-        #endregion
-
-
-        #region Listeners
-
-        protected override void OnUIButton(string bname)
-        {
-            switch(bname) 
-            {
-                case (c_ChestContainer):
-                    OnChestClicked();
-                    break;
-
-                default:
-                    base.OnUIButton(bname);
-                    break;
             }
         }
 

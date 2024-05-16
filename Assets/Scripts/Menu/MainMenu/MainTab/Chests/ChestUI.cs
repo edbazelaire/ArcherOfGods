@@ -67,7 +67,6 @@ namespace Assets.Scripts.Menu.MainMenu.MainTab.Chests
         public void ActivateOpen(bool withOpenParticles = true)
         {
             StartCoroutine(PlayOpenAnimation());
-            ActivateOpenParticles(withOpenParticles);
         }
 
         public void ActivateAura(bool activate = true)
@@ -80,9 +79,10 @@ namespace Assets.Scripts.Menu.MainMenu.MainTab.Chests
             m_OpeningEffects.SetActive(activate);
         }
 
-        IEnumerator PlayOpenAnimation()
+        public IEnumerator PlayOpenAnimation()
         {
             m_Animator.Play(OPEN_ANIMATION);
+            ActivateOpenParticles(true);
 
             // wait for the animation to start
             while (!m_Animator.GetCurrentAnimatorStateInfo(0).IsName(OPEN_ANIMATION))
@@ -96,6 +96,7 @@ namespace Assets.Scripts.Menu.MainMenu.MainTab.Chests
                 yield return null;
             }
 
+            ActivateOpenParticles(false);
             OpenAnimationEndedEvent?.Invoke();
         }
 

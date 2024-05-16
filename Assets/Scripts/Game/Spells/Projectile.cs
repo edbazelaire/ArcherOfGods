@@ -19,6 +19,7 @@ namespace Game.Spells
 
         #endregion
 
+
         #region Init & End
 
         public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
@@ -42,6 +43,7 @@ namespace Game.Spells
                     break;
 
                 case ESpellTrajectory.Hight:
+                case ESpellTrajectory.Diagonal:
                     break;
 
                 default:
@@ -100,7 +102,17 @@ namespace Game.Spells
 
         protected override void SetTarget(Vector3 target)
         {
+            // add a small adjustement to X to avoid targetting the enemy's feets (only for autotarget aiming the ground)
+            if (m_SpellData.IsAutoTarget && target.y == 0)
+            {
+                int direction = ArenaManager.GetAreaMovementDirection(m_Controller.Team, m_SpellData.IsEnemyTarget);
+                target.x += direction * 0.5f;
+            }
+
+            // set value of the target
             base.SetTarget(target);
+
+            // look at the direction of the target
             LookAt(m_Target);
         }
 

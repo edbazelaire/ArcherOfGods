@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cac095da270c39146a2926f78948ff64, type: 3}
+  m_Name: Frozen
+  m_EditorClassIdentifier: 
+  m_Description: Consume a Frost effect to Freeze the enemy for {0} seconds that
+    can no longer move or cast. When the shield is broken, the Freeze ends
+  m_DescriptionVariables: 01000000
+  m_VisualEffect: {fileID: 7758585010674234526, guid: 4097eca5df8a5b1479a81a62b6bc7b03, type: 3}
+  m_ColorSwitch: {r: 1, g: 1, b: 1, a: 1}
+  m_Animation: 0
+  m_Duration: 3
+  m_MaxStacks: 1
+  m_SpeedBonus: 0
+  m_CastSpeed: 0
+  m_AttackSpeed: 0
+  m_Shield: 150
+  m_ResistanceFix: 0
+  m_ResistancePerc: 0
+  m_BonusDamages: 0
+  m_BonusDamagesPerc: 0
+  m_LifeSteal: 0
+  m_StateEffectScalingLevel: []
+  m_StateEffectScalingStacks: []

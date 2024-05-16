@@ -236,13 +236,13 @@ namespace Game.Character
             if (!CanSelect(spell))
                 return false;
 
-            Debug.Log("TrySelectSpell " + spell);
-            Debug.Log("     -- CHECK : is already Casting (" + spell + ") : " + m_IsCasting.Value);
+            ErrorHandler.Log("TrySelectSpell " + spell, ELogTag.SpellHandler);
+            ErrorHandler.Log("     -- CHECK : is already Casting (" + spell + ") : " + m_IsCasting.Value, ELogTag.SpellHandler);
 
             // set in queue if can 
             if (m_IsCasting.Value || m_CastCoroutine != null)
             {
-                Debug.Log("     -- Setting spell (" + spell + ") as m_NextSelectedSpell");
+                ErrorHandler.Log("     -- Setting spell (" + spell + ") as m_NextSelectedSpell", ELogTag.SpellHandler);
                 m_NextSelectedSpell = spell;
                 return true;
             }
@@ -259,7 +259,7 @@ namespace Game.Character
                 bool success = TryStartCastSpell(spell);
 
                 if (m_Controller.IsPlayer)
-                    Debug.Log("TryStartCastSpell "+spell+" success : " + success);
+                    ErrorHandler.Log("TryStartCastSpell "+spell+" success : " + success, ELogTag.SpellHandler);
 
                 if (!success)
                     ErrorHandler.Warning("Trying to cast spell " + spell + " on selection but was not able");

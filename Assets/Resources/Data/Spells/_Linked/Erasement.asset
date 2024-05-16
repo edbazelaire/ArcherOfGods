@@ -25,7 +25,7 @@ MonoBehaviour:
   MaxHit: 0
   EnergyGain: 0
   EnergyCost: 100
-  m_Damage: 120
+  m_Damage: 200
   m_Heal: 0
   Distance: -1
   m_Duration: 0

@@ -7,6 +7,7 @@ namespace Game.Spells
     [CreateAssetMenu(fileName = "DamageEffect", menuName = "Game/StateEffects/DamageEffect")]
     public class DamageEffect : StateEffect
     {
+        [Header("Damages")]
         [SerializeField] protected int m_Damages;
         [SerializeField] protected int m_Heal;
 

@@ -665,6 +665,21 @@ namespace Game
         }
 
         /// <summary>
+        /// Toggle activation of AIs (for tests)
+        /// </summary>
+        [Command(KeyCode.P)]
+        public void ToggleAI()
+        {
+            foreach (Controller controller in m_Controllers.Values)
+            {
+                if (controller.IsPlayer)
+                    continue;
+
+                controller.BehaviorTree.Activate(!controller.BehaviorTree.IsActivated);
+            }
+        }
+
+        /// <summary>
         /// Rescale all characters after changing size factor from the DebugSettings 
         /// </summary>
         public void RescaleCharacters()

@@ -79,6 +79,11 @@
         FrostVenomBarrage,
         PyrotoxinMist,
         FireBarrage,
+        IceLance,
+        Needlestorm,
+        FrostLeap,
+        Meteor,
+        Comets,
 
         Count
     }
@@ -158,6 +163,7 @@
         Hight,
         Curve,
         Straight,
+        Diagonal,
 
         Count
     }
@@ -247,7 +253,7 @@
         Cursed,
         Silence,
         Scorched,
-
+        IceBreak,
     }
 
     public enum ESpellProperty
@@ -279,6 +285,7 @@
         TickShield,
         AttackSpeed,
         CastSpeed,
+        ConsumeState,
     }
 
     public enum EAnimation

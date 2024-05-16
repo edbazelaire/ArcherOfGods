@@ -23,18 +23,18 @@ MonoBehaviour:
   MaxHit: 1
   EnergyGain: 0
   EnergyCost: 0
-  Damage: 0
-  Heal: 0
+  m_Damage: 0
+  m_Heal: 0
   Distance: -1
-  Duration: 0
+  m_Duration: 5
   Delay: 0
   m_Size: 1
   TriggerPlayer: 1
   EnemyStateEffects: []
   AllyStateEffects: []
   PersistanceAfterEnd: 0
-  Animation: 0
+  Animation: 9
   IsCancellable: 0
-  AnimationTimer: 0
+  AnimationTimer: 0.3
   CastAt: 1
-  Cooldown: 20
+  m_Cooldown: 20

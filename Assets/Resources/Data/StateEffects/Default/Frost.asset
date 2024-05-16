@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c35a1798966890f42861b9eb4c5496db, type: 3}
   m_Name: Frost
   m_EditorClassIdentifier: 
-  m_Description: Slow the by {0} enemy for {1} seconds
+  m_Description: Slow the enemy by {0} for {1} seconds
   m_DescriptionVariables: 0300000001000000
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 0.025943398, g: 0.31864953, b: 0.5, a: 1}

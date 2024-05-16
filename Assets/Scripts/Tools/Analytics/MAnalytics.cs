@@ -5,6 +5,17 @@ using Unity.Services.Analytics;
 
 public static class MAnalytics
 {
+    public static void Initialize()
+    {
+        // TODO : Consent UI
+        bool userGaveConsent = true;
+
+        if (userGaveConsent)
+        {
+            AnalyticsService.Instance.StartDataCollection();
+        }
+    }
+
     public static void SendEvent(Event myEvent)
     {
         // For demonstration purposes, log the event data to the console

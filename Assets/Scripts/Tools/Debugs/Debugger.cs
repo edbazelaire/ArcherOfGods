@@ -460,6 +460,8 @@ namespace Tools
             UnlockAllBorders();
             UnlockAllTitles();
             UnlockAllBadges();
+
+            ProfileCloudData.Instance.Save();
         }
 
         [Command]
@@ -479,7 +481,7 @@ namespace Tools
                 if (value == EAvatar.None)
                     continue;
 
-                ProfileCloudData.AddAchievementReward(EAchievementReward.Avatar, value.ToString());
+                ProfileCloudData.AddAchievementReward(EAchievementReward.Avatar, value.ToString(), false);
             }
         }
 
@@ -491,7 +493,7 @@ namespace Tools
                 if (value == EBorder.None)
                     continue;
 
-                ProfileCloudData.AddAchievementReward(EAchievementReward.Border, value.ToString());
+                ProfileCloudData.AddAchievementReward(EAchievementReward.Border, value.ToString(), false);
             }
         }
 
@@ -503,7 +505,7 @@ namespace Tools
                 if (value == ETitle.None)
                     continue;
 
-                ProfileCloudData.AddAchievementReward(EAchievementReward.Title, value.ToString());
+                ProfileCloudData.AddAchievementReward(EAchievementReward.Title, value.ToString(), false);
             }
         }
 
@@ -523,7 +525,7 @@ namespace Tools
                     if (AssetLoader.LoadBadgeIcon(badgeName) == null)
                         continue;
 
-                    ProfileCloudData.AddAchievementReward(EAchievementReward.Badge, badgeName);
+                    ProfileCloudData.AddAchievementReward(EAchievementReward.Badge, badgeName, false);
                 }
 
             }

@@ -1,7 +1,6 @@
 ﻿using Assets.Scripts.Network;
 using Enums;
 using Game.Loaders;
-using Managers;
 using Menu.PopUps;
 using Save;
 using System;
@@ -17,6 +16,7 @@ using Data.GameManagement;
 using System.Collections.Generic;
 using Scripts.Menu.PopUps;
 using Unity.Services.Core.Environments;
+using Unity.Services.Analytics;
 
 
 
@@ -326,6 +326,9 @@ namespace Assets
         {
             ErrorHandler.Log("SIGNED ID", ELogTag.System);
             m_SignedIn = true;
+
+            // setup analytics
+            MAnalytics.Initialize();
         }
 
         private void OnInitializationCompleted()

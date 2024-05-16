@@ -34,7 +34,12 @@ namespace Game.Spells
 
             // make player untargatable, unmovable and unrotatable
             if (IsServer)
+            {
                 m_Controller.StateHandler.SetStateJump(true);
+                m_Controller.SpellHandler.ForceBlockCast(true);
+                m_Controller.Movement.ForceBlockMovement(true);
+            }
+               
         }
 
         // Update is called once per frame
@@ -85,6 +90,8 @@ namespace Game.Spells
 
             // reset jump state
             m_Controller.StateHandler.SetStateJump(false);
+            m_Controller.SpellHandler.ForceBlockCast(false);
+            m_Controller.Movement.ForceBlockMovement(false);
         }
 
         #endregion

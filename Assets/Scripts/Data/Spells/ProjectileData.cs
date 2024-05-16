@@ -9,6 +9,8 @@ using Tools;
 using UnityEngine;
 using Assets;
 using Data.GameManagement;
+using UnityEditor.PackageManager;
+using UnityEngine.UIElements;
 
 namespace Data
 {
@@ -24,7 +26,11 @@ namespace Data
         [Description("Speed of the spell")]
         [SerializeField] float            m_Speed       = 0f;
 
+        // ================================================================================================
+        // Dependent Members
+        /// <summary> Movement speed of the spell </summary>
         public float Speed => Settings.SpellSpeedFactor * m_Speed;
+        public bool IsTrajectoryFromAbove => Trajectory == ESpellTrajectory.Hight || Trajectory == ESpellTrajectory.Diagonal;
         #endregion
 
 
@@ -32,8 +38,11 @@ namespace Data
 
         public override void Cast(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default, bool recalculateTarget = true)
         {
-            position += GetSpawnOffset(GameManager.Instance.GetPlayer(clientId));
-            base.Cast(clientId, target, position, rotation, recalculateTarget);
+            if (recalculateTarget)
+                CalculateTarget(ref target, clientId);
+
+            RecalculatePosition(ref position, target, clientId);
+            base.Cast(clientId, target, position, rotation, false);
         }
 
         public override void SpellPreview(Controller controller, Transform parent = default, Vector3 offset = default)
@@ -46,6 +55,7 @@ namespace Data
                     parent = ArenaManager.Instance.Arena.transform;
                     break;
 
+                case ESpellTrajectory.Diagonal:
                 case ESpellTrajectory.Straight:
                     break;
 
@@ -86,6 +96,31 @@ namespace Data
 
         #region Postion & Target
 
+        protected virtual void RecalculatePosition(ref Vector3 position, Vector3 target, ulong clientId)
+        {
+            Controller controller = GameManager.Instance.GetPlayer(clientId);
+
+            if (IsTrajectoryFromAbove)
+                position.y = 4;
+
+            switch (Trajectory)
+            {
+                case ESpellTrajectory.Straight:
+                case ESpellTrajectory.Diagonal:
+                case ESpellTrajectory.Curve:
+                    position += GetSpawnOffset(controller);
+                    break;
+
+                case ESpellTrajectory.Hight:
+                    position.x = target.x + ArenaManager.GetAreaMovementDirection(controller.Team, IsEnemyTarget) * 2f;
+                    break;
+
+                default:
+                    ErrorHandler.Error($"Trajectory {Trajectory} not implemented");
+                    break;
+            }
+        }
+
         /// <summary>
         /// Calculate offset of the spawn position depending on the trajectory
         /// </summary>
@@ -101,6 +136,7 @@ namespace Data
                     return new Vector3(0, 0, 0);
 
                 case ESpellTrajectory.Curve:
+                case ESpellTrajectory.Diagonal:
                     return new Vector3(rotationFactor * 0.1f, 0.25f, 0);
 
                 case ESpellTrajectory.Hight:

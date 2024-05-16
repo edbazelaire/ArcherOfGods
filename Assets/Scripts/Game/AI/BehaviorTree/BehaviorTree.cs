@@ -8,9 +8,16 @@ namespace AI
 {
     public abstract class BehaviorTree : NetworkBehaviour
     {
+        #region Members
+
         private Node m_Root = null;
         protected Controller m_Controller;
         protected bool m_IsActivated = false;
+
+        public bool IsActivated => m_IsActivated;
+
+        #endregion
+
 
         #region Init & End
 

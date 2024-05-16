@@ -21,12 +21,12 @@ MonoBehaviour:
   OnHit: []
   SpellTarget: 1
   MaxHit: 0
-  EnergyGain: 2
+  EnergyGain: 5
   EnergyCost: 0
-  Damage: 2
-  Heal: 0
+  m_Damage: 30
+  m_Heal: 0
   Distance: -1
-  Duration: 3
+  m_Duration: 3
   Delay: 0.4
   m_Size: 5
   TriggerPlayer: 1
@@ -41,7 +41,7 @@ MonoBehaviour:
   IsCancellable: 0
   AnimationTimer: 0.8
   CastAt: 1
-  Cooldown: 20
+  m_Cooldown: 20
   DurationTick: 0.5
   GrowSizeFactor: 0
   MaxSizeAt: 1

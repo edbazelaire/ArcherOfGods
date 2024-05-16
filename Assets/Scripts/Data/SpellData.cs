@@ -102,6 +102,7 @@ namespace Data
 
         #endregion
 
+
         #region Instantiate & Spawns
 
         /// <summary>
@@ -198,7 +199,9 @@ namespace Data
             foreach(SpellData spellData in OnHit)
             {
                 // setup spell data to level of this spell
-                spellData.Clone(m_Level).Cast(clientId, target, position, rotation, false);
+                var onHitSpellData = spellData.Clone(m_Level);
+                onHitSpellData.Override(this);
+                onHitSpellData.Cast(clientId, target, position, rotation, false);
             }   
         }
 
@@ -225,6 +228,21 @@ namespace Data
         #endregion
 
 
+        #region Overriders 
+
+        public void Override(SpellData overridingData)
+        {
+            // apply overrides
+            if (overridingData.m_Damage > 0)
+                m_Damage = overridingData.m_Damage;
+
+            if (overridingData.m_Heal > 0)
+                m_Heal = overridingData.m_Heal;
+        }
+
+        #endregion
+
+
         #region Spell Helpers
 
         protected virtual GameObject GetSpellPrefab()
@@ -241,20 +259,20 @@ namespace Data
             {
                 case ESpellTarget.Self:
                     target = GameManager.Instance.GetPlayer(clientId).transform.position;
-                    return;
+                    break;
 
                 case ESpellTarget.FirstAlly:
                     target = GameManager.Instance.GetFirstAlly(GameManager.Instance.GetPlayer(clientId).Team, clientId).transform.position;
-                    return;
+                    break;
 
                 case ESpellTarget.FirstEnemy:
                     target = GameManager.Instance.GetFirstEnemy(GameManager.Instance.GetPlayer(clientId).Team).transform.position;
-                    return;
+                    break;
 
                 case ESpellTarget.AllyZoneCenter:
                 case ESpellTarget.EnemyZoneCenter:
                     target = new Vector3(GameManager.Instance.GetPlayer(clientId).SpellHandler.TargettableArea.position.x, target.y, target.z);
-                    return;
+                    break;
 
                 case ESpellTarget.AllyZoneStart:
                 case ESpellTarget.EnemyZoneStart:
@@ -264,12 +282,16 @@ namespace Data
                     // direction usless ??
                     int direction = ArenaManager.GetAreaMovementDirection(controller.Team, SpellTarget == ESpellTarget.EnemyZoneStart);
                     target = new Vector3(centerPos - direction * ArenaManager.Instance.TargettableAreaSize / 2, target.y, target.z);
-                    return;
+                    break;
 
                 default:
                     ErrorHandler.Error("Unhandled case : " + SpellTarget);
-                    return;
+                    break;
             }
+
+            // clamp target between min/max xPos of the target zone
+            var zoneCenter = GameManager.Instance.GetPlayer(clientId).SpellHandler.TargettableArea.position.x;
+            target.x = Mathf.Clamp(target.x, zoneCenter - ArenaManager.Instance.TargettableAreaSize / 2, zoneCenter + ArenaManager.Instance.TargettableAreaSize / 2);
         }
 
         /// <summary>

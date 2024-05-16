@@ -23,10 +23,10 @@ MonoBehaviour:
   MaxHit: 0
   EnergyGain: 0
   EnergyCost: 0
-  Damage: 25
-  Heal: 0
+  m_Damage: 200
+  m_Heal: 0
   Distance: -1
-  Duration: 0
+  m_Duration: 0
   Delay: 0
   m_Size: 3
   TriggerPlayer: 1
@@ -41,4 +41,4 @@ MonoBehaviour:
   IsCancellable: 1
   AnimationTimer: 0
   CastAt: 1
-  Cooldown: 0
+  m_Cooldown: 0

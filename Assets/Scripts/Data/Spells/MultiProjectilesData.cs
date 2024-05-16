@@ -33,6 +33,11 @@ namespace Data
         [Description("Size of the projectile zone")]
         public float DelayBetweenLaunches = 0f;
 
+        // ============================================================================================
+        // Dependent Members
+        /// <summary> Is the spell blocking movement and cast until the end of the multicast ? </summary>
+        protected bool m_IsBlocking => Trajectory == ESpellTrajectory.Curve || Trajectory == ESpellTrajectory.Straight;
+
         #endregion
 
 
@@ -57,8 +62,11 @@ namespace Data
         {
             // block movement and cast until the end
             Controller controller = GameManager.Instance.GetPlayer(clientId);
-            controller.SpellHandler.ForceBlockCast(true);
-            controller.Movement.ForceBlockMovement(true);
+            if (m_IsBlocking)
+            {
+                controller.SpellHandler.ForceBlockCast(true);
+                controller.Movement.ForceBlockMovement(true);
+            }
 
             // save spellTarget to avoid 
             var targetType = SpellTarget;
@@ -90,8 +98,11 @@ namespace Data
             SpellTarget = targetType;
 
             // remove blockers
-            controller.SpellHandler.ForceBlockCast(false);
-            controller.Movement.ForceBlockMovement(false);
+            if (m_IsBlocking)
+            {
+                controller.SpellHandler.ForceBlockCast(false);
+                controller.Movement.ForceBlockMovement(false);
+            }
         }
 
         #endregion
