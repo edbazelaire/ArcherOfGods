@@ -156,7 +156,8 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      MoneyMan_0: -8400847382147928473
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
