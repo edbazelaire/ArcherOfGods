@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b3ab460364119c408209877f7ac86d5, type: 3}
   m_Name: LegendaryChest
   m_EditorClassIdentifier: 
-  UnlockTime: 10
+  UnlockTime: 86400
+  IdleSoundFX: {fileID: 0}
+  OpenSoundFX: {fileID: 0}
   Currencies:
   - Currency: 0
     Min: 10000

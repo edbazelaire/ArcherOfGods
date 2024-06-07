@@ -16,7 +16,7 @@ using Data.GameManagement;
 using System.Collections.Generic;
 using Scripts.Menu.PopUps;
 using Unity.Services.Core.Environments;
-using Unity.Services.Analytics;
+using Network;
 
 
 
@@ -36,8 +36,7 @@ namespace Assets
         // SERIALIZED MEMBERS
         [SerializeField] Canvas m_Canvas;
         [SerializeField] CloudSaveManager m_CloudSaveManager;
-        [SerializeField] float m_CharacterSizeFactor    = 1.0f;
-        [SerializeField] float m_SpellSizeFactor        = 0.3f;    
+        [SerializeField] bool m_ActivateSaveOnClose; 
         [SerializeField] List<ELogTag> m_LogTags;
 
         // ==========================================================================================================
@@ -59,8 +58,7 @@ namespace Assets
         public static CloudSaveManager CloudSaveManager         => Instance.m_CloudSaveManager;
         public static EAppState State                           => Instance.m_State;
         public static Canvas Canvas                             => Instance.m_Canvas;
-        public static float CharacterSizeFactor                 => Instance.m_CharacterSizeFactor;
-        public static float SpellSizeFactor                     => Instance.m_SpellSizeFactor;
+        public static bool ActivateSaveOnClose                  => Instance.m_ActivateSaveOnClose;
         public static List<ELogTag> LogTags                     => Instance.m_LogTags;  
 
         #endregion
@@ -133,6 +131,7 @@ namespace Assets
                 || ItemLoader.ChestRewardData       == null
                 || AchievementLoader.Achievements   == null
                 || RelayHandler.Instance            == null
+                || LobbyHandler.Instance            == null
                 || ! m_CloudSaveManager.LoadingCompleted
                 || ! m_SignedIn
             )
@@ -215,15 +214,15 @@ namespace Assets
                     break;
 
                 case EPopUpState.ConfirmBuyPopUp:
-                    obj.GetComponent<ConfirmBuyPopUp>().Initialize((SPriceData)args[0], (SRewardsData)args[1]);
+                    obj.GetComponent<ConfirmBuyPopUp>().Initialize((SPriceData)args[0], (SRewardsData)args[1], (Action)args[2], (Action)args[3]);
                     break;
 
                 case EPopUpState.ConfirmBuyItemPopUp:
-                    obj.GetComponent<ConfirmBuyItemPopUp>().Initialize((SPriceData)args[0], (Enum)args[1], (int)args[2]);
+                    obj.GetComponent<ConfirmBuyItemPopUp>().Initialize((SPriceData)args[0], (Enum)args[1], (int)args[2], (Action)args[3], (Action)args[4]);
                     break;
 
                 case EPopUpState.ConfirmBuyBundlePopUp:
-                    obj.GetComponent<ConfirmBuyBundlePopUp>().Initialize((SPriceData)args[0], (SRewardsData)args[1]);
+                    obj.GetComponent<ConfirmBuyBundlePopUp>().Initialize((SPriceData)args[0], (SRewardsData)args[1], (Action)args[2], (Action)args[3]);
                     break;
 
 
@@ -233,7 +232,7 @@ namespace Assets
                     break;
 
                 case EPopUpState.AchievementRewardScreen:
-                    obj.GetComponent<AchievementRewardScreen>().Initialize((List<SAchievementRewardData>)args[0]);
+                    obj.GetComponent<AchievementRewardScreen>().Initialize((List<SAchievementReward>)args[0]);
                     break;
 
                 case EPopUpState.ArenaPathScreen:
@@ -250,8 +249,9 @@ namespace Assets
                     obj.GetComponent<SpellInfoPopUp>().Initialize((ESpell)args[0], (int)args[1], infoOnly);
                     break;
 
+                case EPopUpState.CollectableInfoPopUp:
                 case EPopUpState.CharacterInfoPopUp:
-                    obj.GetComponent<CharacterInfoPopUp>().Initialize((ECharacter)args[0], (int)args[1]);
+                    obj.GetComponent<CollectableInfoPopUp>().Initialize((ECharacter)args[0], (int)args[1]);
                     break;
 
                 case EPopUpState.StateEffectPopUp:
@@ -260,6 +260,10 @@ namespace Assets
 
                 case EPopUpState.RuneSelectionPopUp:
                     obj.GetComponent<RuneSelectionPopUp>().Initialize();
+                    break;
+
+                case EPopUpState.SettingsPopUp:
+                    obj.GetComponent<SettingsPopUp>().Initialize();
                     break;
 
                 default:
@@ -274,12 +278,34 @@ namespace Assets
         }
         
 
-        public static void DisplayAchievementRewards(List<SAchievementRewardData> rewardsData)
+        public static void DisplayAchievementRewards(List<SAchievementReward> rewardsData)
         {
             Main.SetPopUp(EPopUpState.AchievementRewardScreen, rewardsData);
         }
 
-        public static void ConfirmBuyRewards(SPriceData priceData, SRewardsData rewardsData)
+        /// <summary>
+        /// Set ConfirmBuyRewards() method for a singular collectable
+        /// </summary>
+        /// <param name="priceData"></param>
+        /// <param name="collectable"></param>
+        /// <param name="qty"></param>
+        /// <param name="OnPurchase"></param>
+        public static void ConfirmBuyCollectable(SPriceData priceData, Enum collectable, int qty, Action<bool> OnPurchase)
+        {
+            if (! CollectablesManagementData.TryGetCollectableType(collectable, out var collectableType))
+                return;
+
+            SRewardsData rewardsData = new SRewardsData(collectableRewards: new List<SCollectableReward>() { new SCollectableReward(collectableType, collectable.ToString(), qty) }) ;
+            ConfirmBuyRewards(priceData, rewardsData, OnPurchase);
+        }
+
+        /// <summary>
+        /// Confirm purchase of an item or a bundle of items (currency, chests, collectables)
+        /// </summary>
+        /// <param name="priceData"></param>
+        /// <param name="rewardsData"></param>
+        /// <param name="OnPurchase"></param>
+        public static void ConfirmBuyRewards(SPriceData priceData, SRewardsData rewardsData, Action<bool> OnPurchase)
         {
             if (rewardsData.Rewards.Count == 0)
             {
@@ -287,20 +313,22 @@ namespace Assets
                 return;
             }
 
-            if (rewardsData.Rewards.Count > 1)
+            Action onValidate = () => OnPurchase(true);
+            Action onCancel = () => OnPurchase(false);
+
+            if (rewardsData.Rewards.Count == 1 && rewardsData.Collectables != null && rewardsData.Collectables.Count == 1)
             {
-                Main.SetPopUp(EPopUpState.ConfirmBuyBundlePopUp, priceData, rewardsData);
+                if (! Enum.TryParse(rewardsData.Rewards[0].RewardType, rewardsData.Rewards[0].RewardName, out object item))
+                {
+                    ErrorHandler.Error("Unable to parse " + rewardsData.Rewards[0].RewardName + " as " + rewardsData.Rewards[0].RewardType);
+                    return;
+                }
+
+                Main.SetPopUp(EPopUpState.ConfirmBuyItemPopUp, priceData, item, rewardsData.Rewards[0].Qty, onValidate, onCancel);
                 return;
             }
 
-            if (rewardsData.Rewards.Count == 1 && Enum.TryParse(rewardsData.Rewards[0].RewardType, rewardsData.Rewards[0].RewardName, out object item) )
-            {
-                Main.SetPopUp(EPopUpState.ConfirmBuyItemPopUp, priceData, item, rewardsData.Rewards[0].Qty);
-                return;
-            }
-
-            ErrorHandler.Warning("Unable to find any specific ConfirmBuyPopUp for provided RewardsData : using default");
-            Main.SetPopUp(EPopUpState.ConfirmBuyPopUp, priceData, rewardsData);
+            Main.SetPopUp(EPopUpState.ConfirmBuyBundlePopUp, priceData, rewardsData, onValidate, onCancel);
         }
 
         public static void ErrorMessagePopUp(string message)

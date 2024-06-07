@@ -1,8 +1,10 @@
 ﻿using Assets;
+using Assets.Scripts.Managers.Sound;
 using Enums;
 using MyBox;
 using System.Collections;
 using Tools;
+using Tools.Animations;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -14,7 +16,6 @@ namespace Menu.PopUps
     {
         static int OrderInLayer = 0;
 
-        protected bool m_Initialized = false;
         protected Canvas m_Canvas;
         protected float m_EndingTimer = 0f;
 
@@ -43,13 +44,14 @@ namespace Menu.PopUps
         /// </summary>
         protected virtual void OnExit()
         {
+            PlaySoundFX();
+
             OrderInLayer--;
             UnRegisterButtons();
             UnRegisterListeners();
         }
 
         #endregion
-
 
 
         #region Loading
@@ -76,22 +78,29 @@ namespace Menu.PopUps
         {
             m_Canvas = Finder.FindComponent<Canvas>(gameObject);
          
-            m_Canvas.worldCamera = Camera.main;
-            m_Canvas.sortingLayerName = "Overlay";
-            m_Canvas.sortingOrder = OrderInLayer;
+            m_Canvas.worldCamera        = Camera.main;
+            m_Canvas.sortingLayerName   = "Overlay";
+            m_Canvas.sortingOrder       = OrderInLayer;
         }
 
         protected virtual void OnPrefabLoaded() { }
 
         protected virtual void OnInitializationCompleted()
         {
-
             // re-activate game object
             gameObject.SetActive(true);
 
             // call init done
             m_Initialized = true;
+
+            // play sound animation
+            PlaySoundFX();
+
+            // play enter animation
+            EnterAnimation();
         }
+
+        protected virtual void EnterAnimation() { }
 
         #endregion
 
@@ -110,13 +119,21 @@ namespace Menu.PopUps
 
         protected virtual IEnumerator DestroyCoroutine()
         {
-            while (m_EndingTimer > 0)
-            {
-                m_EndingTimer -= Time.deltaTime;
-                yield return null;
-            }
+            yield return ExitAnimation();
 
             Destroy(gameObject);
+        }
+
+        protected virtual IEnumerable ExitAnimation() { yield break; }
+
+        #endregion
+
+
+        #region Sound & Other
+
+        protected virtual void PlaySoundFX()
+        {
+            SoundFXManager.PlayOnce(SoundFXManager.OpenOverlayScreenSoundFX);
         }
 
         #endregion

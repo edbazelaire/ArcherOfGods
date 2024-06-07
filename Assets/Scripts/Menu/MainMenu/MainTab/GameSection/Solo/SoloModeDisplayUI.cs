@@ -1,11 +1,12 @@
-﻿using Assets;
-using Data.GameManagement;
+﻿using Data.GameManagement;
 using Enums;
+using System.Collections.Generic;
 using System;
 using TMPro;
 using Tools;
 using UnityEngine;
-using UnityEngine.UI;
+using System.Linq;
+using Assets.Scripts.Managers.Sound;
 
 namespace Menu.MainMenu.MainTab
 {
@@ -13,12 +14,12 @@ namespace Menu.MainMenu.MainTab
     {
         #region Members
 
-        EArenaType  m_ArenaType;
-        ArenaData   m_ArenaData;
+        EArenaType          m_ArenaType;
+        ArenaData           m_ArenaData;
 
-        TMP_Text m_Title;
+        TMP_Dropdown        m_DropdownButton;
         GameObject          m_ArenaSection;
-        Button              m_ArenaButton;
+        ArenaButton         m_ArenaButton;
         StageSectionUI      m_StageSectionUI;
 
         #endregion
@@ -30,17 +31,22 @@ namespace Menu.MainMenu.MainTab
         {
             base.Initialize();
 
-            m_ArenaData = AssetLoader.LoadArenaData(PlayerPrefsHandler.GetArenaType());
             m_StageSectionUI.Initialize(m_ArenaData, m_ArenaData.CurrentLevel);
+        }
 
-            OnArenaTypeChanged(m_ArenaType);
+        protected override void SetUpUI()
+        {
+            base.SetUpUI();
+
+            SetUpDropDownButton();
+            OnArenaTypeChanged(PlayerPrefsHandler.GetArenaType());
         }
 
         protected override void FindComponents()
         {
             base.FindComponents();
 
-            m_Title             = Finder.FindComponent<TMP_Text>(gameObject, "Title");
+            m_DropdownButton    = Finder.FindComponent<TMP_Dropdown>(gameObject, "DropdownButton");
             m_ArenaSection      = Finder.Find(gameObject, "ArenaSection");
             m_StageSectionUI    = Finder.FindComponent<StageSectionUI>(gameObject, "StageSection");
         }
@@ -54,9 +60,21 @@ namespace Menu.MainMenu.MainTab
         {
             UIHelper.CleanContent(m_ArenaSection);
 
-            m_Title.text    = TextLocalizer.SplitCamelCase(m_ArenaType.ToString());
-            m_ArenaButton   = Instantiate(AssetLoader.LoadArenaButton(m_ArenaType), m_ArenaSection.transform).GetComponent<Button>();
-            m_ArenaButton.onClick.AddListener(OnArenaButtonClicked);
+            m_ArenaButton           = Instantiate(AssetLoader.LoadArenaButton(m_ArenaType), m_ArenaSection.transform).GetComponent<ArenaButton>();
+            m_ArenaButton.Initialize(m_ArenaType);
+        }
+
+        #endregion
+
+
+        #region GUI Manipulators
+
+        void SetUpDropDownButton()
+        {
+            List<string> modes = Enum.GetNames(typeof(EArenaType)).ToList();
+
+            // add values to dropdown
+            m_DropdownButton.AddOptions(modes);
         }
 
         #endregion
@@ -69,6 +87,7 @@ namespace Menu.MainMenu.MainTab
             base.RegisterListeners();
 
             PlayerPrefsHandler.ArenaTypeChangedEvent += OnArenaTypeChanged;
+            m_DropdownButton.onValueChanged.AddListener(OnDropDownValueChanged);
         }
 
         protected override void UnRegisterListeners()
@@ -76,19 +95,31 @@ namespace Menu.MainMenu.MainTab
             base.UnRegisterListeners();
 
             PlayerPrefsHandler.ArenaTypeChangedEvent -= OnArenaTypeChanged;
+            m_DropdownButton.onValueChanged.RemoveListener(OnDropDownValueChanged);
         }
 
-        void OnArenaButtonClicked()
-        {
-            Main.SetPopUp(EPopUpState.ArenaPathScreen, m_ArenaType);
-        }
 
         void OnArenaTypeChanged(EArenaType arenaType)
         {
             m_ArenaType = arenaType;
             m_ArenaData = AssetLoader.LoadArenaData(arenaType);
 
+            // set value to last selected value
+            m_DropdownButton.value = Enum.GetNames(typeof(EArenaType)).ToList().IndexOf(m_ArenaType.ToString());
+
             RefreshUI();
+        }
+
+        void OnDropDownValueChanged(int index)
+        {
+            if (!Enum.TryParse(m_DropdownButton.options[index].text, out EArenaType arenaType))
+            {
+                ErrorHandler.Error("Unable to convert " + m_DropdownButton.options[index].text + " as game mode");
+                return;
+            }
+
+            SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
+            PlayerPrefsHandler.SetArenaType(arenaType);
         }
 
         #endregion

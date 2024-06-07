@@ -44,7 +44,7 @@ namespace Game.Spells
         protected override void OnHitPlayer(Controller controller) 
         {
             // add state effect specific to this spell (must have same name)
-            controller.StateHandler.AddStateEffect(m_SpellData.GetStateEffect());
+            controller.StateHandler.AddStateEffect(m_SpellData.GetStateEffect(), m_Controller);
 
             base.OnHitPlayer(controller);
         }

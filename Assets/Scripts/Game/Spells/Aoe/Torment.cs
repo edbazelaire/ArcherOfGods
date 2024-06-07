@@ -26,7 +26,7 @@ namespace Game.Spells
             m_Controller.EnergyHandler.AddEnergy(nStacks * ENERGY_PER_STACKS);
 
             // stun
-            targetController.StateHandler.AddStateEffect(EStateEffect.Stun, duration: 2f);
+            targetController.StateHandler.AddStateEffect(EStateEffect.Stun, m_Controller, duration: 2f);
         }
 
         #endregion

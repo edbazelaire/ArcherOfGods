@@ -80,7 +80,11 @@ namespace Data
                 if (m_Speed > 0)
                     delay += Math.Abs(target.x - ownerTransform.position.x) / Speed;
 
-                Finder.FindComponent<OnCastAoe>(go).Initialize(target, Size, delay);
+                var size = Size;
+                if (OnHit.Count > 0 && OnHit[0].SpellType == ESpellType.Aoe)
+                    size = OnHit[0].Size;
+
+                Finder.FindComponent<OnCastAoe>(go).Initialize(target, size, delay);
                 gameObjects.Add(go);
             }
 
@@ -99,21 +103,31 @@ namespace Data
             if (IsTrajectoryFromAbove)
                 position.y = 4;
 
+            // bounds of the proc area
+            (float Min, float Max) bounds = (0f, 0f);
+
             switch (Trajectory)
             {
                 case ESpellTrajectory.Straight:
                 case ESpellTrajectory.Diagonal:
                 case ESpellTrajectory.Curve:
                     position += GetSpawnOffset(controller);
+                    bounds = ArenaManager.GetAreaBounds(controller.Team, false);
                     break;
 
                 case ESpellTrajectory.Hight:
-                    position.x = target.x + ArenaManager.GetAreaMovementDirection(controller.Team, IsEnemyTarget) * 2f;
+                    position.x = target.x;
                     break;
 
                 default:
                     ErrorHandler.Error($"Trajectory {Trajectory} not implemented");
                     break;
+            }
+
+            if (bounds != (0f, 0f))
+            {
+                var offset = 0.1f + Size / 2;
+                position.x = Mathf.Clamp(position.x, bounds.Min + offset, bounds.Max - offset);
             }
         }
 

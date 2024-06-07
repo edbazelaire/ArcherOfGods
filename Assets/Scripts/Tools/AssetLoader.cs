@@ -1,8 +1,11 @@
 ﻿using Data.GameManagement;
 using Enums;
 using Menu.Common.Buttons;
+using NUnit.Framework;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Xml.Linq;
 using UnityEngine;
 using static UnityEngine.Rendering.DebugUI;
 
@@ -42,6 +45,7 @@ namespace Tools
         public const string c_UIPath                        = "UI/";
         // ---- Templates
         public const string c_TemplatesUIPath               = c_UIPath + "Templates/";
+        public const string c_TemplatesShopPath             = c_TemplatesUIPath + "Shop/";
         public const string c_AchievementsTemplatesPath     = c_TemplatesUIPath + "Achievements/";
         // ---- Commons
         public const string c_CommonPath                    = c_UIPath + "Common/";
@@ -63,9 +67,14 @@ namespace Tools
 
         // =============================================================================================================
         // SPRITES
+        public const string c_SpritesPath                   = "Sprites/";
         // -- UI
-        public const string c_UISpritesPath                 = "Sprites/UI/";
+        public const string c_UISpritesPath                 = c_SpritesPath + "UI/";
         public const string c_RaysPath                      = c_UISpritesPath + "Rays/";
+        // -- Backgrounds
+        public const string c_BackgroundsPath               = c_SpritesPath + "Backgrounds/";
+        public const string c_ArenaBackgroundsPath          = c_BackgroundsPath + "Arenas/";
+
         // -- profile
         public const string c_ProfilePath                   = "Sprites/Profile/";
         public const string c_AvatarsPath                   = c_ProfilePath + "Avatars/";
@@ -89,6 +98,9 @@ namespace Tools
         public const string c_AnimationParticlesPath        = c_AnimationPath + "Particles/";
         public const string c_AnimationBackgroundsPath      = c_AnimationPath + "Backgrounds/";
 
+        // SOUNDS
+        public const string c_SoundsPath                = "Sounds/";
+
 
         #region Default Methods
 
@@ -102,7 +114,21 @@ namespace Tools
 
         public static T Load<T>(string assetName, string dirpath) where T : Object
         {
-            return Load<T>(dirpath + assetName);
+            var ressource = Load<T>(dirpath + assetName);
+            if (ressource != null)
+                return ressource;
+
+            var allRessources = LoadAll<T>(dirpath);
+            foreach(var temp in allRessources)
+            {
+                if (temp.name == assetName)
+                {
+                    return temp;
+                }
+            }
+
+            ErrorHandler.Error("Unable to find any ressource named " + assetName + " with type " + typeof(T) + " at " + dirpath);
+            return null;
         }
 
         public static T[] LoadAll<T>(string path) where T : Object
@@ -176,6 +202,47 @@ namespace Tools
             return LoadTemplateItem(item.GetType().ToString().Split('.')[1][1..] + "Item");
         }
 
+        public static TemplateShopItemUI LoadShopTemplateItem(string name = "")
+        {
+            if (name == "" || name == "default")
+            {
+                name = "Shop";
+            }
+
+            return Load<TemplateShopItemUI>(c_TemplatesShopPath + c_TemplatePrefix + name + "Item");
+        }
+
+        public static T LoadShopTemplateItem<T>(string name = "") where T : TemplateShopItemUI
+        {
+            var allTemplates = LoadAll<T>(c_TemplatesShopPath);
+
+            if (allTemplates.Length == 0)
+            {
+                ErrorHandler.Warning("Unable to find any template of type : " + typeof(T).ToString() + " - in " + c_TemplatesUIPath);
+                return null;
+            }
+
+            if (allTemplates.Length > 1)
+            {
+                if (name != "")
+                {
+                    foreach (var template in allTemplates)
+                    {
+                        if (template.name == name)
+                            return template;
+                    }
+
+                    ErrorHandler.Warning("Found multiple templates with type : " + typeof(T).ToString() + " - but none was named : " + name);
+                }
+                else
+                {
+                    ErrorHandler.Warning("Found multiple templates with type : " + typeof(T).ToString() + " - but no name was provided to distinguish");
+                }
+            }
+
+            return allTemplates[0];
+        }
+
         public static AchievementRewardUI LoadAchievementRewardTemplate(EAchievementReward achievementReward)
         {
             string templateBaseName = achievementReward.ToString();
@@ -214,6 +281,15 @@ namespace Tools
 
             else if (iconType == typeof(ECurrency))
                 path = c_CurrenciesPath;
+
+            else if (iconType == typeof(EAvatar))
+                return Load<Sprite>(itemName, AssetLoader.c_AvatarsPath);
+
+            else if (iconType == typeof(EBorder))
+                return Load<Sprite>(itemName, AssetLoader.c_BordersPath);
+
+            else if (iconType == typeof(EBadge))
+                return Load<Sprite>(itemName, AssetLoader.c_BadgesPath);
 
             else if (iconType == typeof(EChest))
             {
@@ -257,8 +333,8 @@ namespace Tools
         {
             if (qty.HasValue)
             {
-                float factor = currency == ECurrency.Gems ? 250f : 2500f;
-                int packNumber = Mathf.Clamp((int)Mathf.Round(qty.Value / factor), 1, 3);
+                float factor = currency == ECurrency.Gems ? 500f : 5000f;
+                int packNumber = Mathf.Clamp((int)Mathf.Round(qty.Value / factor), 1, currency == ECurrency.Golds ? 4 : 3);
                 return Load<Sprite>(c_ShopPath + currency.ToString() + "Pack_0" + packNumber.ToString());
             }
 
@@ -278,6 +354,29 @@ namespace Tools
         public static Sprite LoadChestIcon(EChest chest)
         {
             return LoadChestIcon(chest.ToString());
+        }
+
+        public static Sprite LoadAchievementRewardIcon(string name, EAchievementReward arType)
+        {
+            string path;
+            switch (arType)
+            {
+                case EAchievementReward.Avatar:
+                    path = c_AvatarsPath;
+                    break;
+                case EAchievementReward.Border:
+                    path = c_BordersPath;
+                    break;
+                case EAchievementReward.Badge:
+                    path = c_BadgesPath;
+                    break;
+
+                default:
+                    ErrorHandler.Error("Unhandled case " + arType);
+                    return default;
+            }
+
+            return AssetLoader.Load<Sprite>(name, path);
         }
 
         public static Sprite LoadUIElementIcon(string name)

@@ -1,6 +1,7 @@
 using Enums;
 using System;
 using Tools;
+using UnityEngine;
 
 
 namespace Menu.MainMenu
@@ -19,9 +20,9 @@ namespace Menu.MainMenu
 
         #region Init & End
 
-        public override void Initialize(TabButton tabButton)
+        public override void Initialize(TabButton tabButton, AudioClip activationSoundFX)
         {
-            base.Initialize(tabButton);
+            base.Initialize(tabButton, activationSoundFX);
 
             m_CharacterPreviewSectionUI = Finder.FindComponent<CharacterPreviewSectionUI>(gameObject, "CharacterPreviewSection");
             m_ItemsTabManager = Finder.FindComponent<ItemsTabManager>(gameObject, "ItemsTabManager");

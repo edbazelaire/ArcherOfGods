@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Assets.Scripts.Managers.Sound;
 using TMPro;
 using Tools;
 using UnityEngine;
@@ -14,6 +14,10 @@ namespace Menu.Common.Buttons
         // ========================================================================================
         // Constants
         protected const string LEVEL_FORMAT = "Level {0}";
+
+        // ========================================================================================
+        // Serialize Field
+        [SerializeField] protected AudioClip m_OnClickAudio;
 
         // ========================================================================================
         // GameObjects & Components
@@ -33,6 +37,7 @@ namespace Menu.Common.Buttons
         // Button data
         protected bool          m_IsInitialized;
         protected bool          m_AsIconOnly;
+        protected EButtonState  m_State;
 
 
         // ========================================================================================
@@ -93,6 +98,9 @@ namespace Menu.Common.Buttons
             // find game object's components
             FindComponents();
 
+            // set normal state by default
+            SetState(EButtonState.Normal);
+
             // register events listeners
             RegisterListeners();
 
@@ -100,19 +108,13 @@ namespace Menu.Common.Buttons
             m_IsInitialized = true;
         }
 
+        protected virtual void SetUpUI() { }
+
         /// <summary>
-        /// On destroy : remove all listeners
-        /// </summary>
-        protected virtual void OnDestroy() 
-        {
-            UnregisterLiteners();
-        }
-
-
         protected virtual void RegisterListeners()
         {
             if (m_IsInitialized)
-                UnregisterLiteners();
+                UnRegisterListeners();
 
             // Listeners
             m_Button.onClick.AddListener(OnClick);
@@ -121,7 +123,7 @@ namespace Menu.Common.Buttons
         /// <summary>
         /// Unregister all listeners
         /// </summary>
-        protected virtual void UnregisterLiteners()
+        protected virtual void UnRegisterListeners()
         {
             if (m_Button == null)
                 return;
@@ -129,23 +131,27 @@ namespace Menu.Common.Buttons
             m_Button.onClick.RemoveListener(OnClick);
         }
 
+        protected virtual void OnDestroy()
+        {
+            if (m_IsInitialized)
+                UnRegisterListeners();
+        }
+
         #endregion
 
 
         #region GUI Manipulators
 
-        protected virtual void SetUpUI() { }
-
-        protected virtual void SetTitle(string title, Color? textColor = null, Color? backgroundColor = null)
+        public virtual void SetTitle(string title, Color? textColor = null, Color? backgroundColor = null)
         {
             if (m_TitleOverlay == null)
             {
-                ErrorHandler.Error("Trying to set title " + title + " for object " + name + " but TitleOverlay was not found");
+                ErrorHandler.Warning("Trying to set title " + title + " for object " + name + " but TitleOverlay was not found");
                 return;
             }
             if (m_TitleText == null)
             {
-                ErrorHandler.Error("Trying to set title " + title + " for object " + name + " but TitleText was not found");
+                ErrorHandler.Warning("Trying to set title " + title + " for object " + name + " but TitleText was not found");
                 return;
             }
 
@@ -183,21 +189,21 @@ namespace Menu.Common.Buttons
                 m_BottomOverlay.color = backgroundColor.Value;
         }
 
-        protected virtual void SetBorderColor(Color? color)
+        public virtual void SetBorderColor(Color? color)
         {
             if (color == null)
                 return;
 
             if (m_Border == null)
             {
-                ErrorHandler.Error("Trying to set border color with color " + color + " for item " + name + " but Border is null");
+                ErrorHandler.Warning("Trying to set border color with color " + color + " for item " + name + " but Border is null");
                 return;
             }
 
             m_Border.color = color.Value;
         }
 
-        protected virtual void SetIcon(Sprite icon)
+        public virtual void SetIcon(Sprite icon)
         {
             if (m_Icon == null)
             {
@@ -209,7 +215,13 @@ namespace Menu.Common.Buttons
                 return;
 
             m_Icon.sprite = icon;
-        } 
+        }
+
+        public void SetIconProportions(float x, float y)
+        {
+            var rect = m_Icon.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(x, y);
+        }
 
         protected virtual void SetSelected(bool selected)
         {
@@ -232,6 +244,42 @@ namespace Menu.Common.Buttons
         #endregion
 
 
+        #region State Management
+
+        public virtual void ForceState(EButtonState state)
+        {
+            SetState(state);
+        }
+
+        /// <summary>
+        /// Set UI according to the provided state
+        /// </summary>
+        /// <param name="state"></param>
+        public virtual void SetState(EButtonState state)
+        {
+            m_State = state;
+
+            switch (state)
+            {
+                case (EButtonState.Locked):
+                    m_LockState.SetActive(true);
+                    break;
+
+                case (EButtonState.Updatable):
+                case (EButtonState.Normal):
+                    if (m_LockState != null && m_LockState.activeSelf)
+                        m_LockState.SetActive(false);
+                    break;
+
+                default:
+                    ErrorHandler.Error("UnHandled state " + state);
+                    break;
+            }
+        }
+
+        #endregion
+
+
         #region Public Accessors
 
         public virtual void AsIconOnly(bool activate = true)
@@ -248,7 +296,10 @@ namespace Menu.Common.Buttons
         /// <summary>
         /// Action happening when the button is clicked on - depending on button context
         /// </summary>
-        protected virtual void OnClick() { }
+        protected virtual void OnClick() 
+        {
+            SoundFXManager.PlayOnce(m_OnClickAudio == null ? SoundFXManager.ClickButtonSoundFX : m_OnClickAudio);
+        }
 
         #endregion
     }

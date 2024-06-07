@@ -1,14 +1,13 @@
-﻿using NUnit.Framework.Internal;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Data
 {
     [CreateAssetMenu(fileName = "AutoAttackRune", menuName = "Game/Runes/AutoAttack")]
     public class AutoAttackRune : RuneData
     {
-        public void ApplyOnHit(ref Controller controller)
+        public void ApplyOnHit(ref Controller controller, Controller caster)
         {
-            controller.StateHandler.AddStateEffect(StateEffect, m_Level); ;
+            controller.StateHandler.AddStateEffect(StateEffect, caster, m_Level); ;
         }
     }
 }

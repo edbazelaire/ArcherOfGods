@@ -13,11 +13,13 @@ using System.Collections;
 using System.Linq;
 using Data.GameManagement;
 using System.Reflection;
+using UnityEngine.UIElements;
+using static UnityEngine.GraphicsBuffer;
 
 namespace Data
 {
     [CreateAssetMenu(fileName = "Spell", menuName = "Game/Spells/Default")]
-    public class SpellData : CollectionData
+    public class SpellData : CollectableData
     {
         #region Members
 
@@ -36,6 +38,13 @@ namespace Data
         [Description("Prefab of the spell when it hits a target")]
         public List<SpellData>      OnHit;
 
+        [Header("Sound Effects")]
+        public AudioClip AnimationSoundFX;
+        public AudioClip CastSoundFX;
+        public AudioClip PermanantSoundFX;
+        public AudioClip OnHitSoundFX;
+        public AudioClip OnEndSoundFX;
+
         [Header("Stats")]
         [Description("Type of targetting for the spell")]
         public ESpellTarget         SpellTarget = ESpellTarget.EnemyZone;
@@ -46,11 +55,14 @@ namespace Data
         [Description("Request amount on energy to be able to cast this spell")]
         public int                  EnergyCost      = 0;
         [Description("Damage of the spell")]
-        [SerializeField] public int     m_Damage          = 0;
+        [SerializeField] public int m_Damage        = 0;
         [Description("Heals provided to the target")]
-        [SerializeField] public int     m_Heal            = 0;
+        [SerializeField] public int     m_Heal      = 0;
         [Description("Max distance of the spell")]
         public float                Distance        = -1f;
+
+        [Description("List of properties that are overriten on the <OnHit> spells")]
+        public List<ESpellProperty> OverrideOnHitProperties;
 
         [Description("Duration of the spell")]
         [SerializeField] public float m_Duration = 0f;
@@ -143,6 +155,9 @@ namespace Data
         {
             ErrorHandler.Log("Casting spell : " + Name, ELogTag.Spells);
 
+            // Play SoundEffect
+            GameManager.Instance.PlaySoundClientRPC(Name, ESpellActionPart.Cast);
+
             if (recalculateTarget)
                 CalculateTarget(ref target, clientId);
 
@@ -232,12 +247,20 @@ namespace Data
 
         public void Override(SpellData overridingData)
         {
-            // apply overrides
-            if (overridingData.m_Damage > 0)
-                m_Damage = overridingData.m_Damage;
+            if (overridingData.OverrideOnHitProperties.Count == 0)
+                return;
 
-            if (overridingData.m_Heal > 0)
-                m_Heal = overridingData.m_Heal;
+            ErrorHandler.Log("Overriding data of " + Name + " with " + overridingData.Name, ELogTag.Spells);
+
+            foreach (ESpellProperty spellProperty in overridingData.OverrideOnHitProperties)
+            {
+                ErrorHandler.Log("      + " + spellProperty + " : ", ELogTag.Spells);
+                ErrorHandler.Log("          - FROM : " + GetProperty(spellProperty), ELogTag.Spells);
+
+                SetProperty(spellProperty, overridingData.GetProperty(spellProperty));
+
+                ErrorHandler.Log("          - TO : " + GetProperty(spellProperty), ELogTag.Spells);
+            }
         }
 
         #endregion
@@ -250,7 +273,7 @@ namespace Data
             return SpellLoader.GetSpellPrefab(Name, SpellType);
         }
 
-        public void CalculateTarget(ref Vector3 target, ulong clientId) 
+        public virtual void CalculateTarget(ref Vector3 target, ulong clientId) 
         {
             if (!IsAutoTarget)
                 return;
@@ -289,9 +312,19 @@ namespace Data
                     break;
             }
 
+            ClampTargetX(ref target, clientId);
+        }
+
+        protected virtual void ClampTargetX(ref Vector3 target, ulong clientId) 
+        {
             // clamp target between min/max xPos of the target zone
             var zoneCenter = GameManager.Instance.GetPlayer(clientId).SpellHandler.TargettableArea.position.x;
             target.x = Mathf.Clamp(target.x, zoneCenter - ArenaManager.Instance.TargettableAreaSize / 2, zoneCenter + ArenaManager.Instance.TargettableAreaSize / 2);
+        }
+
+        public void RecalculatePosition()
+        {
+            
         }
 
         /// <summary>
@@ -318,9 +351,22 @@ namespace Data
             // Get the type of MyClass
             Type myType = this.GetType();
 
-            // Get the PropertyInfo object for the provided property
-            propertyInfo = myType.GetField(property.ToString(), BindingFlags.Public | BindingFlags.Instance);
-           
+            string propertyName = property.ToString();
+
+            // handle special cases first
+            switch (property)
+            {
+                case ESpellProperty.Damages:
+                    propertyName = "m_Damage";
+                    break;
+
+                case ESpellProperty.Heal:
+                    propertyName = "m_Heal";
+                    break;
+            }
+
+            propertyInfo = myType.GetField(propertyName, BindingFlags.Public | BindingFlags.Instance);
+ 
             // check if the property exists
             if (propertyInfo == null)
             {
@@ -462,10 +508,14 @@ namespace Data
             string[] keysToIgnore = new string[]{ "Cooldown", "Cast", "Distance"};
 
             var onHitInfos = OnHit[0].GetInfos();
-            foreach ( var info in onHitInfos )
+            foreach (var info in onHitInfos)
             {
                 // skip some keys
                 if (keysToIgnore.Contains(info.Key))
+                    continue;
+
+                // keys overriden by the base spell
+                if (OverrideOnHitProperties.Any(property => property.ToString().Equals(info.Key, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
                 // do not override Jump type
@@ -507,6 +557,16 @@ namespace Data
         public new SpellData Clone(int level = 0)
         {
             return (SpellData)base.Clone(level);
+        }
+
+        protected override void SetLevel(int level)
+        {
+            base.SetLevel(level);
+
+            foreach (var onHit in OnHit)
+            {
+                onHit.SetLevel(level);
+            }
         }
 
         #endregion

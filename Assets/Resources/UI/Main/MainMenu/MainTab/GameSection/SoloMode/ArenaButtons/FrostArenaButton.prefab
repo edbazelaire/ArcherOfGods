@@ -30,11 +30,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 24706184740651644, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 0
+      value: -0.00012207031
       objectReference: {fileID: 0}
     - target: {fileID: 24706184740651644, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: -267
+      value: 6.9733887
       objectReference: {fileID: 0}
     - target: {fileID: 817742247025537395, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
       propertyPath: m_Material
@@ -167,6 +167,10 @@ PrefabInstance:
     - target: {fileID: 6553441682606756536, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
       propertyPath: m_Name
       value: FrostArenaButton
+      objectReference: {fileID: 0}
+    - target: {fileID: 6983315880524350501, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: -7.8320312
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

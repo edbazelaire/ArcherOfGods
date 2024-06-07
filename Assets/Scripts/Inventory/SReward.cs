@@ -11,14 +11,12 @@ namespace Inventory
         public Type RewardType;
         public string RewardName;
         public int Qty;
-        public Dictionary<string, object> Metadata;
 
-        public SReward(Type rewardType, string name, int count, Dictionary<string, object> metadata = default)
+        public SReward(Type rewardType, string name, int count)
         {
             RewardType  = rewardType;
             RewardName  = name;
             Qty         = count;
-            Metadata    = metadata;
         }
 
         public void AddQty(int qty)

@@ -595,8 +595,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6829512571219304207, guid: b5b701dce7ec3314081f475f07f9c285, type: 3}
       propertyPath: m_fontSize
-      value: 19.55
+      value: 17.9
       objectReference: {fileID: 0}
+    - target: {fileID: 6829512571219304207, guid: b5b701dce7ec3314081f475f07f9c285, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+    - target: {fileID: 6829512571219304207, guid: b5b701dce7ec3314081f475f07f9c285, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
     - target: {fileID: 7545265658494743196, guid: b5b701dce7ec3314081f475f07f9c285, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0

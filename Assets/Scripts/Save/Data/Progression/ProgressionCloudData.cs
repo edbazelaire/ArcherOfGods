@@ -34,7 +34,7 @@ namespace Save
 
         // ===============================================================================================
         // ACTIONS
-        public static Action<EStatData> StatDataChangedEvent;
+        public static Action ArenaDataChangedEvent;
 
         // ===============================================================================================
         // DATA
@@ -110,16 +110,24 @@ namespace Save
 
             // wait until beeing on MainMenu to fire the arena level event
             int level = arenaCloudData.CurrentLevel;
-            Main.AddStoredEvent(EAppState.MainMenu, () => { ArenaData.ArenaLevelCompletedEvent?.Invoke(arenaType, level); });
+
+            // add rewards to notification data so they can be collected later
+            NotificationCloudData.AddArenaReward(arenaType, level);
 
             if (arenaCloudData.CurrentLevel == arenaData.ArenaLevelData.Count - 1)
                 return;
 
-            arenaCloudData.CurrentLevel++;
-            arenaCloudData.CurrentStage = 0;
+            SetArenaData(arenaType, arenaCloudData.CurrentLevel + 1, 0);
+        }
 
-            SoloArenas[arenaType] = arenaCloudData;
-            Instance.SaveValue(KEY_SOLO_ARENAS);
+        public static void SetArenaData(EArenaType arenaType, int level, int stage, bool save = true)
+        {
+            SoloArenas[arenaType] = new SArenaCloudData(level, stage);
+
+            if (save)
+                Instance.SaveValue(KEY_SOLO_ARENAS);
+
+            ArenaDataChangedEvent?.Invoke();
         }
 
         #endregion
@@ -127,8 +135,10 @@ namespace Save
 
         #region Default Data
 
-        void Reset(string key)
+        public override void Reset(string key)
         {
+            base.Reset(key);
+
             switch (key)
             {
                 case KEY_PVP_ELO:
@@ -136,19 +146,16 @@ namespace Save
                     break;
                 
                 case KEY_SOLO_ARENAS:
-                    var data = new Dictionary<EArenaType, SArenaCloudData>();
                     foreach (EArenaType arenaType in Enum.GetValues(typeof(EArenaType))) 
                     {
-                        data[arenaType] = new SArenaCloudData();
+                        SetArenaData(arenaType, 0, 0, false);
                     }
 
-                    m_Data[key] = data;
                     break;
             }
         }
 
         #endregion
-
 
 
         #region Checkers

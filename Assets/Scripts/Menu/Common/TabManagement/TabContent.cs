@@ -1,10 +1,13 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.Managers.Sound;
+using UnityEngine;
 
 namespace Menu.MainMenu
 {
     public class TabContent : MObject
     {
         #region Members
+
+        [SerializeField] protected AudioClip m_ActivationSoundFX = null;
 
         protected TabButton   m_TabButton;
         protected bool        m_Activated;
@@ -20,10 +23,14 @@ namespace Menu.MainMenu
         /// Called when the tab is getting initialized, during registration by the "TabsManager"
         /// </summary>
         /// <param name="tabButton"></param>
-        public virtual void Initialize(TabButton tabButton)
+        public virtual void Initialize(TabButton tabButton, AudioClip activationSoundFX)
         {
             base.Initialize();
+
             m_TabButton = tabButton;
+
+            if (m_ActivationSoundFX == null)
+                m_ActivationSoundFX = activationSoundFX;  
         }
 
         /// <summary>
@@ -34,18 +41,21 @@ namespace Menu.MainMenu
         {
             m_Activated = activate;
             m_TabButton?.Activate(activate);
+
+            if (m_ActivationSoundFX != null && activate)
+            {
+                SoundFXManager.PlayOnce(m_ActivationSoundFX);
+            }
         }
 
         /// <summary>
         /// Called on beeing un-registered from the "TabsManager"
         /// </summary>
-        public virtual void UnRegister() { }
-
-        #endregion
-
-
-        #region Listeners
-
+        public virtual void UnRegister() 
+        {
+            UnRegisterListeners();  
+            Destroy(gameObject);
+        }
 
         #endregion
     }

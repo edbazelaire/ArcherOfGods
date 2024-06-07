@@ -52,6 +52,7 @@ namespace Data
 
             switch (SpawnLocation)
             {
+                case ESpawnLocation.None:
                 case ESpawnLocation.Caster:
                     parent = IsFollowing ? controller.transform : null;
                     pos = controller.transform.position;

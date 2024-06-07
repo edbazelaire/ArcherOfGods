@@ -1,9 +1,11 @@
+using Assets.Scripts.Managers.Sound;
 using Enums;
 using Game;
 using Game.Spells;
 using Game.UI;
 using Managers;
 using Menu.Common.Buttons;
+using Network;
 using Save;
 using System;
 using System.Collections.Generic;
@@ -19,6 +21,7 @@ public class GameUIManager : MonoBehaviour
 
     [SerializeField] private IntroGameUI    m_IntroGameUI;
     [SerializeField] private EndGameUI      m_EndGameUI;
+    [SerializeField] private Image          m_Background;
 
     const string        c_PlayerUIContainerPrefix   = "PlayerUIContainer_";
     const string        c_SpellsContainer           = "SpellsContainer";
@@ -68,6 +71,7 @@ public class GameUIManager : MonoBehaviour
 
         m_EndGameUI.gameObject.SetActive(false);
 
+        SetUpBackground();
         FindPlayerUIContainers();
         FindMovementButtons();
         FindSpellsContainers();
@@ -121,6 +125,28 @@ public class GameUIManager : MonoBehaviour
     void DeleteGameUI()
     {
         Destroy(gameObject);
+    }
+
+    #endregion
+
+
+    #region GUI Manipulators
+
+    void SetUpBackground()
+    {
+        m_Background.sprite = GetBackgroundImage();
+    }
+
+    Sprite GetBackgroundImage()
+    {
+        if (LobbyHandler.Instance.GameMode == EGameMode.Arena)
+        {
+            var sprite =  AssetLoader.Load<Sprite>(LobbyHandler.Instance.ArenaType.ToString(), AssetLoader.c_ArenaBackgroundsPath);
+            if (sprite != null) 
+                return sprite;
+        }
+
+        return AssetLoader.Load<Sprite>("Default", AssetLoader.c_ArenaBackgroundsPath);
     }
 
     #endregion
@@ -223,6 +249,8 @@ public class GameUIManager : MonoBehaviour
 
     public void SetUpGameOver(bool win)
     {
+        SoundFXManager.PlayOnce(win ? SoundFXManager.WinSoundFX : SoundFXManager.LossSoundFX);
+
         m_EndGameUI.gameObject.SetActive(true);
         m_EndGameUI.SetUpGameOver(win);
 

@@ -1,5 +1,4 @@
 ﻿using Data;
-using Data.GameManagement;
 using Enums;
 using System;
 using Tools;
@@ -103,10 +102,10 @@ namespace Game.Spells
         protected override void SetTarget(Vector3 target)
         {
             // add a small adjustement to X to avoid targetting the enemy's feets (only for autotarget aiming the ground)
-            if (m_SpellData.IsAutoTarget && target.y == 0)
+            if (m_Controller.SpellHandler.IsAutoTarget(m_SpellData.Spell) && target.y == 0)
             {
                 int direction = ArenaManager.GetAreaMovementDirection(m_Controller.Team, m_SpellData.IsEnemyTarget);
-                target.x += direction * 0.5f;
+                target.x += direction * 0.2f;
             }
 
             // set value of the target

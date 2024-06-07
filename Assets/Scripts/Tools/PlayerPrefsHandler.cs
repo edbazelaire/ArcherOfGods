@@ -1,5 +1,6 @@
 ﻿using Enums;
 using System;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace Tools
         PlayerName,
         GameMode,
         ArenaType,
+        WarningMessageAccepted,
     }
 
     public static class PlayerPrefsHandler
@@ -30,10 +32,13 @@ namespace Tools
                 PlayerPrefs.SetString(EPlayerPref.PlayerName.ToString(), "SheepRapist");
 
             if (!Enum.TryParse(PlayerPrefs.GetString(EPlayerPref.GameMode.ToString()), out EGameMode gameMode))
-                PlayerPrefs.SetString(EPlayerPref.GameMode.ToString(), EGameMode.Solo.ToString());
+                PlayerPrefs.SetString(EPlayerPref.GameMode.ToString(), EGameMode.Arena.ToString());
 
             if (!Enum.TryParse(PlayerPrefs.GetString(EPlayerPref.ArenaType.ToString()), out EArenaType arena))
                 SetArenaType(EArenaType.FireArena);
+
+            if (PlayerPrefs.GetInt(EPlayerPref.WarningMessageAccepted.ToString()) == 0)
+                SetWarningAccepted(false);
         }
 
 
@@ -47,8 +52,8 @@ namespace Tools
             if (!Enum.TryParse(PlayerPrefs.GetString(EPlayerPref.GameMode.ToString()), out EGameMode gameMode))
             {
                 ErrorHandler.Error("Unable to parse game mode : " + PlayerPrefs.GetString(EPlayerPref.GameMode.ToString()));
-                gameMode = EGameMode.Solo;
-                SetGameMode(EGameMode.Solo);
+                gameMode = EGameMode.Arena;
+                SetGameMode(EGameMode.Arena);
             }
 
             return gameMode;
@@ -56,7 +61,7 @@ namespace Tools
 
         public static void SetGameMode(EGameMode gameMode)
         {
-            PlayerPrefs.SetString(EPlayerPref.GameMode.ToString(), EGameMode.Solo.ToString());
+            PlayerPrefs.SetString(EPlayerPref.GameMode.ToString(), EGameMode.Arena.ToString());
             PlayerPrefs.Save();
 
             GameModeChangedEvent?.Invoke(gameMode);
@@ -76,12 +81,49 @@ namespace Tools
 
         public static void SetArenaType(EArenaType arenaType)
         {
-            PlayerPrefs.SetString(EPlayerPref.ArenaType.ToString(), EArenaType.FireArena.ToString());
+            PlayerPrefs.SetString(EPlayerPref.ArenaType.ToString(), arenaType.ToString());
             PlayerPrefs.Save();
 
             ArenaTypeChangedEvent?.Invoke(arenaType);
         }
 
+        public static void SetVolume(EVolumeOption volume, float value)
+        {
+            if (value < 0 || value > 1)
+            {
+                ErrorHandler.Error("Bad volume provided : " + value);
+                value = Mathf.Clamp(value, 0, 1);
+            }
+
+            PlayerPrefs.SetFloat(volume.ToString(), value);
+            PlayerPrefs.Save();
+        }
+
+        public static float GetVolume(EVolumeOption volume)
+        {
+            return PlayerPrefs.GetFloat(volume.ToString(), 1f);
+        }
+        public static void SetMuted(EVolumeOption volume, int muted)
+        {
+            PlayerPrefs.SetInt(volume.ToString() + "_Muted", muted);
+            PlayerPrefs.Save();
+        }
+
+        public static bool GetMuted(EVolumeOption volume)
+        {
+            return PlayerPrefs.GetInt(volume.ToString() + "_Muted", 0) == 1;
+        }
+
+        public static void SetWarningAccepted(bool accepted)
+        {
+            PlayerPrefs.SetInt(EPlayerPref.WarningMessageAccepted.ToString(), accepted ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public static bool GetWarningAccepted()
+        {
+            return PlayerPrefs.GetInt(EPlayerPref.WarningMessageAccepted.ToString(), 0) > 0;
+        }
 
         #endregion
     }

@@ -39,28 +39,33 @@ namespace Menu.PopUps
 
         #region Init & End
 
+        protected override void FindComponents()
+        {
+            base.FindComponents();
+
+            // -- scroller
+            var rightSection = Finder.Find(m_WindowContent, "RightSection");
+            m_RunesContent = Finder.Find(rightSection, "Content");
+            m_TemplateRuneButton = AssetLoader.LoadTemplateItem(CharacterBuildsCloudData.CurrentRune);
+
+            // -- left section
+            var leftSection = Finder.Find(m_WindowContent, "LeftSection");
+            m_CurrentRuneItem = Finder.FindComponent<TemplateRuneItemUI>(leftSection, "CurrentRune");
+            m_CurrentRuneTitle = Finder.FindComponent<TMP_Text>(leftSection, "RuneTitle");
+            m_CurrentRuneDescription = Finder.FindComponent<TMP_Text>(leftSection, "Description");
+            m_CurrentRuneItem.Initialize(CharacterBuildsCloudData.CurrentRune);
+
+            // -- buttons
+            m_UpgradeButton = Finder.FindComponent<Button>(m_Buttons, "UpgradeSubButton");
+            m_CostText = Finder.FindComponent<TMP_Text>(m_UpgradeButton.gameObject, "CostText");
+        }
+
         /// <summary>
         /// Called when the prefab is loaded : register all components & game objects, then initilaize UI
         /// </summary>
         protected override void OnPrefabLoaded()
         {
             base.OnPrefabLoaded();
-
-            // -- scroller
-            var rightSection            = Finder.Find(m_WindowContent, "RightSection");
-            m_RunesContent              = Finder.Find(rightSection, "Content");
-            m_TemplateRuneButton        = AssetLoader.LoadTemplateItem(CharacterBuildsCloudData.CurrentRune);
-
-            // -- left section
-            var leftSection             = Finder.Find(m_WindowContent, "LeftSection");
-            m_CurrentRuneItem           = Finder.FindComponent<TemplateRuneItemUI>(leftSection, "CurrentRune");
-            m_CurrentRuneTitle          = Finder.FindComponent<TMP_Text>(leftSection, "RuneTitle");
-            m_CurrentRuneDescription    = Finder.FindComponent<TMP_Text>(leftSection, "Description");
-            m_CurrentRuneItem.Initialize(CharacterBuildsCloudData.CurrentRune);
-
-            // -- buttons
-            m_UpgradeButton = Finder.FindComponent<Button>(m_Buttons, "UpgradeSubButton");
-            m_CostText = Finder.FindComponent<TMP_Text>(m_UpgradeButton.gameObject, "CostText");
 
             // set ui of current rune
             m_CurrentRuneItem.Initialize(CharacterBuildsCloudData.CurrentRune, asIconOnly: true);
@@ -128,7 +133,9 @@ namespace Menu.PopUps
         /// </summary>
         void RefreshUpgradeButtonUI()
         {
-            if (m_IsMaxedLevel)
+            // TODO : handle upgrade of rune button
+            int cost = 0;
+            if (m_IsMaxedLevel || cost <= 0)
             {
                 m_UpgradeButton.gameObject.SetActive(false);
                 return;
@@ -138,7 +145,7 @@ namespace Menu.PopUps
 
             m_UpgradeButton.interactable = m_CanUpgrade;
             buttonImage.color = m_CanUpgrade ? Color.white : new Color(0.5f, 0.5f, 0.5f);
-            m_CostText.text = "0";
+            m_CostText.text = cost.ToString();
         }
 
         #endregion

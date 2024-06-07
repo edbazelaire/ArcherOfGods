@@ -131,16 +131,11 @@ namespace Save
 
         #region Default Data
 
-        void Reset(string key)
+        public override void Reset(string key)
         {
-            if (key == EAnalytics.GameEnded.ToString())
-                Instance.m_Data[key] = new List<SGameEndedCloudData>();
+            base.Reset(key);
 
-            else if (key == EAnalytics.CurrencyChanged.ToString())
-                Instance.m_Data[key] = new List<SCurrencyEventCloudData>();
-
-            else
-                ErrorHandler.Error("Unhandled key : " + key);   
+            Instance.m_Data[key] = new List<SCurrencyEventCloudData>();
         }
 
         #endregion
@@ -148,7 +143,7 @@ namespace Save
 
         #region Checkers
 
-       
+
         #endregion
 
 

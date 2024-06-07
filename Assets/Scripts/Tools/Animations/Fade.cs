@@ -23,6 +23,7 @@ namespace Tools.Animations
 
 
         #region Init & End
+
         public void Initialize(string id = "", float duration = 1f, float startScale = 1f, float endScale = 1f, float startOpacity = 1f, float endOpacity = 1f)
         {
             if (duration <= 0f)

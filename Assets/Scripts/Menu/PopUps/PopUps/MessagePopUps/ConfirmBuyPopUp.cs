@@ -35,9 +35,9 @@ namespace Menu.PopUps
             m_BuyButtonDisplay = Finder.FindComponent<PriceDisplay>(m_BuyButton.gameObject);
         }
 
-        public void Initialize(SPriceData priceData, SRewardsData rewardsData)
+        public void Initialize(SPriceData priceData, SRewardsData rewardsData, Action onValidate, Action onCancel)
         {
-            base.Initialize(GetMessage(), title: "Confirm Buy");
+            base.Initialize(GetMessage(), "Confirm Buy", onValidate, onCancel);
             m_PriceData = priceData;
             m_RewardsData = rewardsData;
         }
@@ -56,7 +56,10 @@ namespace Menu.PopUps
 
         protected virtual string GetMessage()
         {
-            return TextLocalizer.LocalizeText("Do you want to buy this item ?");
+            return "";
+
+            // TODO : remove ?
+            //return TextLocalizer.LocalizeText("Do you want to buy this item ?");
         }
 
         #endregion
@@ -90,7 +93,7 @@ namespace Menu.PopUps
 
             InventoryManager.Spend(m_PriceData.Price, m_PriceData.Currency, "Shop");
 
-            OnPurchaseCompleted();
+            OnValidateButton();
 
             Exit();
         }

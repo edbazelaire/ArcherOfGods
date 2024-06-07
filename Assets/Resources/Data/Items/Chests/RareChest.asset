@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b3ab460364119c408209877f7ac86d5, type: 3}
   m_Name: RareChest
   m_EditorClassIdentifier: 
-  UnlockTime: 10
+  UnlockTime: 21600
+  IdleSoundFX: {fileID: 0}
+  OpenSoundFX: {fileID: 0}
   Currencies:
   - Currency: 0
     Min: 2100

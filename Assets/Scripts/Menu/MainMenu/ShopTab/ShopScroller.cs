@@ -10,8 +10,7 @@ namespace Menu.MainMenu.ShopTab
     {
         #region Members
 
-        TemplateShopItemButton  m_TemplateShopItem;
-        GameObject              m_ContentContainer;
+        GameObject m_ContentContainer;
 
         List<SShopData>[] m_ShopDataList;
 
@@ -22,7 +21,6 @@ namespace Menu.MainMenu.ShopTab
 
         public void Initialize(List<SShopData>[] shopData)
         {
-            m_TemplateShopItem = AssetLoader.LoadTemplateItem("ShopItem").GetComponent<TemplateShopItemButton>();
             m_ContentContainer = this.gameObject;
             m_ShopDataList = shopData;
 
@@ -38,20 +36,41 @@ namespace Menu.MainMenu.ShopTab
         {
             UIHelper.CleanContent(m_ContentContainer);
 
-            if (m_TemplateShopItem == null)
-            {
-                ErrorHandler.Error("Template (TemplateShopItem) is null - skip");
-                return;
-            }
-
             foreach (List<SShopData> dataList in m_ShopDataList)
             {
                 foreach (SShopData data in dataList)
                 {
-                    var shopItem = Instantiate(m_TemplateShopItem, m_ContentContainer.transform);
-                    shopItem.Initialize(data.Name, data.Icon, data.Currency, data.Cost, data.Rewards);
+                    var templateShopItem = GetTemplate(data);
+                    if (templateShopItem == null)
+                        continue;
+
+                    var shopItem = Instantiate(GetTemplate(data), m_ContentContainer.transform);
+                    shopItem.Initialize(data);
                 }
             }
+        }
+
+        /// <summary>
+        /// Get appropriate TemplateShopItem for the type of shop data that we present
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        protected TemplateShopItemUI GetTemplate(SShopData data)
+        {
+            if (data.Rewards.Count == 0)
+            {
+                ErrorHandler.Error("No rewards provided for shop data : " + data.Name);
+                return null;
+            }
+
+            // Single reward : Card type
+            if (data.Rewards.Count == 1)
+            {
+                return AssetLoader.LoadShopTemplateItem<TemplateCardShopItemUI>();
+            }
+            
+            // Multiple rewards : Bundle
+            return AssetLoader.LoadShopTemplateItem<TemplateBundleItemUI>("TemplateBundleItem");
         }
 
         #endregion

@@ -56,11 +56,11 @@ namespace Network
         public Action<ulong, ECharacter> OnRelayJoined;
 
         private ELobbyState m_State;
-        private Lobby m_HostLobby;
-        private Lobby m_JoinedLobby;
+        private Lobby       m_HostLobby;
+        private Lobby       m_JoinedLobby;
 
-        private EGameMode   m_GameMode = EGameMode.Solo;
-        
+        private EGameMode m_GameMode = EGameMode.Arena;
+        private EArenaType m_ArenaType = EArenaType.FireArena;
 
         private float m_HeartbeatTimer    = 0.0f;
         private float m_UpdateLobbyTimer  = 0.0f;
@@ -68,11 +68,12 @@ namespace Network
         bool m_RequestInProgress = false;
 
         bool IsHost => m_HostLobby != null && m_JoinedLobby != null && m_HostLobby.Id == m_JoinedLobby.Id;
-        int m_MaxPlayers => m_GameMode == EGameMode.Solo ? 1 : 2;
+        int m_MaxPlayers => m_GameMode == EGameMode.Arena ? 1 : 2;
         public int MaxPlayers => m_MaxPlayers;
         public ELobbyState State => m_State;
 
         public EGameMode GameMode { get => m_GameMode; set => m_GameMode = value; }
+        public EArenaType ArenaType { get => m_ArenaType; set => m_ArenaType = value; }
 
         #endregion
 
@@ -81,7 +82,12 @@ namespace Network
 
         private void Initialize()
         {
-            PlayerPrefsHandler.GameModeChangedEvent += OnGameModeChanged;
+            PlayerPrefsHandler.GameModeChangedEvent     += OnGameModeChanged;
+            PlayerPrefsHandler.ArenaTypeChangedEvent    += OnArenaTypeChanged;
+
+            m_GameMode = PlayerPrefsHandler.GetGameMode();
+            m_ArenaType = PlayerPrefsHandler.GetArenaType();
+
             DontDestroyOnLoad(gameObject);
         }
 
@@ -354,7 +360,7 @@ namespace Network
 
             ResetLobby();
 
-            ErrorHandler.Log("Lobby left", ELogTag.System);
+            ErrorHandler.Log("Lobby left", ELogTag.Lobby);
         }
 
         /// <summary>
@@ -383,7 +389,7 @@ namespace Network
 
         void SetState(ELobbyState state)
         {
-            ErrorHandler.Log("NEW LOBBY STATE : " + state, ELogTag.System);
+            ErrorHandler.Log("NEW LOBBY STATE : " + state, ELogTag.Lobby);
 
             // if state changes : reset request in progress
             SetRequestInProgress(false);
@@ -516,11 +522,11 @@ namespace Network
 
                 QueryResponse queryResponse = await Lobbies.Instance.QueryLobbiesAsync(queryLobbiesOptions);
 
-                ErrorHandler.Log("Lobbies found: " + queryResponse.Results.Count, ELogTag.System);
+                ErrorHandler.Log("Lobbies found: " + queryResponse.Results.Count, ELogTag.Lobby);
 
                 foreach (var lobby in queryResponse.Results)
                 {
-                    ErrorHandler.Log("Lobby: " + lobby.Name + " - MaxPlayers : " + lobby.MaxPlayers, ELogTag.System);
+                    ErrorHandler.Log("Lobby: " + lobby.Name + " - MaxPlayers : " + lobby.MaxPlayers, ELogTag.Lobby);
                 }
 
                 return queryResponse.Results;
@@ -568,6 +574,11 @@ namespace Network
         void OnGameModeChanged(EGameMode gameMode)
         {
             Instance.GameMode = gameMode;
+        }
+
+        void OnArenaTypeChanged(EArenaType arenaType)
+        {
+            Instance.ArenaType = arenaType;
         }
 
         #endregion

@@ -35,8 +35,6 @@ namespace Assets.Scripts.Menu.Common.Buttons.TemplateItemButtons
 
         protected override void SetUpUI() 
         {
-            base.SetUpUI();
-
             m_Icon.sprite = AssetLoader.LoadCurrencyIcon(m_Currency, m_Qty);
             m_BottomText.text = "+ " + m_Qty;
         }

@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Tools;
-using Unity.Netcode;
 using UnityEngine;
 
 namespace Game
@@ -163,6 +160,15 @@ namespace Game
             return (team == 0 && enemyArea || team == 1 && !enemyArea) ? 1 : -1;
         }
 
+        public static (float Min, float Max) GetAreaBounds(int team, bool enemyArea = true)
+        {
+            var area = GetTargettableArea(team, enemyArea);
+            return (area.position.x - Instance.TargettableAreaSize / 2 + (area.position.x < 0 ? 0.5f : 0.1f), area.position.x + Instance.TargettableAreaSize / 2 - (area.position.x > 0 ? 0.5f : 0.1f));
+        }
+ 
+        /// <summary>
+        /// 
+        /// </summary>
         public static ArenaManager Instance
         {
             get

@@ -1,9 +1,10 @@
 ﻿using Enums;
-using Game.Loaders;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Tools;
 using UnityEngine;
+using static UnityEngine.Rendering.DebugUI;
 
 namespace Data
 {
@@ -23,23 +24,49 @@ namespace Data
     }
 
     [CreateAssetMenu(fileName = "Character", menuName = "Game/Character")]
-    public class CharacterData : CollectionData
+    public class CharacterData : CollectableData
     {
+        #region Members
+
+        private static readonly EStateEffectProperty[] INT_PROPERTIES = new EStateEffectProperty[] {
+            EStateEffectProperty.MaxStacks,
+            EStateEffectProperty.Shield,
+            EStateEffectProperty.ResistanceFix,
+            EStateEffectProperty.Damages,
+            EStateEffectProperty.TickShield,
+            EStateEffectProperty.BonusDamages,
+            EStateEffectProperty.BonusTickDamages,
+            EStateEffectProperty.BonusTickHeal,
+            EStateEffectProperty.BonusTickShield,
+        };
+
+        // ===============================================================================================================
+        // PUBLIC / SERIALIZABLE FIELDS
         [Header("Spells")]
         public ESpell           AutoAttack;
         public ESpell           Ultimate;
 
         [Header("Stats")]
         public float            Size        = 1f;
-        public float            Speed       = 3f;
-        public int              MaxHealth   = 100;
+        public float            BaseSpeed   = 1f;
+        public int              BaseHealth  = 1000;
         public int              MaxEnergy   = 100;
 
         [Header("Bonus Stats")]
-        public List<SCharacterStatScaling> CharacterStatScaling;
+        [SerializeField] public float           HealthScaleFactor = 0.1f;
+        public List<SCharacterStatScaling>      CharacterStatScaling;
 
+        // ===============================================================================================================
+        // DEPENDENT ACCESSORS
         protected override Type m_EnumType => typeof(ECharacter);
         public ECharacter Character => (ECharacter)Id;
+        public int MaxHealth => (int)Math.Round(BaseHealth * Math.Pow(1 + HealthScaleFactor, m_Level - 1));
+        public float Speed => BaseSpeed + GetValue(EStateEffectProperty.SpeedBonus);
+
+        #endregion
+
+
+        #region Instantiation
 
         public GameObject InstantiateCharacterPreview(GameObject parent)
         {
@@ -47,41 +74,38 @@ namespace Data
             return go;
         }
 
+        #endregion
+
+
+        #region Cloning & Level
+
         public new CharacterData Clone(int level = 0)
         {
             return (CharacterData)base.Clone(level);
         }
 
-        protected override void SetLevel(int level)
-        {
-            // TODO : personal factors
-            float scaleFactor = 1.1f;
+        #endregion
 
-            var currentFactor = Math.Pow(scaleFactor, m_Level - 1);
-            var newFactor = Math.Pow(scaleFactor, level - 1);
 
-            MaxHealth = (int)Math.Round(MaxHealth * newFactor / currentFactor);
+        #region Scaling & Stats Accessors
 
-            base.SetLevel(level);
-        }
-
-        public float GetValue(EStateEffectProperty property) 
+        public float GetValue(EStateEffectProperty property)
         {
             var characterStatScalingData = GetCharacterScalingData(property);
-            if (! characterStatScalingData.HasValue)
+            if (!characterStatScalingData.HasValue)
                 return 0.0f;
 
             return Mathf.Pow(1f + characterStatScalingData.Value.ScalingFactor, m_Level - 1) * characterStatScalingData.Value.BaseValue;
         }
 
-        public int GetInt(EStateEffectProperty property) 
+        public int GetInt(EStateEffectProperty property)
         {
             return (int)Math.Round(GetValue(property));
         }
 
         SCharacterStatScaling? GetCharacterScalingData(EStateEffectProperty property)
         {
-            foreach(SCharacterStatScaling data in CharacterStatScaling)
+            foreach (SCharacterStatScaling data in CharacterStatScaling)
             {
                 if (data.StateEffectProperty == property)
                     return data;
@@ -89,6 +113,8 @@ namespace Data
 
             return null;
         }
+
+        #endregion
 
 
         #region Infos
@@ -102,7 +128,11 @@ namespace Data
 
             foreach (SCharacterStatScaling data in CharacterStatScaling)
             {
-                infosDict.Add(data.StateEffectProperty.ToString(), GetValue(data.StateEffectProperty));
+                // skip speed bonus (provided in Speed)
+                if (data.StateEffectProperty == EStateEffectProperty.SpeedBonus)
+                    continue;
+
+                infosDict.Add(data.StateEffectProperty.ToString(), INT_PROPERTIES.Contains(data.StateEffectProperty) ? GetInt(data.StateEffectProperty) : GetValue(data.StateEffectProperty));
             }
 
             return infosDict;

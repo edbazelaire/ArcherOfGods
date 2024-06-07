@@ -7,6 +7,7 @@ using Inventory;
 using Menu.Common.Buttons;
 using Save;
 using System;
+using TMPro;
 using Tools;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,7 @@ namespace Menu.PopUps
 
         // GameObjects & Components
         GameObject      m_PreviewContainer;
+        TMP_Text        m_QtyText;
 
         #endregion
 
@@ -35,9 +37,10 @@ namespace Menu.PopUps
             base.FindComponents();
 
             m_PreviewContainer = Finder.Find(m_WindowContent, "PreviewContainer");
+            m_QtyText = Finder.FindComponent<TMP_Text>(m_WindowContent, "QtyText");
         }
 
-        public void Initialize(SPriceData priceData, Enum item, int qty)
+        public void Initialize(SPriceData priceData, Enum item, int qty, Action onValidate, Action onCancel)
         {
             // if item is a Collectable, and current level is 0 -> this is an unlock 
             m_IsUnlock = CollectablesManagementData.TryGetCollectableType(item, out var temp) && InventoryCloudData.Instance.GetCollectable(item).Level == 0;
@@ -47,7 +50,7 @@ namespace Menu.PopUps
             SRewardsData rewardsData = new SRewardsData();
             rewardsData.Add(item, qty);
 
-            base.Initialize(priceData, rewardsData);
+            base.Initialize(priceData, rewardsData, onValidate, onCancel);
         }
 
         protected override void OnPrefabLoaded()
@@ -79,6 +82,14 @@ namespace Menu.PopUps
                 Exit();
             }
 
+            if (m_Qty <= 1)
+            {
+                m_QtyText.gameObject.SetActive(false);  
+            } else
+            {
+                m_QtyText.gameObject.SetActive(true);
+                m_QtyText.text = "x" + m_Qty.ToString();
+            }
         }
 
         #endregion

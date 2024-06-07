@@ -1,5 +1,6 @@
 ﻿using Data.GameManagement;
 using Enums;
+using Save;
 using System.Collections.Generic;
 using TMPro;
 using Tools;
@@ -141,7 +142,7 @@ namespace Menu.MainMenu.MainTab
             base.RegisterListeners();
 
             PlayerPrefsHandler.ArenaTypeChangedEvent    += OnArenaTypeChanged;
-            ArenaData.ArenaLevelCompletedEvent          += OnArenaLevelCompleted;
+            ProgressionCloudData.ArenaDataChangedEvent  += OnArenaDataChanged;
         }
 
         protected override void UnRegisterListeners()
@@ -149,7 +150,7 @@ namespace Menu.MainMenu.MainTab
             base.UnRegisterListeners();
 
             PlayerPrefsHandler.ArenaTypeChangedEvent    -= OnArenaTypeChanged;
-            ArenaData.ArenaLevelCompletedEvent          -= OnArenaLevelCompleted;
+            ProgressionCloudData.ArenaDataChangedEvent  -= OnArenaDataChanged;
         }
 
         void OnArenaTypeChanged(EArenaType arenaType)
@@ -159,9 +160,9 @@ namespace Menu.MainMenu.MainTab
             RefreshUI();
         }
 
-        void OnArenaLevelCompleted(EArenaType arenaType, int level) 
-        { 
-            ResetPathDisplay();
+        void OnArenaDataChanged() 
+        {
+            RefreshUI();
         }
 
         #endregion

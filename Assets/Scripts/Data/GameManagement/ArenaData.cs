@@ -1,12 +1,10 @@
-﻿using Assets;
-using Enums;
+﻿using Enums;
 using Managers;
 using Save;
 using System;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 
 namespace Data.GameManagement
 {
@@ -38,15 +36,10 @@ namespace Data.GameManagement
         public int CurrentLevel => ProgressionCloudData.SoloArenas[ArenaType].CurrentLevel;
         public int CurrentStage => ProgressionCloudData.SoloArenas[ArenaType].CurrentStage;
 
-        // last data seen by the user (usefull for display)
-        public int LastLevel;
-        public int LastStage;
-
         public EArenaType               ArenaType               => Enum.TryParse(name, out EArenaType arenaType) ? arenaType : EArenaType.FireArena;
         public List<SArenaLevelData>    ArenaLevelData          => m_ArenaLevelData;
         public SArenaLevelData          CurrentArenaLevelData   => GetArenaLevelData(CurrentLevel);
         public SStageData               CurrentStageData        => GetStageData(CurrentLevel, CurrentStage);
-        public bool                     IsUpToDate              => LastLevel == CurrentLevel && LastStage == CurrentStage;
         public int                      MaxLevel                => m_ArenaLevelData.Count;
 
         #endregion
@@ -91,12 +84,6 @@ namespace Data.GameManagement
         public void UpdateStageValue(bool up)
         {
             ProgressionCloudData.UpdateStageValue(ArenaType, up);
-        }
-
-        void UpdateLastData()
-        {
-            LastLevel = CurrentLevel;
-            LastStage = CurrentStage;
         }
 
         #endregion
@@ -150,9 +137,9 @@ namespace Data.GameManagement
         /// Create ProfileData for the AI depending on character & progression
         /// </summary>
         /// <returns></returns>
-        public SProfileCurrentData CreateProfileData()
+        public SProfileDataNetwork CreateProfileData()
         {
-            return new SProfileCurrentData(
+            return new SProfileDataNetwork(
                 gamerTag: CurrentStageData.Character.ToString(),
                 avatar: CurrentStageData.Character.ToString(),
                 border: GetBorder().ToString(),

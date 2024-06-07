@@ -19,6 +19,7 @@ public class Life : NetworkBehaviour
     // NETWORK VARIABLES
     NetworkVariable<int>            m_MaxHp = new (1);
     NetworkVariable<int>            m_Hp    = new (0);
+    NetworkVariable<int>            m_Shield    = new (0);
 
     // ===================================================================================
     // PRIVATE VARIABLES
@@ -28,7 +29,8 @@ public class Life : NetworkBehaviour
     // ===================================================================================
     // PUBLIC ACCESSORS 
     public NetworkVariable<int> MaxHp => m_MaxHp;  
-    public NetworkVariable<int> Hp => m_Hp;  
+    public NetworkVariable<int> Hp => m_Hp;
+    public NetworkVariable<int> Shield => m_Shield;
 
     /// <summary> Is the character alive </summary>
     public bool IsAlive => m_Hp.Value > 0;
@@ -46,13 +48,14 @@ public class Life : NetworkBehaviour
         m_Controller = GetComponent<Controller>();
     }
 
-    public void Initialize(int hp)
+    public void Initialize(int hp, int shield)
     {
         if (!IsServer)
             return;
 
         m_MaxHp.Value = hp;
         m_Hp.Value = hp;
+        m_Shield.Value = shield;
     }
 
     #endregion
@@ -80,7 +83,7 @@ public class Life : NetworkBehaviour
     public int Hit(int damage, bool ignoreRes = false)
     {
         // only server can apply damages
-        if (!IsServer)
+        if (!IsServer || !IsAlive)
             return 0;
 
         if (m_Controller.StateHandler.HasState(EStateEffect.Invulnerable))
@@ -97,7 +100,7 @@ public class Life : NetworkBehaviour
         }
 
         // calculate damages after shield
-        damage = m_Controller.StateHandler.HitShield(damage);
+        damage = HitShield(damage);
 
         // apply damages (after shield)
         m_Hp.Value -= damage;
@@ -112,7 +115,7 @@ public class Life : NetworkBehaviour
     public int Heal(int heal)
     {
         // only server can apply heals
-        if (!IsServer)
+        if (!IsServer || !IsAlive)
             return 0;
 
         // check provided value
@@ -129,6 +132,25 @@ public class Life : NetworkBehaviour
             m_Hp.Value += heal;
 
         return heal;
+    }
+
+    public int HitShield(int damages)
+    {
+        damages = m_Controller.StateHandler.HitShield(damages);
+        if (damages == 0)
+            return 0;
+
+        if (m_Shield.Value <= 0)
+            return damages;
+
+        m_Shield.Value -= damages;
+        if (m_Shield.Value >= 0)
+            return 0;
+
+        damages = -m_Shield.Value;
+        m_Shield.Value = 0;
+
+        return damages;
     }
 
     #endregion

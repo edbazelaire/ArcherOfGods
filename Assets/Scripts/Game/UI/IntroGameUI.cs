@@ -1,4 +1,5 @@
-﻿using Managers;
+﻿using Assets.Scripts.Managers.Sound;
+using Managers;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -86,9 +87,15 @@ namespace Game.UI
             for (int i = 0; i <= COUNTDOWN; i++)
             {
                 if (i < COUNTDOWN)
+                {
+                    SoundFXManager.PlayOnce("WarDrum");
                     text = (COUNTDOWN - i).ToString();
+                }
                 else
+                {
+                    SoundFXManager.PlayOnce("SwordsCrossed");
                     text = "FIGHT !";
+                }
 
                 m_CountDown.text = text;
 

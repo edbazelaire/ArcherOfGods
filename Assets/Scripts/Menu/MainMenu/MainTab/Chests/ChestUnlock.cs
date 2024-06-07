@@ -16,7 +16,7 @@ namespace Menu
 
     public class ChestUnlock : MObject
     {
-        #region MyRegion
+        #region Members
 
         const string c_EmptySlot                = "EmptySlot";
         const string c_ChestPreviewContainer    = "ChestPreviewContainer";
@@ -185,6 +185,47 @@ namespace Menu
         #endregion
 
 
+        #region Fast Unlock
+
+        void DisplayUnlockPopUp()
+        {
+            Main.ConfirmBuyRewards(GetUnlockPrice(), CreateRewardsData(), (bool success) => { if (success) UnlockChest(); });
+        }
+
+        /// <summary>
+        /// Price (depending on remaning time) to unlock a chest
+        /// </summary>
+        /// <returns></returns>
+        SPriceData GetUnlockPrice()
+        {
+            var remainingTime = m_State == EChestLockState.Unlocking ? UnlockedIn : ItemLoader.GetChestRewardData(m_ChestData.ChestType).UnlockTime;
+            int price = Math.Max((int)Math.Round(remainingTime * ShopManagementData.FastUnlockChestPrice / 3600), 1);
+            return new SPriceData(price, ECurrency.Gems);
+        }
+
+        /// <summary>
+        /// Format chest into SRewardsData
+        /// </summary>
+        /// <returns></returns>
+        SRewardsData CreateRewardsData()
+        {
+            var reward = new SRewardsData();
+            reward.Add(m_ChestData.ChestType, 1);
+            return reward;
+        }
+
+        void UnlockChest()
+        {
+            // display rewards
+            Main.DisplayRewards(CreateRewardsData(), ERewardContext.EndGameChest);
+
+            // remove chest in inventory
+            InventoryManager.RemoveChestAtIndex(m_Index);
+        }
+
+        #endregion
+
+
         #region Listeners
 
         void OnButtonClicked()
@@ -198,7 +239,7 @@ namespace Menu
                     // check if a chest is not already unlocking
                     if (ChestsCloudData.IsChestWaitingUnlock())
                     {
-                        // TODO : Error message ?
+                        DisplayUnlockPopUp();
                         return;
                     }
 
@@ -207,17 +248,11 @@ namespace Menu
                     return;
 
                 case EChestLockState.Unlocking:
-                    // TODO : ConfirmBuyPopUp - fast unlock ?
+                    DisplayUnlockPopUp();
                     return;
 
                 case EChestLockState.Ready:
-                    // display rewards
-                    var reward = new SRewardsData();
-                    reward.Add(m_ChestData.ChestType, 1);
-                    Main.DisplayRewards(reward, ERewardContext.EndGameChest);
-
-                    // remove chest in inventory
-                    InventoryManager.RemoveChestAtIndex(m_Index);
+                    UnlockChest();
                     return;
             }
         }

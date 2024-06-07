@@ -119,7 +119,7 @@ public class Controller : NetworkBehaviour
         ErrorHandler.Log("Initialized : ", ELogTag.GameSystem);
         ErrorHandler.Log("     + LocalClient : " + NetworkManager.Singleton.LocalClientId, ELogTag.GameSystem);
         ErrorHandler.Log("     + Owner : " + OwnerClientId, ELogTag.GameSystem);
-        ErrorHandler.Log("==============================================================");
+        ErrorHandler.Log("==============================================================", ELogTag.GameSystem);
 
         // add controller on client side
         if (newValue)
@@ -217,7 +217,7 @@ public class Controller : NetworkBehaviour
         m_StateHandler.Initialize(characterData.Character, characterData.Level);
 
         // init health and energy
-        m_Life.Initialize(characterData.MaxHealth);
+        m_Life.Initialize(characterData.MaxHealth, characterData.GetInt(EStateEffectProperty.Shield));
         m_EnergyHandler.Initialize(10, characterData.MaxEnergy);
 
         // init client data
@@ -340,15 +340,11 @@ public class Controller : NetworkBehaviour
 
     public void OnGameEnded(bool win)
     {
-        // dead players have no end game method
-        if (!m_Life.IsAlive)
-            return;
-
-        // call for 
-        m_AnimationHandler.GameOverAnimation(win);
-
         // deactivate all "action" components
         ActivateActionComponent(false);
+
+        // set game animation if still 
+        m_AnimationHandler.GameOverAnimation(win);
     }
 
     /// <summary>

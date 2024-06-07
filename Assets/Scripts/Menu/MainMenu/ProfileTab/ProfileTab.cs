@@ -1,9 +1,4 @@
-﻿using Data;
-using Game.Loaders;
-using Menu.Common.Buttons;
-using Tools;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using Tools;
 
 namespace Menu.MainMenu
 {
@@ -11,12 +6,7 @@ namespace Menu.MainMenu
     {
         #region Members
 
-        ProfileDisplayBE    m_ProfileDisplayBE;
-        ScrollRect          m_AchievementScroller;
-        GameObject          m_AchievementsContainer;
-
-        TemplateAchievementButton m_TemplateAchievementButton;
-
+        ProfileDisplayBE m_ProfileDisplayBE;
         #endregion
 
 
@@ -26,41 +16,15 @@ namespace Menu.MainMenu
         {
             base.FindComponents();
 
-            m_ProfileDisplayBE          = Finder.FindComponent<ProfileDisplayBE>(gameObject, "ProfileDisplay");
-            m_AchievementScroller       = Finder.FindComponent<ScrollRect>(gameObject, "AchievementScroller");
-            m_AchievementsContainer     = Finder.Find(m_AchievementScroller.gameObject, "AchievementsContainer");
-
-            m_TemplateAchievementButton = AssetLoader.LoadTemplateItem<TemplateAchievementButton>();
+            m_ProfileDisplayBE = Finder.FindComponent<ProfileDisplayBE>(gameObject, "ProfileDisplay");
         }
 
         protected override void SetUpUI()
         {
-            InitAchievementScroller();
+            base.SetUpUI();
+
             m_ProfileDisplayBE.Initialize();
         }
-
-        #endregion
-
-
-        #region GUI Manipulators
-
-        void InitAchievementScroller()
-        {
-            // reset UI
-            UIHelper.CleanContent(m_AchievementsContainer);
-
-            foreach (AchievementData achievement in AchievementLoader.Achievements)
-            {
-                var go = Instantiate(m_TemplateAchievementButton, m_AchievementsContainer.transform);
-                go.Initialize(achievement);
-            }
-        }
-
-        #endregion
-
-
-        #region Listeners
-     
 
         #endregion
     }

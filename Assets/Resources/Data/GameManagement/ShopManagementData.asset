@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4e89d48297b0e348bae21d1bab1348a, type: 3}
   m_Name: ShopManagementData
   m_EditorClassIdentifier: 
+  m_FastUnlockChestPrice: 5
   m_CurrencyColors:
   - Currency: 0
     Color: {r: 1, g: 0.78126466, b: 0.13679248, a: 1}
@@ -19,39 +20,139 @@ MonoBehaviour:
     Color: {r: 0.3647059, g: 0.7725491, b: 0.9921569, a: 1}
   - Currency: 2
     Color: {r: 1, g: 1, b: 1, a: 1}
-  m_BundleShopData:
-  - Name: SoldierPack
-    Icon: {fileID: 21300000, guid: 6f7561d10e938f6468ce209d32c42dd3, type: 3}
+  m_DailyOffersRareties: 0000000001000000010000000200000003000000
+  m_SpecialOffers:
+  - Name: StarterPack
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 0
+        Qty: 5000
+      Chests: 0100000001000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 2
+    Cost: 0.99
+    MaxCollection: 1
+    Reduction: 0
+  - Name: FireWork
+    Icon: {fileID: 0}
     Rewards:
       Currencies: []
-      Chests: 00000000
-      Collectables: []
+      Chests: 04000000
+      Collectables:
+      - CollectableType: 2
+        CollectableName: FireBarrage
+        Qty: 50
+      - CollectableType: 2
+        CollectableName: Comets
+        Qty: 20
+      AchievementRewards: []
     Currency: 1
     Cost: 100
-  - Name: LieutenantPack
-    Icon: {fileID: 21300000, guid: ffc38ffaf1d12e944aea40cf2e06f10e, type: 3}
+    MaxCollection: 1
+    Reduction: 0
+  - Name: CryoPack
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 0
+        Qty: 10000
+      Chests: 0700000008000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 2
+    Cost: 7.99
+    MaxCollection: 1
+    Reduction: 0
+  - Name: GeneralPack
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 0
+        Qty: 100000
+      Chests: 020000000200000003000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 2
+    Cost: 19.99
+    MaxCollection: 1
+    Reduction: 0
+  - Name: PyroMaster
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 0
+        Qty: 50000
+      Chests: 040000000500000006000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 2
+    Cost: 24.99
+    MaxCollection: 1
+    Reduction: 0
+  m_BundleShopData:
+  - Name: 
+    Icon: {fileID: 0}
     Rewards:
       Currencies: []
+      Chests: 02000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 1
+    Cost: 750
+    MaxCollection: 0
+    Reduction: 0
+  - Name: 
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies: []
+      Chests: 03000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 1
+    Cost: 1800
+    MaxCollection: 0
+    Reduction: 0
+  - Name: Pack_01
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 0
+        Qty: 15000
+      Chests: 02000000
+      Collectables: []
+      AchievementRewards: []
+    Currency: 1
+    Cost: 1200
+    MaxCollection: 0
+    Reduction: 0
+  - Name: Pack_02
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 0
+        Qty: 50000
       Chests: 010000000200000002000000
       Collectables: []
+      AchievementRewards: []
     Currency: 1
-    Cost: 500
-  - Name: GeneralPack
-    Icon: {fileID: 21300000, guid: 5ffe5b1ffe60b5d4992caca3d1702876, type: 3}
+    Cost: 3000
+    MaxCollection: 0
+    Reduction: 0
+  - Name: Pack_03
+    Icon: {fileID: 0}
     Rewards:
-      Currencies: []
-      Chests: 02000000020000000200000003000000
+      Currencies:
+      - Currency: 0
+        Qty: 100000
+      Chests: 0200000003000000
       Collectables: []
+      AchievementRewards: []
     Currency: 1
-    Cost: 2500
-  - Name: PyroMaster
-    Icon: {fileID: 21300000, guid: 9c21af9257213e946b1e4cbe0ba9c614, type: 3}
-    Rewards:
-      Currencies: []
-      Chests: 04000000050000000500000006000000
-      Collectables: []
-    Currency: 1
-    Cost: 3500
+    Cost: 5500
+    MaxCollection: 0
+    Reduction: 0
   m_GoldsShopData:
   - Name: 
     Icon: {fileID: 21300000, guid: 2ff4d93b8bd76bd44a0d2e143b820b92, type: 3}
@@ -61,8 +162,11 @@ MonoBehaviour:
         Qty: 1000
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 1
-    Cost: 10
+    Cost: 60
+    MaxCollection: 0
+    Reduction: 0
   - Name: 
     Icon: {fileID: 21300000, guid: e8a2d175cd1cd734c8ddb5592cf75518, type: 3}
     Rewards:
@@ -71,8 +175,11 @@ MonoBehaviour:
         Qty: 10000
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 1
-    Cost: 80
+    Cost: 500
+    MaxCollection: 0
+    Reduction: 0
   - Name: 
     Icon: {fileID: 21300000, guid: 5f0e388edf6e76946a4c7642e0f4c7e3, type: 3}
     Rewards:
@@ -81,59 +188,103 @@ MonoBehaviour:
         Qty: 100000
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 1
-    Cost: 500
+    Cost: 4500
+    MaxCollection: 0
+    Reduction: 0
   - Name: 
     Icon: {fileID: 21300000, guid: 5f0e388edf6e76946a4c7642e0f4c7e3, type: 3}
     Rewards:
       Currencies:
       - Currency: 0
-        Qty: 10000000
+        Qty: 1000000
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 1
-    Cost: 1000
+    Cost: 5000
+    MaxCollection: 0
+    Reduction: 0
   m_GemsShopData:
   - Name: 
     Icon: {fileID: 21300000, guid: 1cb3b7a2494234248b4990b640a94bfd, type: 3}
     Rewards:
       Currencies:
       - Currency: 1
-        Qty: 10
+        Qty: 80
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 2
-    Cost: 0.99
+    Cost: 1.19
+    MaxCollection: 0
+    Reduction: 0
   - Name: 
     Icon: {fileID: 21300000, guid: 2d7eb998cd5dac745af8c7c57c44beaf, type: 3}
     Rewards:
       Currencies:
       - Currency: 1
-        Qty: 100
+        Qty: 500
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 2
     Cost: 5.99
+    MaxCollection: 0
+    Reduction: 0
   - Name: 
     Icon: {fileID: 21300000, guid: 8e1d1d37974e7f34695e07285463306c, type: 3}
     Rewards:
       Currencies:
       - Currency: 1
-        Qty: 1000
+        Qty: 1200
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 2
-    Cost: 49.99
+    Cost: 11.99
+    MaxCollection: 0
+    Reduction: 0
   - Name: 
-    Icon: {fileID: 21300000, guid: 8e1d1d37974e7f34695e07285463306c, type: 3}
+    Icon: {fileID: 21300000, guid: fe67af3fe0263074f8243700f01d0d8b, type: 3}
     Rewards:
       Currencies:
       - Currency: 1
-        Qty: 100000
+        Qty: 2500
       Chests: 
       Collectables: []
+      AchievementRewards: []
     Currency: 2
-    Cost: 99.99
+    Cost: 23.99
+    MaxCollection: 0
+    Reduction: 0
+  - Name: 
+    Icon: {fileID: 21300000, guid: 5366dd5d958bffc42b914abe4288b432, type: 3}
+    Rewards:
+      Currencies:
+      - Currency: 1
+        Qty: 6500
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+    Currency: 2
+    Cost: 59.99
+    MaxCollection: 0
+    Reduction: 0
+  - Name: 
+    Icon: {fileID: 21300000, guid: 66324f591d372a047811dde0acc95a4f, type: 3}
+    Rewards:
+      Currencies:
+      - Currency: 1
+        Qty: 14000
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+    Currency: 2
+    Cost: 119.99
+    MaxCollection: 0
+    Reduction: 0
   m_CharacterPrices:
   - Rarety: 0
     Price:

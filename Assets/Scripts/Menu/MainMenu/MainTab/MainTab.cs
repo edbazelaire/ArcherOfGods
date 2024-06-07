@@ -1,5 +1,5 @@
 using Assets;
-using Data.GameManagement;
+using Assets.Scripts.Managers.Sound;
 using Enums;
 using Network;
 using Save;
@@ -9,7 +9,6 @@ using System.Linq;
 using TMPro;
 using Tools;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Menu.MainMenu.MainTab
@@ -19,7 +18,6 @@ namespace Menu.MainMenu.MainTab
         #region Members
 
         const string            c_CharacterPreviewSection           = "CharacterPreviewSection";
-        const string            c_CharacterSelectionPopUp           = "CharacterSelectionPopUp";
         const string            c_PlayButton                        = "PlayButton";
         const string            c_Dropdown                          = "Dropdown";
 
@@ -47,10 +45,10 @@ namespace Menu.MainMenu.MainTab
             m_GameTypeDropDown                  = Finder.FindComponent<TMP_Dropdown>(gameObject, c_Dropdown);
         }
 
-        public override void Initialize(TabButton tabButton)
+        public override void Initialize(TabButton tabButton, AudioClip activationSoundFX)
         {
-            base.Initialize(tabButton);
-                        
+            base.Initialize(tabButton, activationSoundFX);
+
             // initialize GameSectionUI
             m_GameSectionUI.Initialize();
 
@@ -68,9 +66,6 @@ namespace Menu.MainMenu.MainTab
             CoroutineManager.DelayMethod(m_CharacterPreviewSection.Initialize);
             // delay register method by one frame (to avoid issue with Awake() order)
             CoroutineManager.DelayMethod(() => { m_CharacterPreviewSection.CharacterPreviewButton.onClick.AddListener(ToggleCharacterSelection); });
-
-            // register arena level up event
-            ArenaData.ArenaLevelCompletedEvent += OnArenaLevelCompleted;
         }
 
         protected override void OnDestroy()
@@ -78,9 +73,6 @@ namespace Menu.MainMenu.MainTab
             base.OnDestroy();
 
             m_PlayButton.onClick.RemoveAllListeners();
-
-            // register arena level up event
-            ArenaData.ArenaLevelCompletedEvent -= OnArenaLevelCompleted;
         }
 
         #endregion
@@ -132,7 +124,6 @@ namespace Menu.MainMenu.MainTab
             Main.SetState(EAppState.Lobby);
 
             // set the button as selected
-            m_PlayButtonImage.color = Color.red;
             await LobbyHandler.Instance.QuickJoinLobby();
         }
 
@@ -156,6 +147,8 @@ namespace Menu.MainMenu.MainTab
             if (m_CharacterSelection == null)
                 return;
 
+            SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
+
             if (!m_CharacterSelection.gameObject.activeInHierarchy)
                 m_CharacterSelection.Open();
             else
@@ -167,6 +160,8 @@ namespace Menu.MainMenu.MainTab
         /// </summary>
         void OnPlay()
         {
+            SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
+
             if (! CharacterBuildsCloudData.IsCurrentBuildOk){
                 Main.ErrorMessagePopUp("Current build is not valid");
                 return;
@@ -178,11 +173,15 @@ namespace Menu.MainMenu.MainTab
                 return;
             }
 
+            m_PlayButtonImage.color = new Color(0.65f, 0.65f, 0.65f);
+
             JoinLobby();
         }
 
         void OnDropDown(int index)
         {
+            SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
+
             if (!Enum.TryParse(m_GameTypeDropDown.options[index].text, out EGameMode gameMode))
             {
                 ErrorHandler.Error("Unable to convert " + m_GameTypeDropDown.options[index].text + " as game mode");
@@ -191,18 +190,6 @@ namespace Menu.MainMenu.MainTab
             GameSectionUI.SetGameMode(gameMode);
         }
 
-        /// <summary>
-        /// When an arena is completed, display UI
-        /// </summary>
-        /// <param name="arenaType"></param>
-        /// <param name="level"></param>
-        void OnArenaLevelCompleted(EArenaType arenaType, int level)
-        {
-            Debug.LogWarning("MainTab.OnArenaLevelCompleted");
-
-            var arenaData = AssetLoader.LoadArenaData(arenaType);
-            Main.DisplayRewards(arenaData.GetArenaLevelData(level).rewardsData, ERewardContext.ArenaReward);
-        }
 
         #endregion
     }

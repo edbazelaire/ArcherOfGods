@@ -1,5 +1,6 @@
 ﻿using Enums;
 using Game.Loaders;
+using Game.Spells;
 using Inventory;
 using Save;
 using System;
@@ -8,6 +9,7 @@ using System.Linq;
 using Tools;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Menu.MainMenu
 {
@@ -45,9 +47,9 @@ namespace Menu.MainMenu
         /// 
         /// </summary>
         /// <param name="tabButton"></param>
-        public override void Initialize(TabButton tabButton)
+        public override void Initialize(TabButton tabButton, AudioClip activationSoundFX)
         {
-            base.Initialize(tabButton);
+            base.Initialize(tabButton, activationSoundFX);
 
             // remove content in spell items displayers
             UIHelper.CleanContent(m_SpellItemContainer);
@@ -61,14 +63,16 @@ namespace Menu.MainMenu
                     continue;
 
                 // check if is unlocked or not
-                var parent = InventoryCloudData.Instance.GetSpell(spell).Level > 0 ? m_SpellItemContainer.transform : m_LockedSpellItemContainer.transform;
+                bool isUnlocked = InventoryCloudData.Instance.GetSpell(spell).Level > 0;
+                var parent = isUnlocked ? m_SpellItemContainer.transform : m_LockedSpellItemContainer.transform;
 
                 // spawn and init ui of the spell
                 TemplateSpellItemUI spellUI = Instantiate(m_TemplateSpellItem, parent).GetComponent<TemplateSpellItemUI>();
                 spellUI.gameObject.name = string.Format(SPELL_ITEM_NAME_FORMAT, spell.ToString());
                 spellUI.Initialize(spell);
+                spellUI.CollectionFillBar?.gameObject.SetActive(isUnlocked);
 
-                if (InventoryCloudData.Instance.GetSpell(spell).Level > 0)
+                if (isUnlocked)
                     m_SpellItems.Add(spell, spellUI);
 
                 // hide if spell is in current build
@@ -159,6 +163,11 @@ namespace Menu.MainMenu
 
             // change parent
             spellItemUI.transform.SetParent(m_SpellItemContainer.transform);
+            spellItemUI.CollectionFillBar?.gameObject.SetActive(true);
+
+            // Force layout rebuild for both containers
+            LayoutRebuilder.ForceRebuildLayoutImmediate(m_LockedSpellItemContainer.GetComponent<RectTransform>());
+            LayoutRebuilder.ForceRebuildLayoutImmediate(m_SpellItemContainer.GetComponent<RectTransform>());
 
             // add spellUI to dict of spell UIs
             m_SpellItems.Add(spellItemUI.Spell, spellItemUI);

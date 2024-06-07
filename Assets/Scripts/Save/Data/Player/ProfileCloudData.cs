@@ -5,20 +5,77 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Tools;
+using Unity.Collections;
 using Unity.Netcode;
 using Unity.Services.CloudSave.Models;
 using Unity.VisualScripting;
+using UnityEngine;
 
 namespace Save
 {
+    public struct SProfileDataNetwork : INetworkSerializable
+    {
+        public FixedString32Bytes       GamerTag;
+        public FixedString32Bytes       Avatar;
+        public FixedString32Bytes       Border;
+        public FixedString32Bytes       Title;
+        public FixedString32Bytes[]     Badges;
+
+        public SProfileDataNetwork(string gamerTag = default, string avatar = default, string border = default, string title = default, string[] badges = null)
+        {
+            if (gamerTag == default)
+                gamerTag = SProfileCurrentData.DEFAULT_GAMER_TAG;
+
+            if (avatar == default)
+                avatar = SProfileCurrentData.DEFAULT_AR[EAchievementReward.Avatar];
+
+            if (border == default)
+                border = SProfileCurrentData.DEFAULT_AR[EAchievementReward.Border];
+
+            if (title == default)
+                title = SProfileCurrentData.DEFAULT_AR[EAchievementReward.Title];
+
+            if (badges == null)
+                badges = SProfileCurrentData.DEFAULT_BADGES;
+
+            GamerTag    = gamerTag;
+            Avatar      = avatar;
+            Border      = border;
+            Title       = title;
+            Badges      = badges.Select(badge => (FixedString32Bytes)badge).ToArray();
+        }
+
+        #region Network Serialization
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref GamerTag);
+            serializer.SerializeValue(ref Avatar);
+            serializer.SerializeValue(ref Border);
+            serializer.SerializeValue(ref Title);
+
+            // Serialize the length of the badges array followed by each badge string
+            int numBadges = Badges != null ? Badges.Length : 0;
+            serializer.SerializeValue(ref numBadges);
+            if (serializer.IsReader)
+            {
+                Badges = new FixedString32Bytes[numBadges];
+            }
+
+            for (int i = 0; i < numBadges; i++)
+            {
+                serializer.SerializeValue(ref Badges[i]);
+            }
+        }
+
+        #endregion
+    }
+
     [Serializable]
-    public struct SProfileCurrentData: INetworkSerializable
+    public struct SProfileCurrentData
     {
         #region Members
 
-
-        #endregion
-        
         // ========================================================================================================================
         // CONSTANTS
         /// <summary> default gamer tag </summary>
@@ -35,59 +92,40 @@ namespace Save
         public string   Avatar; 
         public string   Border; 
         public string   Title;
-        public string[] Badges; 
+        public string[] Badges;
 
-        public SProfileCurrentData(string gamerTag = "", string avatar = "", string border = "", string title = "", string[] badges = null)
+        #endregion
+
+        public SProfileCurrentData(string gamerTag = default, string avatar = default, string border = default, string title = default, string[] badges = null)
         {
-            if (gamerTag == "")
+            if (gamerTag == default)
                 gamerTag = DEFAULT_GAMER_TAG;
 
-            if (avatar == "")
+            if (avatar == default)
                 avatar = DEFAULT_AR[EAchievementReward.Avatar];
 
-            if (border == "")
+            if (border == default)
                 border = DEFAULT_AR[EAchievementReward.Border];
 
-            if (title == "")
+            if (title == default)
                 title = DEFAULT_AR[EAchievementReward.Title];
 
             if (badges == null)
                 badges = DEFAULT_BADGES;
 
-            GamerTag    = gamerTag;
-            Avatar      = avatar;
-            Border      = border;
-            Title       = title;
-            Badges      = badges;
+            GamerTag  = gamerTag;
+            Avatar    = avatar;
+            Border    = border;
+            Title     = title;
+            Badges    = badges;
         }
 
-
-        #region Network Serialization
-
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        public SProfileDataNetwork AsNetworkSerializable()
         {
-            serializer.SerializeValue(ref GamerTag);
-            serializer.SerializeValue(ref Avatar);
-            serializer.SerializeValue(ref Border);
-            serializer.SerializeValue(ref Title);
-
-            // Serialize the length of the badges array followed by each badge string
-            int numBadges = Badges != null ? Badges.Length : 0;
-            serializer.SerializeValue(ref numBadges);
-            if (serializer.IsReader)
-            {
-                Badges = new string[numBadges];
-            }
-
-            for (int i = 0; i < numBadges; i++)
-            {
-                serializer.SerializeValue(ref Badges[i]);
-            }
+            return new SProfileDataNetwork(GamerTag, Avatar, Border, Title, Badges);
         }
 
-        #endregion
-
-
+         
         #region Getter & Setter
 
         public string Get(EAchievementReward achievementReward)
@@ -221,7 +259,7 @@ namespace Save
                 {
                     ErrorHandler.Warning("Unable to parse badge " + Badges[i] + " - reseting to default");
                     Badges[i] = DEFAULT_BADGE;
-                    return;
+                    continue;
                 }
 
                 // CHECK : is in unlocked data
@@ -229,7 +267,7 @@ namespace Save
                 {
                     ErrorHandler.Warning("Badge " + badge + " not found in unlocked data - reseting to default");
                     Badges[i] = DEFAULT_BADGE;
-                    return;
+                    continue;
                 }
 
                 // CHECK : league was unlocked
@@ -237,7 +275,7 @@ namespace Save
                 {
                     ErrorHandler.Warning("Badge " + badge + " was set with league " + league + " but current league found was : " + ProfileCloudData.Badges[badge]);
                     Badges[i] = ProfileCloudData.BadgeToString(badge, league);
-                    return;
+                    continue;
                 }
             }
         }
@@ -387,11 +425,14 @@ namespace Save
 
         public static void CompleteAchievement(string achievement)
         {
+            ErrorHandler.Log("CompleteAchievement : " + achievement, ELogTag.Achievements);
+
             if (Achievements.ContainsKey(achievement))
                 Achievements[achievement]++;
             else
                 Achievements[achievement] = 1;
 
+            ErrorHandler.Log("      + Saving", ELogTag.Achievements);
             Instance.SaveValue(KEY_ACHIEVEMENTS);
 
             AchievementCompletedEvent?.Invoke(achievement);
@@ -428,6 +469,7 @@ namespace Save
         /// <param name="value"></param>
         public static void AddAchievementReward(EAchievementReward achievementReward, string value, bool save = true)
         {
+            ErrorHandler.Log("AddAchievementReward() : " + value, ELogTag.Achievements);
             if (AchievementRewards[achievementReward].Contains(value))
             {
                 ErrorHandler.Error("Trying to unlock achievement REWARD already unlocked : " + achievementReward.ToString() + " - " + value);
@@ -435,9 +477,10 @@ namespace Save
             }
 
             // add & save data
-            AchievementRewards[achievementReward].Add(value);
+            var data = AchievementRewards;
+            data[achievementReward].Add(value);
             if (save)
-                Instance.SaveValue(KEY_ACHIEVEMENT_REWARDS);
+                Instance.SetData(KEY_ACHIEVEMENT_REWARDS, data, true);
 
             // fire event that a new reward has been collected
             AchievementRewardCollectedEvent?.Invoke(achievementReward, value);
@@ -578,7 +621,43 @@ namespace Save
 
         #region Helpers
 
-        Type GetTypeOf(EAchievementReward achievementReward)
+        public static bool TryGetType(Enum ar, out EAchievementReward arType, bool throwError = true)
+        {
+            return TryGetType(ar.GetType(), out arType, throwError);
+        }
+
+        public static bool TryGetType(Type type, out EAchievementReward arType, bool throwError = true)
+        {
+            arType = EAchievementReward.None;
+            foreach (EAchievementReward ar in Enum.GetValues(typeof(EAchievementReward)))
+            {
+                if (type == GetTypeOf(ar))
+                {
+                    arType = ar;
+                    return true;
+                }
+            }
+
+            if (throwError)
+                ErrorHandler.Error("Unable to parse type " + type + " as EAchievementReward");
+            return false;
+        }
+
+        public static bool IsAchievementRewardType(Type type)
+        {
+            foreach (EAchievementReward ar in Enum.GetValues(typeof(EAchievementReward)))
+            {
+                if (ar == EAchievementReward.None)
+                    continue;
+
+                if (type == GetTypeOf(ar))
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static Type GetTypeOf(EAchievementReward achievementReward)
         {
             switch(achievementReward)
             {
@@ -621,38 +700,101 @@ namespace Save
         #endregion
 
 
-        #region Set Default Values
+        #region Reset & Unlock
 
-        public static void SetDefaultValue(string key) 
+        public override void Reset(string key) 
         {
-            if (key == KEY_CURRENT_PROFILE_DATA)
+            base.Reset(key);
+
+            switch (key)
             {
-                var data = new SProfileCurrentData();
-                data.Check();
-                Instance.m_Data[key] = data;
-                return;
+                case KEY_CURRENT_PROFILE_DATA:
+                    var data = new SProfileCurrentData();
+                    data.Check();
+                    Instance.m_Data[key] = data;
+                    break;
+
+                case KEY_ACHIEVEMENTS:
+                    Instance.m_Data[key] = new Dictionary<string, int>() { };
+                    break;
+
+                case KEY_ACHIEVEMENT_REWARDS:
+                    Instance.m_Data[key] = new Dictionary<EAchievementReward, List<string>>()
+                    {
+                        { EAchievementReward.Avatar,    new List<string>() { EAvatar.None.ToString() }   },
+                        { EAchievementReward.Border,    new List<string>() { EBorder.None.ToString() }   },
+                        { EAchievementReward.Title,     new List<string>() { ETitle.None.ToString() }    },
+                        { EAchievementReward.Badge,     new List<string>() { EBadge.None.ToString() }    },
+                    };
+
+                    Instance.m_Badges = Instance.FilterHighestLeague(EAchievementReward.Badge);
+                    break;
+
+                default:
+                    ErrorHandler.Warning("Unknown key to reset : " +  key);
+                    return;
+            }
+        }
+
+        public override bool IsUnlockable(string key)
+        {
+            return new List<string>() { KEY_ACHIEVEMENT_REWARDS }.Contains(key) ;  
+        }
+
+        public override void Unlock(string key, bool save = true)
+        {
+            switch (key)
+            {
+                case KEY_ACHIEVEMENT_REWARDS:
+                    foreach (EAchievementReward ar in Enum.GetValues(typeof(EAchievementReward)))
+                    {
+                        if (ar == EAchievementReward.None)
+                            continue;
+
+                        UnlockAchivementRewardAll(ar, false);
+                    }
+
+                    Instance.m_Badges = Instance.FilterHighestLeague(EAchievementReward.Badge);
+                    break;
+
+                default:
+                    ErrorHandler.Warning("Unknown key to reset : " + key);
+                    return;
             }
 
+            if (save)
+                SaveValue(key);
+        }
 
-            if (key == KEY_ACHIEVEMENTS)
+        public void UnlockAchivementRewardAll(EAchievementReward ar, bool save = true)
+        {
+            foreach (Enum value in Enum.GetValues(GetTypeOf(ar)))
             {
-                Instance.m_Data[key] = new Dictionary<string, int>() { };
-                return;
-            }
+                string name = value.ToString();
 
-            if (key == KEY_ACHIEVEMENT_REWARDS)
-            {
-                Instance.m_Data[key] = new Dictionary<EAchievementReward, List<string>>()
+                if (ar != EAchievementReward.Badge)
                 {
-                    { EAchievementReward.Avatar,    new List<string>() { EAvatar.None.ToString() }   },
-                    { EAchievementReward.Border,    new List<string>() { EBorder.None.ToString() }   },
-                    { EAchievementReward.Title,     new List<string>() { ETitle.None.ToString() }    },
-                    { EAchievementReward.Badge,     new List<string>() { EBadge.None.ToString() }    },
-                };
+                    ProfileCloudData.AddAchievementReward(ar, value.ToString(), false);
+                }
 
-                Instance.m_Badges = Instance.FilterHighestLeague(EAchievementReward.Badge);
-                return;
+                else 
+                { 
+                    foreach (ELeague league in Enum.GetValues(typeof(ELeague)))
+                    {
+                        string badgeName = ProfileCloudData.BadgeToString((EBadge)value, league);
+
+                        // check icon exists
+                        if (AssetLoader.LoadBadgeIcon(badgeName) == null)
+                            continue;
+
+                        ProfileCloudData.AddAchievementReward(EAchievementReward.Badge, badgeName, false);
+                    }
+                }
+
             }
+
+            if (save)
+                SaveValue(KEY_ACHIEVEMENT_REWARDS);
         }
 
         #endregion
@@ -665,7 +807,7 @@ namespace Save
             if (! m_Data.ContainsKey(KEY_ACHIEVEMENTS) || Achievements == null)
             {
                 ErrorHandler.Warning("Current Data are empty : use default ones");
-                SetDefaultValue(KEY_ACHIEVEMENTS); 
+                Reset(KEY_ACHIEVEMENTS); 
             }
         }
 
@@ -674,7 +816,7 @@ namespace Save
             if (!m_Data.ContainsKey(KEY_ACHIEVEMENT_REWARDS) || AchievementRewards == null || AchievementRewards.Count == 0)
             {
                 ErrorHandler.Warning("Achievement Rewards are empty : use default ones");
-                SetDefaultValue(KEY_ACHIEVEMENT_REWARDS);
+                Reset(KEY_ACHIEVEMENT_REWARDS);
             }
 
             Dictionary<EAchievementReward, List<string>> valuesToRemove     = new();
@@ -727,6 +869,9 @@ namespace Save
                     RemoveAchievementReward(item.Key, value, false);
 
             // TODO : REMOVE DUPLICATES
+
+            // SAVE 
+            Instance.SaveValue(KEY_ACHIEVEMENT_REWARDS);
         }
 
         void CheckCurrentData()
@@ -734,7 +879,7 @@ namespace Save
             if (!m_Data.ContainsKey(KEY_CURRENT_PROFILE_DATA))
             {
                 ErrorHandler.Warning("Current Profile Data are empty : use default ones");
-                SetDefaultValue(KEY_CURRENT_PROFILE_DATA);
+                Reset(KEY_CURRENT_PROFILE_DATA);
             }
 
             var data = CurrentProfileData;
@@ -747,6 +892,20 @@ namespace Save
 
         #region Listeners
 
+        protected override void RegisterListeners()
+        {
+            base.RegisterListeners();
+
+            ProfileCloudData.BadgeUnlockedEvent += OnBadgeUnlocked;
+        }
+
+        protected override void UnRegisterListeners()
+        {
+            base.UnRegisterListeners();
+
+            ProfileCloudData.BadgeUnlockedEvent -= OnBadgeUnlocked;
+        }
+
         protected override void CheckData()
         {
             base.CheckData();
@@ -755,6 +914,34 @@ namespace Save
             m_Badges = FilterHighestLeague(EAchievementReward.Badge);
             CheckAchievements();
             CheckCurrentData();
+        }
+
+        /// <summary>
+        /// When a badge is unlocked, check if is in current build data. If so, update the league value
+        /// </summary>
+        /// <param name="badge"></param>
+        /// <param name="league"></param>
+        void OnBadgeUnlocked(EBadge badge, ELeague league)
+        {
+            for (int index=0; index < CurrentBadges.Length; index++)
+            {
+                string badgeName = CurrentBadges[index];
+                if (!TryGetBadgeFromString(badgeName, out EBadge currentBadge, out ELeague currentLeague))
+                    continue;
+
+                // check if is same badge type
+                if (badge != currentBadge)
+                    continue;
+
+                if (currentLeague >= league)
+                {
+                    ErrorHandler.Error("Badge " + badge + " unlocked with league " + league + " but is currently set with a league equal or higher : " + currentLeague);
+                    continue;
+                }
+
+                SetCurrentBadge(currentBadge, index);
+                return;
+            }
         }
 
         #endregion

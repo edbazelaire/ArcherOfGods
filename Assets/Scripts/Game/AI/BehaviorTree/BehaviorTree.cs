@@ -14,6 +14,9 @@ namespace AI
         protected Controller m_Controller;
         protected bool m_IsActivated = false;
 
+        protected float m_DecisionDeltaTime = 0.2f;
+        protected float m_DecisionTimer = 0f;
+
         public bool IsActivated => m_IsActivated;
 
         #endregion
@@ -41,11 +44,19 @@ namespace AI
             if (!m_IsActivated || !IsServer)
                 return;
 
+            if (m_DecisionTimer > 0f)
+            {
+                m_DecisionTimer -= Time.deltaTime;
+                return;
+            }
+
             if (GameManager.IsGameOver)
             {
                 Activate(false);
                 return;
             }
+
+            m_DecisionTimer = m_DecisionDeltaTime;
 
             if (m_Root != null)
                 m_Root.Evaluate();

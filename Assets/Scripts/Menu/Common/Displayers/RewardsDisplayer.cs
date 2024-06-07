@@ -1,7 +1,5 @@
 ﻿using Data.GameManagement;
 using Inventory;
-using NUnit.Framework;
-using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
@@ -13,15 +11,15 @@ namespace Menu.Common.Displayers
     {
         #region Members
 
-        GameObject m_RewardsDisplayContainer;
         HorizontalLayoutGroup m_RewardsDisplayRow;
+        GameObject m_RewardsDisplayContainer;
         GameObject m_TemplateReward;
 
         #endregion
 
         public void Initialize(SRewardsData rewardsData, int maxElemPerRow = 4)
         {
-            m_RewardsDisplayContainer = this.gameObject;
+            m_RewardsDisplayContainer = Finder.Find(gameObject, "Content");
             m_RewardsDisplayRow = Finder.FindComponent<HorizontalLayoutGroup>(m_RewardsDisplayContainer);
             m_TemplateReward = AssetLoader.LoadTemplateItem("Reward");
 
@@ -33,6 +31,8 @@ namespace Menu.Common.Displayers
 
         public void SetUpRewards(List<SReward> rewards, int maxElemPerRow = 4)
         {
+            UIHelper.CleanContent(m_RewardsDisplayContainer, startAt: 1);
+
             Transform row = m_RewardsDisplayRow.transform;
 
             int j = 0;
@@ -40,12 +40,14 @@ namespace Menu.Common.Displayers
             for (int i = 0; i < rewards.Count; i++)
             {
                 bool isNewRow = i != 0 && (j >= maxElemPerRow || (rowCount % 2 == 1 && j >= maxElemPerRow - 1));
+                j++;
 
                 if (isNewRow)
                 {
                     rowCount++;
                     j = 0;
                     row = Instantiate(m_RewardsDisplayRow, m_RewardsDisplayContainer.transform).GetComponent<Transform>();
+                    UIHelper.CleanContent(row.gameObject);
                 }
 
                 var template = Instantiate(m_TemplateReward, row).GetComponent<TemplateReward>();

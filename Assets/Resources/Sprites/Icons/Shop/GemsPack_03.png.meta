@@ -3,11 +3,14 @@ guid: 8e1d1d37974e7f34695e07285463306c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6176236224417232064
-    second: GemsPack_03 1_0
+      213: -5235156905931432083
+    second: GemsPack_03_0
   - first:
-      213: 3065300869565726292
-    second: GemsPack_03 1_1
+      213: -3043895483130609451
+    second: GemsPack_03_1
+  - first:
+      213: -4765892440865130809
+    second: GemsPack_03_2
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -129,13 +132,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: GemsPack_03 1_0
+      name: GemsPack_03_0
       rect:
         serializedVersion: 2
-        x: 41
-        y: 33
-        width: 947
-        height: 957
+        x: 83
+        y: 48
+        width: 350
+        height: 439
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -143,20 +146,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0c4f94d7f1666b550800000000000000
-      internalID: 6176236224417232064
+      spriteID: d6f1686f78cf857b0800000000000000
+      internalID: -5235156905931432083
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: GemsPack_03 1_1
+      name: GemsPack_03_1
       rect:
         serializedVersion: 2
-        x: 290
-        y: 30
-        width: 80
-        height: 79
+        x: 83
+        y: 14
+        width: 81
+        height: 61
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -164,8 +167,29 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 45e392476e22a8a20800000000000000
-      internalID: 3065300869565726292
+      spriteID: 5d085927f29e1c5d0800000000000000
+      internalID: -3043895483130609451
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GemsPack_03_2
+      rect:
+        serializedVersion: 2
+        x: 397
+        y: 48
+        width: 79
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c6b38863162cddb0800000000000000
+      internalID: -4765892440865130809
       vertices: []
       indices: 
       edges: []
@@ -181,8 +205,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      GemsPack_03 1_0: 6176236224417232064
-      GemsPack_03 1_1: 3065300869565726292
+      GemsPack_03_0: -5235156905931432083
+      GemsPack_03_1: -3043895483130609451
+      GemsPack_03_2: -4765892440865130809
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

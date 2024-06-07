@@ -5,6 +5,8 @@ using UnityEngine;
 using System.ComponentModel;
 using Tools;
 using Inventory;
+using Menu.Common.Buttons;
+using Save;
 
 namespace Data.GameManagement
 {
@@ -28,11 +30,11 @@ namespace Data.GameManagement
         public string           CollectableName;
         public int              Qty;
 
-        public SCollectableReward(ECollectableType CollectableType, string CollectableName, int Qty)
+        public SCollectableReward(ECollectableType collectableType, string collectableName, int qty)
         {
-            this.CollectableType = CollectableType;
-            this.CollectableName = CollectableName;
-            this.Qty = Qty;
+            this.CollectableType = collectableType;
+            this.CollectableName = collectableName;
+            this.Qty = qty;
         }
     }
 
@@ -52,17 +54,29 @@ namespace Data.GameManagement
     [Serializable]
     public struct SRewardsData
     {
-        public List<SCurrencyReward>    Currencies;
-        public List<EChest>             Chests;
-        public List<SCollectableReward> Collectables;
+        public List<SCurrencyReward>        Currencies;
+        public List<EChest>                 Chests;
+        public List<SCollectableReward>     Collectables;
+        public List<SAchievementReward>     AchievementRewards;
 
-        public readonly bool IsEmpty => Currencies.Count + Chests.Count + Collectables.Count == 0;
+        public readonly bool IsEmpty => Count == 0;
+        public readonly int Count => Currencies.Count + Chests.Count + Collectables.Count + AchievementRewards.Count;
 
-        public SRewardsData(List<SCurrencyReward> currencyRewards = default, List<EChest> chests = default, List<SCollectableReward> collectableRewards = default)
+        public SRewardsData(List<SCurrencyReward> currencyRewards = null, List<EChest> chests = null, List<SCollectableReward> collectableRewards = null, List<SAchievementReward> achievementRewards = null)
         {
-            Currencies      = currencyRewards != default ? currencyRewards : new List<SCurrencyReward>();
-            Chests          = chests != default ? chests : new List<EChest>();
-            Collectables    = collectableRewards != default ? collectableRewards : new List<SCollectableReward>();
+            Currencies          = currencyRewards ?? new List<SCurrencyReward>();
+            Chests              = chests ?? new List<EChest>();
+            Collectables        = collectableRewards ?? new List<SCollectableReward>();
+            AchievementRewards  = achievementRewards ?? new List<SAchievementReward>();
+        }
+
+        public void SetDefaultData()
+        {
+            Currencies          ??= new List<SCurrencyReward>();
+            Chests              ??= new List<EChest>();
+            Collectables        ??= new List<SCollectableReward>();
+            AchievementRewards  ??= new List<SAchievementReward>();
+
         }
 
         public void Add(Enum item, int qty)
@@ -79,10 +93,18 @@ namespace Data.GameManagement
                 Chests.Add((EChest)item);
             } 
             
-            else if (CollectablesManagementData.TryGetCollectableType(item, out ECollectableType collectableType))
+            else if ( CollectablesManagementData.TryGetCollectableType(item, out ECollectableType collectableType))
             {
                 Collectables ??= new List<SCollectableReward>();
                 Collectables.Add(new SCollectableReward(collectableType, item.ToString(), qty));
+            } 
+            
+            else if (ProfileCloudData.TryGetType(item, out EAchievementReward arType, throwError: false))
+            {
+                AchievementRewards ??= new List<SAchievementReward>();
+                var ar = new SAchievementReward();
+                ar.Set(item);
+                AchievementRewards.Add(ar);
             } 
 
             else
@@ -97,6 +119,7 @@ namespace Data.GameManagement
                 List<SReward> list = AsRewardStruct(Currencies);
                 list.AddRange(AsRewardStruct(Chests));
                 list.AddRange(AsRewardStruct(Collectables));
+                list.AddRange(AsRewardStruct(AchievementRewards));
 
                 return list;
             }
@@ -143,6 +166,20 @@ namespace Data.GameManagement
 
             return rewards;
         }
+
+        public List<SReward> AsRewardStruct(List<SAchievementReward> achievementRewards)
+        {
+            if (achievementRewards == null || achievementRewards.Count == 0)
+                return new List<SReward>();
+
+            var rewards = new List<SReward>();
+            foreach (SAchievementReward data in achievementRewards)
+            {
+                rewards.Add(new SReward(ProfileCloudData.GetTypeOf(data.AchievementReward), data.Value, 1));
+            }
+
+            return rewards;
+        }
     }
 
     [Serializable]
@@ -170,14 +207,40 @@ namespace Data.GameManagement
         public ECurrency Currency;
         /// <summary> amount of necessary currency required </summary>
         public float Cost;
+        /// <summary> max number of time this can be collectd (set to 0 for no restriction) </summary>
+        public int MaxCollection;
+        /// <summary> percentage of reduction to apply on the price (between 0 & 1) </summary>
+        public float Reduction;
+        public float Price => (1 - Reduction) * Cost;
 
-        public SShopData(string name, Sprite icon, SRewardsData rewards, ECurrency currency, int cost)
+        public SShopData(string name, Sprite icon, SRewardsData rewards, ECurrency currency, int cost, int maxCollection, float reduction = 0)
         {
-            Name        = name;
-            Icon        = icon;
-            Rewards     = rewards;
-            Currency    = currency;
-            Cost        = cost;
+            Name            = name;
+            Icon            = icon;
+            Rewards         = rewards;
+            Currency        = currency;
+            Cost            = cost;
+            MaxCollection   = maxCollection;
+
+            if (reduction < 0 || reduction > 1)
+            {
+                ErrorHandler.Error("Trying to apply reduction ("+ reduction + ") not between 0 and 1 on " + Name);
+                Reduction = 0;
+            } else
+            {
+                Reduction = reduction;
+            }
+        }
+
+        public void ApplyReduction(float reduction) 
+        { 
+            if (reduction < 0 || reduction > 1) 
+            {
+                ErrorHandler.Error("Trying to apply reduction (" + reduction + ") not between 0 and 1 on " + Name);
+                return;
+            }
+
+            Reduction = reduction;
         }
     }
 
@@ -196,10 +259,18 @@ namespace Data.GameManagement
         // ===============================================================================
         // CONFIG
         [Header("Configuration")]
-        [Description("color code of currencies")]
+        [Description("Price per hours to unlock a chest")]
+        [SerializeField] private float m_FastUnlockChestPrice;
+        [Description("Color code of currencies")]
         [SerializeField] private List<SCurrencyColor> m_CurrencyColors;
 
         [Header("Shop Offers")]
+        [Description("Rareties of each daily offers")]
+        [SerializeField] private List<ERarety> m_DailyOffersRareties;
+
+        [Description("Special offers limited in time")]
+        [SerializeField] private List<SShopData> m_SpecialOffers;
+
         [Description("list of each chests offers in the shop")]
         [SerializeField] private List<SShopData> m_BundleShopData;
 
@@ -216,7 +287,10 @@ namespace Data.GameManagement
         // Static Accessors
         private static ShopManagementData m_Instance;
 
+        public static float FastUnlockChestPrice            => Instance.m_FastUnlockChestPrice;
         public static List<SCurrencyColor> CurrencyColors   => Instance.m_CurrencyColors;
+        public static List<ERarety> DailyOffersRareties     => Instance.m_DailyOffersRareties;
+        public static List<SShopData> SpecialOffers         => Instance.m_SpecialOffers;
         public static List<SShopData> BundleShopData        => Instance.m_BundleShopData;
         public static List<SShopData> GoldsShopData         => Instance.m_GoldsShopData;
         public static List<SShopData> GemsShopData          => Instance.m_GemsShopData;

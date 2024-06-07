@@ -6,7 +6,6 @@ using Save;
 using TMPro;
 using Tools;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Game.UI
 {
@@ -33,7 +32,7 @@ namespace Game.UI
         float m_TimerBeforeAskServer;
 
         ESpell m_Spell => (ESpell)m_CollectableCloudData.GetCollectable();
-        bool m_IsUltimateSpell => SpellLoader.GetSpellData(m_Spell).EnergyCost == 100;
+        bool m_IsUltimateSpell => m_Owner.SpellHandler.Ultimate == m_Spell;
 
         #endregion
 
@@ -63,6 +62,13 @@ namespace Game.UI
 
         #region Initialization & End
 
+        protected override void FindComponents()
+        {
+            base.FindComponents();
+
+            m_CooldownCtr = Finder.FindComponent<TMP_Text>(m_LockState, c_CooldownCtr);
+        }
+
         /// <summary>
         /// Initialize the GameObject : graphics, button, members, listeners
         /// </summary>
@@ -70,9 +76,8 @@ namespace Game.UI
         public void Initialize(ESpell spell, int level)
         {
             base.Initialize();
-           
+
             m_CollectableCloudData = new SCollectableCloudData(spell, level);
-            m_Border = Finder.FindComponent<Image>(gameObject);
            
             // setup ui elements (icon, collection fillbar, ...)
             SetUpUI(true);
@@ -84,8 +89,8 @@ namespace Game.UI
             m_BaseCooldown  = spellData.Cooldown;
             m_CooldownTimer = 0;
 
+            // set initial UI of Cooldowns
             SetupCooldown();
-            SetupButton();
 
             // set initial state
             SetState(m_Owner.SpellHandler.CanSelect(m_Spell) ? EButtonState.Normal : EButtonState.Locked);
@@ -100,37 +105,43 @@ namespace Game.UI
         {
             base.OnDestroy();
 
-            if (m_Owner == null || m_Owner.SpellHandler == null)
+           if (m_Owner == null || m_Owner.SpellHandler == null)
                 return;
 
             m_Owner.SpellHandler.SelectedSpellNet.OnValueChanged    -= OnSpellSelected;
             m_Owner.SpellHandler.OnSpellCasted                      -= OnSpellCasted;
         }
 
-        /// <summary>
+        /// <summary> 
         /// Setup the icon of the spell in the SpellItemContainer
         /// </summary>
         public void SetupCooldown()
         {
-            m_CooldownCtr   = Finder.FindComponent<TMP_Text>(m_LockState, c_CooldownCtr);
+            m_CooldownCtr.text = "";
 
             if (m_IsUltimateSpell)
                 m_CooldownCtr.gameObject.SetActive(false);
         }
 
-        /// <summary>
-        /// Get Button and link to OnClick method
-        /// </summary>
-        public void SetupButton()
-        {
-            m_Button        = Finder.FindComponent<Button>(gameObject);
-        }
-
         #endregion
 
 
-        #region Private Manipulators 
-        
+        #region State Manipulators 
+
+        public override void SetState(EButtonState state)
+        {
+            base.SetState(state);
+
+            switch (state)
+            {
+                case EButtonState.Locked:
+                    if (m_CooldownTimer <= 0)
+                        m_CooldownCtr.gameObject.SetActive(false);
+                    break;
+            }
+        }
+
+
         protected override void UpdateState()
         {
             // wait a bit of time before asking server if its ok to select the spell (to avoid calling too soon)
@@ -149,6 +160,12 @@ namespace Game.UI
         void UpdateCooldown()
         {
             if (m_CooldownTimer <= 0)
+            {
+                m_CooldownCtr.gameObject.SetActive(false);
+                return;
+            }
+
+            if (m_CooldownCtr == null || ! m_CooldownCtr.isActiveAndEnabled)
                 return;
 
             // update cooldown 
@@ -161,6 +178,8 @@ namespace Game.UI
 
             m_CooldownCtr.text = m_CooldownTimer.ToString("0");
         }
+
+
 
         #endregion
 

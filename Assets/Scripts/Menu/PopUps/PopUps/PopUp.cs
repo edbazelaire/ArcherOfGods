@@ -1,5 +1,7 @@
-﻿using Enums;
+﻿using Assets.Scripts.Managers.Sound;
+using Enums;
 using System;
+using System.Collections;
 using TMPro;
 using Tools;
 using Tools.Animations;
@@ -26,8 +28,8 @@ namespace Menu.PopUps
 
         // ==========================================================================================
         // Data (NOT IMPLEMENTED YET : add validation callbacks from external sources than the popup)
-        protected Action        m_OnValidate    = null;
-        protected Action        m_OnCancel       = null;
+        protected Action        m_OnValidate        = null;
+        protected Action        m_OnCancel          = null;
 
         #endregion
 
@@ -46,24 +48,28 @@ namespace Menu.PopUps
             m_Buttons           = Finder.Find(gameObject, "Buttons", false);
         }
 
-        protected override void OnInitializationCompleted()
+        public void Initialize(Action OnValidate = null, Action OnCancel = null)
         {
-            base.OnInitializationCompleted();
+            m_OnValidate = OnValidate;
+            m_OnCancel = OnCancel;
 
+            base.Initialize();
+        }
+
+        protected override void EnterAnimation()
+        {
             var fadeIn = m_PopUpWindow.AddComponent<Fade>();
             fadeIn.Initialize("", duration:0.2f, startScale:0);
         }
 
-        protected override void OnExit()
+
+        protected override IEnumerable ExitAnimation()
         {
-            base.OnExit();
-
-            // delay destruction of the game object
-            m_EndingTimer = 0.2f;
-
             // set fade animation
             var fadeOut = m_PopUpWindow.AddComponent<Fade>();
-            fadeOut.Initialize("", duration: m_EndingTimer, endScale: 0);
+            fadeOut.Initialize("", duration: 0.2f, endScale: 0);
+
+            yield return new WaitUntil(() => fadeOut.IsOver);
         }
 
         #endregion
@@ -87,6 +93,11 @@ namespace Menu.PopUps
                     base.OnUIButton(bname);
                     break;
             }
+        }
+
+        protected override void PlaySoundFX()
+        {
+            SoundFXManager.PlayOnce(SoundFXManager.OpenPopUpSoundFX);
         }
 
         #endregion

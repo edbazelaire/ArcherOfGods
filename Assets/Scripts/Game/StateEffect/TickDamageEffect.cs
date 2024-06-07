@@ -1,6 +1,7 @@
 ﻿using Data;
 using Enums;
 using System.Collections;
+using Tools;
 using UnityEngine;
 
 namespace Game.Spells
@@ -23,9 +24,9 @@ namespace Game.Spells
 
         #region Inherited Manipulators
 
-        public override bool Initialize(Controller controller, SStateEffectData? stateEffect)
+        public override bool Initialize(Controller controller, Controller caster, SStateEffectData? stateEffect)
         {
-            if (!base.Initialize(controller, stateEffect))
+            if (!base.Initialize(controller, caster, stateEffect))
                 return false;
 
             m_TickTimer = m_Tick;
@@ -47,11 +48,21 @@ namespace Game.Spells
 
         protected virtual void ApplyTickEffects()
         {
-            m_Controller.Life.Hit(m_TickDamages * m_Stacks, true);
-            m_Controller.Life.Heal(m_TickHeal * m_Stacks);
+            int damages = GetInt(EStateEffectProperty.TickDamages);
+            if (damages > 0)
+            {
+                ErrorHandler.Log($"{name} : {damages} DAMAGES", ELogTag.StateEffects);
+                m_Controller.Life.Hit(damages, true);
+            }
+
+            int heal = GetInt(EStateEffectProperty.TickHeal);
+            if (heal > 0)
+            {
+                m_Controller.Life.Heal(heal);
+            }
 
             // add bonus tick shield
-            m_RemainingShield += m_TickShield;
+            m_RemainingShield += GetInt(EStateEffectProperty.TickShield);
         }
 
         #endregion

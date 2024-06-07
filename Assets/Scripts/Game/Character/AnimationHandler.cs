@@ -8,6 +8,7 @@ using Tools;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Game.Character
 {
@@ -78,13 +79,15 @@ namespace Game.Character
         /// change the color of this character on each clients
         /// </summary>
         /// <param name="color"></param>
-        public void SpawnSpellEffectGraphics(GameObject visualEffect, string name)
+        public void SpawnSpellEffectGraphics(GameObject visualEffect, string effectName)
         {
             if (visualEffect == null)
                 return;
 
+            ErrorHandler.Log("SpawnSpellEffectGraphics : " + effectName, ELogTag.Animation);
+
             var myVisualEffect = Instantiate(visualEffect, m_Controller.transform);
-            myVisualEffect.name = name;
+            myVisualEffect.name = effectName;
             m_StateEffectGraphics.Add(myVisualEffect);
         }
 
@@ -100,6 +103,7 @@ namespace Game.Character
                 if (m_StateEffectGraphics[i].name == effectName)
                 {
                     index = i;
+                    ErrorHandler.Log("Removing spell effect : " + effectName, ELogTag.Animation);
                     break;
                 }
             }    
@@ -119,8 +123,20 @@ namespace Game.Character
         /// </summary>
         /// <param name="color"></param>
         [ClientRpc]
+        public void SetStateAnimationClientRPC(bool isStunned)
+        {
+            ErrorHandler.Log("STATE ANIMATION CHANGED : isStunned = " + isStunned.ToString().ToUpper(), ELogTag.Animation);
+            m_Animator.SetBool("IsStunned", isStunned);
+        }
+
+        /// <summary>
+        /// change the color of this character on each clients
+        /// </summary>
+        /// <param name="color"></param>
+        [ClientRpc]
         public void AddColorClientRPC(Color color)
         {
+            ErrorHandler.Log("Player (" + m_Controller.PlayerId + ") AddColorClientRPC : " + color, ELogTag.Animation);
             AddColor(color);
         }
 
@@ -131,6 +147,7 @@ namespace Game.Character
         [ClientRpc]
         public void RemoveColorClientRPC(Color color)
         {
+            ErrorHandler.Log("Player (" + m_Controller.PlayerId + ") RemoveColorClientRPC : " + color, ELogTag.Animation);
             RemoveColor(color);
         }
 
@@ -160,7 +177,7 @@ namespace Game.Character
         /// </summary>
         public void UpdateMovementSpeed()
         {
-            ErrorHandler.Log("Setting Animation MovementSpeed factor : " + m_Controller.Movement.Speed, ELogTag.GameSystem);
+            ErrorHandler.Log("Setting Animation MovementSpeed factor : " + m_Controller.Movement.Speed, ELogTag.Animation);
             m_Animator.SetFloat("MovementSpeed", m_Controller.Movement.Speed);
         }
 
@@ -170,6 +187,7 @@ namespace Game.Character
         /// <param name="win"></param>
         public void GameOverAnimation(bool win)
         {
+            ErrorHandler.Log("Player (" + m_Controller.PlayerId + ") GameOverAnimation", ELogTag.Animation);
             m_Animator.SetTrigger(win ? EAnimation.Win.ToString() : EAnimation.Loss.ToString());
         }
 
@@ -179,7 +197,7 @@ namespace Game.Character
 
         #region Private Manipulators
 
-        void Cast()
+        public void Cast()
         {
             // play animation of CAST
             CastAnimation();
@@ -226,23 +244,35 @@ namespace Game.Character
             m_Animator.SetBool("IsMoving", isMoving);
         }
 
+        public void CastAnimation(EAnimation animation, float animationTimer)
+        {
+            if (animation == EAnimation.None)
+                return;
+
+            m_Animator.SetTrigger(animation.ToString());
+
+            // update speed of the animation
+            m_Animator.SetFloat("CastSpeed", m_Controller.SpellHandler.CurrentCastSpeedFactor / animationTimer);
+        }
+
         void CastAnimation()
         {
             SpellData spellData = SpellLoader.GetSpellData(m_Controller.SpellHandler.SelectedSpell);
 
-            if (spellData.Animation == EAnimation.None)
-                return;
+            ErrorHandler.Log(spellData.Name + " animation : " + spellData.Animation, ELogTag.Animation);
 
-            m_Animator.SetTrigger(spellData.Animation.ToString());
-
-            // update speed of the animation
-            m_Animator.SetFloat("CastSpeed", m_Controller.SpellHandler.CurrentCastSpeedFactor / spellData.AnimationTimer );
+            CastAnimation(spellData.Animation, spellData.AnimationTimer);
         }
 
-        void CancelCastAnimation()
+        public void CancelCastAnimation()
         {
+            ErrorHandler.Log("CancelCastAnimation : ", ELogTag.Animation);
+
             m_Animator.SetTrigger(EAnimation.CancelCast.ToString());
             m_Animator.SetFloat("CastSpeed", 1f);
+
+            // Reset the trigger to avoid it staying "active"
+            CoroutineManager.DelayMethod(() => m_Animator.ResetTrigger(EAnimation.CancelCast.ToString()));
         }
 
         #endregion
@@ -273,6 +303,16 @@ namespace Game.Character
                 Destroy(prefab);
 
             m_AnimationPrefabs = new List<GameObject>();
+        }
+
+        #endregion
+
+
+        #region Helpers
+
+        bool IsCurrentAnimation(string animation)
+        {
+            return m_Animator.GetCurrentAnimatorStateInfo(0).IsName(animation);
         }
 
         #endregion
@@ -311,7 +351,7 @@ namespace Game.Character
         /// <param name="newValue"></param>
         void OnStateEffectListChanged(NetworkListEvent<FixedString64Bytes> changeEvent)
         {
-            ErrorHandler.Log(changeEvent.Type + " " + changeEvent.Value, ELogTag.Spells);
+            ErrorHandler.Log(changeEvent.Type + " " + changeEvent.Value, ELogTag.Animation);
 
             if (changeEvent.Type != NetworkListEvent<FixedString64Bytes>.EventType.RemoveAt && changeEvent.Type != NetworkListEvent<FixedString64Bytes>.EventType.Remove)
                 OnAddStateEffect(changeEvent.Value.ToString());
@@ -337,7 +377,6 @@ namespace Game.Character
                 {
                     m_Controller.Collider.enabled = false;
                     m_Animator.SetTrigger(EAnimation.Jump.ToString());
-
                 }
                 else
                 {
@@ -371,6 +410,9 @@ namespace Game.Character
 
             if (data.ColorSwitch != Color.white)
                 RemoveColor(data.ColorSwitch);
+
+            if (data.Animation != EAnimation.None)
+                m_Animator.SetTrigger(EAnimation.CancelStateEffect.ToString());
         }
                
         #endregion

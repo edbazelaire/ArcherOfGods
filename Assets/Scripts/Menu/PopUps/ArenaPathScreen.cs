@@ -2,7 +2,9 @@
 using Enums;
 using System.Collections.Generic;
 using Tools;
+using Tools.Animations;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Menu.PopUps
 {
@@ -10,11 +12,13 @@ namespace Menu.PopUps
     {
         #region Members
 
+        EArenaType m_ArenaType;
         ArenaData m_ArenaData;
 
-        GameObject m_ScrollContent;
-        GameObject m_Viewport;
-        StageDisplayUI m_StageDisplayUIPrefab;
+        Image               m_Background;
+        GameObject          m_ScrollContent;
+        GameObject          m_Viewport;
+        StageDisplayUI      m_StageDisplayUIPrefab;
 
         List<StageDisplayUI> m_Stages;
 
@@ -25,6 +29,7 @@ namespace Menu.PopUps
 
         public void Initialize(EArenaType arenaType)
         {
+            m_ArenaType = arenaType;
             m_ArenaData = AssetLoader.LoadArenaData(arenaType);
 
             base.Initialize();
@@ -36,6 +41,7 @@ namespace Menu.PopUps
 
             m_StageDisplayUIPrefab = AssetLoader.Load<StageDisplayUI>("StageDisplay", AssetLoader.c_UIPath + "OverlayScreens/Components/ArenaPathContent/");
 
+            m_Background = Finder.FindComponent<Image>(gameObject, "Background");
             m_ScrollContent = Finder.Find(gameObject, "ScrollContent");
             m_Viewport = Finder.Find(gameObject, "Viewport");
         }
@@ -44,6 +50,7 @@ namespace Menu.PopUps
         {
             base.OnPrefabLoaded();
 
+            m_Background.sprite = AssetLoader.Load<Sprite>(m_ArenaData.ArenaType.ToString(), AssetLoader.c_ArenaBackgroundsPath);
             SetupStagesDisplay();
         }
 
@@ -51,6 +58,12 @@ namespace Menu.PopUps
         {
             base.OnInitializationCompleted();
             CoroutineManager.DelayMethod(CenterOnCurrentStage, 2);
+        }
+
+        protected override void EnterAnimation()
+        {
+            var fadeIn = gameObject.AddComponent<Fade>();
+            fadeIn.Initialize("", duration: 0.6f, startOpacity: 0);
         }
 
         #endregion
@@ -66,7 +79,7 @@ namespace Menu.PopUps
             for (int i = 0; i < m_ArenaData.MaxLevel; i++)
             {
                 var stageDisplayUI = Instantiate(m_StageDisplayUIPrefab, m_ScrollContent.transform);
-                stageDisplayUI.Initialize(m_ArenaData, i);
+                stageDisplayUI.Initialize(m_ArenaData, i, m_ArenaType);
                 m_Stages.Add(stageDisplayUI);
             }
         }

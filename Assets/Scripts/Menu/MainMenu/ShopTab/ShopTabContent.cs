@@ -1,6 +1,7 @@
 using Enums;
 using Menu.MainMenu.ShopTab;
 using Tools;
+using UnityEngine;
 
 
 namespace Menu.MainMenu
@@ -19,31 +20,16 @@ namespace Menu.MainMenu
 
         #region Init & End
 
-        public override void Initialize(TabButton tabButton)
+        public override void Initialize(TabButton tabButton, AudioClip activationSoundFX)
         {
-            base.Initialize(tabButton);
+            base.Initialize(tabButton, activationSoundFX);
 
             m_SpecialOfferUI = Finder.FindComponent<SpecialOfferUI>(gameObject, "SpecialOfferSection");
             m_ShopTabManager = Finder.FindComponent<ShopTabManager>(gameObject, "ShopTabManager");
 
             // initialization
-            m_ShopTabManager.Initialize();
             m_SpecialOfferUI.Initialize();
-        }
-
-        #endregion
-
-
-        #region Listeners
-
-        void SelectChestsTab(ESpell spell)
-        {
-            m_ShopTabManager.SelectTab(EInvetoryItemTab.SpellsTab);
-        }
-
-        void SelectGoldsTab()
-        {
-            m_ShopTabManager.SelectTab(EInvetoryItemTab.CharactersTab);
+            m_ShopTabManager.Initialize();
         }
 
         #endregion

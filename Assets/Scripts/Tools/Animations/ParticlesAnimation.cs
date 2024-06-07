@@ -8,19 +8,22 @@ namespace Tools.Animations
         #region Members
 
         protected GameObject m_Particles;
-      
+        protected SpriteRenderer m_Visu;
+
         #endregion
 
 
         #region Animation
 
-        public void Initialize(string id = "", float duration = -1f, string particlesName = "", float size = 1f, float speed = 1f, string layer = "Default")
+        public void Initialize(string id = "", float duration = -1f, string particlesName = "", Vector2 size = default, float speed = 1f, string layer = "Default")
         {
             var animationParticles = AssetLoader.Load<GameObject>(particlesName, AssetLoader.c_AnimationParticlesPath);
             if (animationParticles == null)
                 return;
 
             m_Particles = Instantiate(animationParticles, gameObject.transform);
+            m_Visu = Finder.FindComponent<SpriteRenderer>(m_Particles, "Visu", false);
+            m_Visu?.gameObject.SetActive(false);
 
             SetUpPos();
             SetUpScale(size);
@@ -47,9 +50,23 @@ namespace Tools.Animations
             m_Particles.transform.localPosition += new Vector3(0, initY, 0);
         }
 
-        public void SetUpScale(float size)
+        public void SetUpScale(Vector2 size)
         {
-            m_Particles.transform.localScale *= size;
+            if (size != Vector2.zero)
+            {
+                m_Particles.transform.localScale *= size;
+                return;
+            }
+
+            // autosize
+            if (m_Visu == null)
+            {
+                ErrorHandler.Warning("Size (0, 0) provided implies autosize, but no Visu found - unable to calculate particules base size");
+                return;
+            }
+
+            var rectT = gameObject.GetComponent<RectTransform>();
+            SetUpScale(new Vector2(rectT.rect.width / m_Visu.transform.localScale.x, rectT.rect.height / m_Visu.transform.localScale.y));
         }
 
         public void SetUpSpeed(float speed)

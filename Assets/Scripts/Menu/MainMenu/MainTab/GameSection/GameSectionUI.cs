@@ -26,7 +26,7 @@ namespace Menu.MainMenu.MainTab
             if (!Enum.TryParse(PlayerPrefs.GetString("GameMode"), out m_GameMode))
             {
                 ErrorHandler.Error("Unable to parse GameMode : " + PlayerPrefs.GetString("GameMode"));
-                SetGameMode(EGameMode.Solo);
+                SetGameMode(EGameMode.Arena);
             } 
             else
             {
@@ -52,7 +52,7 @@ namespace Menu.MainMenu.MainTab
 
             switch (m_GameMode)
             {
-                case (EGameMode.Solo):
+                case (EGameMode.Arena):
                     SoloModeDisplayUI gameModeUI = GameObject.Instantiate(AssetLoader.Load<GameObject>("SoloModeDisplay", AssetLoader.c_SoloModeUIPath), m_Content.transform).GetComponent<SoloModeDisplayUI>();
                     gameModeUI.Initialize();
                     break;

@@ -22,7 +22,7 @@ namespace Tools
             frame += 1;
 
             m_Message = message;
-            m_Trace = GetTrace(frame+1);
+            m_Trace = GetTrace(frame);
 
             // check if configuration contains this type of logs to display
             display &= (logTag == ELogTag.None || Main.LogTags.Contains(logTag));

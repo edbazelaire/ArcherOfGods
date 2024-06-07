@@ -1,5 +1,6 @@
 ﻿using Data;
 using Enums;
+using Menu.Common.Displayers;
 using Save;
 using TMPro;
 using Tools;
@@ -19,6 +20,7 @@ namespace Menu.Common.Buttons
         // ==============================================================================================
         // GameObjects & Components
         Button              m_Button;
+        RewardsDisplayer    m_RewardDisplayer;
         TMP_Text            m_Title;
         CollectionFillBar   m_FillBar;
 
@@ -33,15 +35,22 @@ namespace Menu.Common.Buttons
         {
             base.FindComponents();
 
-            m_Button    = Finder.FindComponent<Button>(gameObject);
-            m_Title     = Finder.FindComponent<TMP_Text>(gameObject, "Title");
-            m_FillBar   = Finder.FindComponent<CollectionFillBar>(gameObject);
+            m_Button            = Finder.FindComponent<Button>(gameObject);
+            m_RewardDisplayer   = Finder.FindComponent<RewardsDisplayer>(gameObject);
+            m_Title             = Finder.FindComponent<TMP_Text>(gameObject, "Title");
+            m_FillBar           = Finder.FindComponent<CollectionFillBar>(gameObject);
         }
         
         public void Initialize(AchievementData achievement)
         {
-            m_Achievement = achievement;
+            // if has no Current value (e.q : is finished) : remove
+            if (!achievement.Current.HasValue)
+            {
+                Destroy(gameObject);
+                return;
+            }
 
+            m_Achievement = achievement;
             base.Initialize();
         }
 
@@ -49,6 +58,7 @@ namespace Menu.Common.Buttons
         {
             m_Title.text = TextLocalizer.SplitCamelCase(m_Achievement.name);
             m_FillBar.Initialize(m_Achievement.Count, m_Achievement.RequestedValue);
+            RefreshReward();
         }
 
         #endregion
@@ -58,7 +68,28 @@ namespace Menu.Common.Buttons
 
         void RefreshUI()
         {
+            RefreshReward();
+
             m_FillBar.UpdateCollection(m_Achievement.Count, m_Achievement.RequestedValue);
+        }
+
+        void RefreshReward()
+        {
+            // if has no Current value (e.q : is finished) : remove
+            if (!m_Achievement.Current.HasValue)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            // check if rewards displayer was provided
+            if (m_RewardDisplayer == null)
+            {
+                ErrorHandler.Error("No RewardDisplayer");
+                return;
+            }
+            
+            m_RewardDisplayer.Initialize(m_Achievement.Current.Value.Rewards, 2);
         }
 
         #endregion
@@ -92,18 +123,16 @@ namespace Menu.Common.Buttons
         /// </summary>
         void OnClicked()
         {
-            // ===========================================
-            // TODO : OPEN POPUP
-            // ===========================================
-
             if (! m_Achievement.IsUnlockable)
             {
+                // ===========================================
+                // TODO : OPEN POPUP
+                // ===========================================
                 Debug.LogWarning("Achivement not unlockable");
                 return;
             }
 
             m_Achievement.Unlock();
-
             RefreshUI();
         }
 

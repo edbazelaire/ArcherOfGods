@@ -31,7 +31,7 @@ MonoBehaviour:
   m_LifeSteal: 0
   m_StateEffectScalingLevel:
   - StateEffectProperty: 1
-    ScalingFactor: 0.1
+    ScalingFactor: 0.05
   - StateEffectProperty: 13
     ScalingFactor: 0.1
   m_StateEffectScalingStacks:

@@ -1,9 +1,7 @@
 ﻿using Assets;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using Tools;
-using Tools.Debugs;
 using UnityEngine;
 
 namespace Save
@@ -13,6 +11,8 @@ namespace Save
         #region Members
 
         List<CloudData>                     m_CloudData;
+
+        public List<CloudData> CloudData => m_CloudData;
         
         #endregion
 
@@ -44,6 +44,8 @@ namespace Save
                 new ProfileCloudData(),
                 new StatCloudData(),
                 new ProgressionCloudData(),
+                new TimeCloudData(),
+                new NotificationCloudData(),
             };
         }
 
@@ -51,6 +53,12 @@ namespace Save
         {
             if ( ! LoadingCompleted )
                 return;
+
+            if ( ! Main.ActivateSaveOnClose)
+            {
+                ErrorHandler.Log("SaveAll() called but deactivated");
+                return;
+            }
             
             foreach (CloudData data in m_CloudData)
             {
@@ -98,6 +106,14 @@ namespace Save
                 }
 
                 return true;
+            }
+        }
+
+        public void ResetAll()
+        {
+            foreach (CloudData cloudData in m_CloudData)
+            {
+                cloudData.ResetAll();
             }
         }
             

@@ -1,4 +1,5 @@
 using Assets;
+using Assets.Scripts.Managers.Sound;
 using Assets.Scripts.UI;
 using Enums;
 using Game;
@@ -41,6 +42,9 @@ public class SceneLoader : MonoBehaviour
     {
         m_SceneLoading = sceneName;
 
+        if (Main.State != EAppState.Release) 
+            SoundFXManager.PlayStateMusic(EAppState.LoadingScreen);
+
         Main.SetState(EAppState.LoadingScreen);
 
         if (m_LoadingScreen == null)
@@ -77,6 +81,11 @@ public class SceneLoader : MonoBehaviour
 
         switch (sceneName)
         {
+            case "MainMenu":
+                // wait one frame
+                yield return null;
+                break;
+
             case "Arena":
                 // waiting for GameManager to be created
                 while (! GameManager.Exists)
@@ -98,6 +107,7 @@ public class SceneLoader : MonoBehaviour
                 break;
         }
 
+        SoundFXManager.PlayStateMusic(Main.State);
         m_LoadingScreen.Display(false);
     }
 

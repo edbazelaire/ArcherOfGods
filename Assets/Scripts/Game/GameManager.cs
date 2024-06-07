@@ -1,11 +1,10 @@
+using Assets.Scripts.Managers.Sound;
 using Data.GameManagement;
 using Enums;
 using Externals;
 using Game.Loaders;
-using Game.Spells;
 using Managers;
 using Network;
-using Newtonsoft.Json.Linq;
 using Save;
 using System;
 using System.Collections;
@@ -16,14 +15,14 @@ using UnityEngine;
 
 namespace Game
 {
-    public class GameManager: OvNetworkBehavior
+    public class GameManager : OvNetworkBehavior
     {
         #region Members
 
         static GameManager s_Instance;
 
-        public const int POUTCH_CLIENT_ID   = 999;
-        public const int N_LOADING_STEPS    = 3;
+        public const int POUTCH_CLIENT_ID = 999;
+        public const int N_LOADING_STEPS = 3;
 
         // ===================================================================================
         // ACTIONS
@@ -34,36 +33,37 @@ namespace Game
         // PRIVATE VARIABLES 
         // -- Network Variables
         /// <summary> current state of the Game </summary>
-        NetworkVariable<EGameState>     m_State                 = new NetworkVariable<EGameState>(EGameState.WaitingForConnection);
+        NetworkVariable<EGameState> m_State = new NetworkVariable<EGameState>(EGameState.None);
         /// <summary> percentage of the game preparation at start </summary>
-        NetworkVariable<float>          m_ProgressGameStart     = new NetworkVariable<float>(0f);
+        NetworkVariable<float> m_ProgressGameStart = new NetworkVariable<float>(0f);
         /// <summary> expected number of players in the game </summary>
-        NetworkVariable<int>            m_NPlayers              = new NetworkVariable<int>(-1);
+        NetworkVariable<int> m_NPlayers = new NetworkVariable<int>(-1);
 
         // -- Player Data
         /// <summary> [SERVER] dict matching a client id to player data </summary>
-        Dictionary<ulong, SPlayerData>  m_PlayersData           = new();
-        /// <summary> [CLIENT/SERVER] dict matchin a client id to a player controller </summary>
-        Dictionary<ulong, Controller>   m_Controllers           = new();
+        protected Dictionary<ulong, SPlayerData> m_PlayersData = new();
+        /// <summary> [CLIENT/SERVER] dict matching a client id to a player controller </summary>
+        protected Dictionary<ulong, Controller> m_Controllers = new();
 
         // -- Initialization
         /// <summary> [CLIENT/SERVER] has the GameManager current Instance been initialized ? </summary>
-        bool                            m_Initialized           = false;
+        protected bool m_Initialized = false;
         /// <summary> [SERVER] list of clientId who have return that their initialization was finalized </summary>
-        List<ulong>                     m_ClientsInitialized    = new();   
+        List<ulong> m_ClientsInitialized = new();
         /// <summary> [CLIENT] used to check if the initialization is completed on the client side (to avoid sending multiple time the validation to the server) </summary>
-        bool                            m_InitOnClientSide      = false;
+        bool m_InitOnClientSide = false;
 
         // ===================================================================================
         // PUBLIC ACCESSORS 
-        public Dictionary<ulong, Controller>    Controllers                 => m_Controllers;
-        public NetworkVariable<float>           ProgressGameStart           => m_ProgressGameStart;
+        public Dictionary<ulong, Controller> Controllers => m_Controllers;
+        public NetworkVariable<float> ProgressGameStart => m_ProgressGameStart;
+        public NetworkVariable<EGameState> State => m_State;
         /// <summary> intro starting : game fully loaded </summary>
-        public bool                             IsGameLoaded                => m_State.Value >= EGameState.Intro;
+        public bool IsGameLoaded => m_State.Value >= EGameState.Intro;
         /// <summary> intro completed : game starts </summary>
-        public bool                             IsGameStarted               => m_State.Value > EGameState.Intro;       
+        public bool IsGameStarted => m_State.Value > EGameState.Intro;
         /// <summary> game is over </summary>
-        public static bool                      IsGameOver                  => ! GameManager.FindInstance() || Instance.m_State.Value >= EGameState.GameOver;
+        public static bool IsGameOver => Instance == null || Instance.m_State.Value >= EGameState.GameOver;
 
         #endregion
 
@@ -73,9 +73,9 @@ namespace Game
         {
             base.OnNetworkSpawn();
 
-            m_ClientsInitialized    = new();
-            m_PlayersData           = new();
-            m_Controllers           = new Dictionary<ulong, Controller>();
+            m_ClientsInitialized = new();
+            m_PlayersData = new();
+            m_Controllers = new Dictionary<ulong, Controller>();
 
             s_Instance = this;
         }
@@ -87,33 +87,38 @@ namespace Game
 
         void Initialize()
         {
+            ErrorHandler.Log("Initialize()", ELogTag.GameSystem);
+
             // avoid re-initialization
             if (m_Initialized)
                 return;
 
-            m_Controllers                           = new Dictionary<ulong, Controller>();
-            m_InitOnClientSide                      = false;
+            m_Controllers = new Dictionary<ulong, Controller>();
+            m_InitOnClientSide = false;
 
             // instantiate listeners
-            m_ProgressGameStart.OnValueChanged      += OnProgressGameStartChanged;
-            m_State.OnValueChanged                  += OnStateValueChanged;
+            m_ProgressGameStart.OnValueChanged  += OnProgressGameStartChanged;
+            m_State.OnValueChanged              += OnStateValueChanged;
 
             // set number of max players equal to number of players in the lobby
-            m_NPlayers.Value                        = 2;
+            m_NPlayers.Value = 2;
 
             // set that the GameManager is initialized to avoid re-initialization
-            m_Initialized                           = true;
+            m_Initialized = true;
+
+            // set GameManager is Instantiated and is waiting for players connections
+            SetState(EGameState.WaitingForConnection);
 
             return;
         }
-        
+
         /// <summary>
         /// Reset Instance, unregister all listeners, destroy game object
         /// </summary>
         public void Shutdown()
         {
             // unregister from each events
-            m_State.OnValueChanged                              -= OnStateValueChanged;
+            m_State.OnValueChanged -= OnStateValueChanged;
 
             if (IsServer)
             {
@@ -193,7 +198,7 @@ namespace Game
         /// <param name="character"></param>
         void SpawnPlayer(ulong clientId, SPlayerData playerData)
         {
-            if (! IsServer)
+            if (!IsServer)
                 return;
 
             int team = m_Controllers.Count;
@@ -221,6 +226,9 @@ namespace Game
         /// </summary>
         void SpawnPoutch()
         {
+            if (!IsServer)
+                return;
+
             // create player prefab and spawn it
             GameObject poutch = Instantiate(CharacterLoader.Instance.PlayerAIPrefab, ArenaManager.Instance.transform);
             poutch.GetComponent<NetworkObject>().Spawn();
@@ -268,7 +276,7 @@ namespace Game
                 yield break;
 
             // call clients to check if they are 
-            while (m_ClientsInitialized.Count != LobbyHandler.Instance.MaxPlayers) 
+            while (m_ClientsInitialized.Count != LobbyHandler.Instance.MaxPlayers)
             {
                 CheckInitializedClientRPC();
                 yield return null;
@@ -308,12 +316,12 @@ namespace Game
         /// Tell the server that the client is ready
         /// </summary>
         /// <param name="clientId"></param>
-        [ServerRpc(RequireOwnership=false)]
+        [ServerRpc(RequireOwnership = false)]
         void SetClientIntializedServerRPC(ulong clientId)
         {
             ErrorHandler.Log("Client Initialized : " + clientId, ELogTag.GameSystem);
 
-            if (! m_ClientsInitialized.Contains(clientId))
+            if (!m_ClientsInitialized.Contains(clientId))
                 m_ClientsInitialized.Add(clientId);
         }
 
@@ -340,7 +348,7 @@ namespace Game
             if (!IsServer)
                 return;
 
-            foreach (Controller player in m_Controllers.Values) 
+            foreach (Controller player in m_Controllers.Values)
             {
                 player.Movement.Shake();
             }
@@ -353,16 +361,10 @@ namespace Game
         SPlayerData GetAIPlayerData()
         {
             // AI SOLO MODE
-            if (LobbyHandler.Instance.GameMode == EGameMode.Solo)
+            if (LobbyHandler.Instance.GameMode == EGameMode.Arena)
             {
-                if (!Enum.TryParse(PlayerPrefs.GetString("SoloArena"), out EArenaType arenaType))
-                {
-                    ErrorHandler.Error("Unable to parse arena " + PlayerPrefs.GetString("SoloArena"));
-                    arenaType = EArenaType.FireArena;
-                }
-
-                ArenaData arenaData = AssetLoader.LoadArenaData(arenaType);
-                return arenaData.CreatePlayerData();                
+                ArenaData arenaData = AssetLoader.LoadArenaData(LobbyHandler.Instance.ArenaType);
+                return arenaData.CreatePlayerData();
             }
 
             // AI MULTI PLAYER MODE
@@ -378,7 +380,7 @@ namespace Game
                 ERune.None,
                 new ESpell[] { ESpell.Heal, ESpell.RockShower },
                 new int[] { 1, 1 },
-                profileCurrentData
+                profileCurrentData.AsNetworkSerializable()
             );
 
         }
@@ -413,21 +415,21 @@ namespace Game
         }
 
         [ClientRpc]
-        void PlayIntroAnimationClientRPC() 
+        void PlayIntroAnimationClientRPC()
         {
             ErrorHandler.Log("Play Intro Animation");
             GameUIManager.IntroGameUI.PlayEnterAnimation();
         }
 
         [ClientRpc]
-        void PlayCountDownClientRPC() 
+        void PlayCountDownClientRPC()
         {
             GameUIManager.IntroGameUI.PlayExitAnimation();
         }
 
         #endregion
 
-
+        
         #region [STATE] Game Over
 
         /// <summary>
@@ -439,14 +441,16 @@ namespace Game
         {
             ErrorHandler.Log("GameOverClientRPC", ELogTag.GameSystem);
 
+            if (!Instance.Owner.IsPlayer)
+                return;
+
             // set "Game Ended" mode for each player
-            foreach (Controller controller in m_Controllers.Values) 
+            foreach (Controller controller in m_Controllers.Values)
             {
                 controller.OnGameEnded(team == controller.Team);
             }
 
-            // activate end game screen
-            GameUIManager.Instance.SetUpGameOver(team == Owner.Team);
+            GameUIManager.Instance.SetUpGameOver(team == Instance.Owner.Team);
         }
 
         void CheckPlayerDeath(int oldValue, int newValue)
@@ -475,11 +479,53 @@ namespace Game
         #endregion
 
 
+        #region Music & Sound
+
+        [ClientRpc]
+        public void PlaySoundClientRPC(string spellName, ESpellActionPart spellAction)
+        {
+            var spellData = SpellLoader.GetSpellData(spellName);
+            AudioClip audioClip = null;
+
+            switch (spellAction)
+            {
+                case ESpellActionPart.Animation:
+                    audioClip = spellData.AnimationSoundFX;
+                    break;
+
+                case ESpellActionPart.Cast:
+                    audioClip = spellData.CastSoundFX != null ? spellData.CastSoundFX : SoundFXManager.DefaultCastSoundFX;
+                    break;
+
+                case ESpellActionPart.OnHit:
+                    audioClip = spellData.OnHitSoundFX != null ? spellData.OnHitSoundFX : SoundFXManager.DefaultOnHitSoundFX;
+                    break;
+
+                case ESpellActionPart.OnEnd:
+                    audioClip = spellData.OnEndSoundFX;
+                    break;
+            }
+
+            if (audioClip == null)
+                return;
+
+            SoundFXManager.PlayOnce(audioClip);
+        }
+
+
+        [ClientRpc]
+        void PlayStateMusicClientRPC(EGameState state)
+        {
+            SoundFXManager.PlayStateMusic(state);
+        }
+
+        #endregion
+
         #region Public Manipulators
 
         public Controller GetPlayer(ulong clientId)
         {
-            if (! m_Controllers.ContainsKey(clientId))
+            if (!m_Controllers.ContainsKey(clientId))
                 ErrorHandler.FatalError("Unable to find controller with client id : " + clientId);
 
             return m_Controllers[clientId];
@@ -504,7 +550,7 @@ namespace Game
             // none found -> return self
             return GetPlayer(slefId);
         }
-        
+
         public bool HasPlayer(ulong clientId)
         {
             return GetPlayer(clientId) != null;
@@ -522,11 +568,13 @@ namespace Game
         /// <param name="state"></param>
         void SetState(EGameState state)
         {
-            if (! IsServer)
+            if (!IsServer)
             {
-                Debug.LogWarning("Trying to set state from a non Server machine");
+                ErrorHandler.Warning("Trying to set state from a non Server machine");
                 return;
             }
+
+            PlayStateMusicClientRPC(state);
 
             // fire event that game has started if state becomes GameRunning
             if (state == EGameState.GameRunning && m_State.Value != EGameState.GameRunning)
@@ -537,7 +585,7 @@ namespace Game
                 // fire event that game has started (for Clients)
                 GameStartedEventClientRPC();
             }
-              
+
             m_State.Value = state;
         }
 
@@ -560,13 +608,13 @@ namespace Game
                 {
                     // check in scene
                     s_Instance = FindAnyObjectByType<GameManager>();
-                    
+
                     // not found : create a new one
                     if (s_Instance == null)
                     {
                         ErrorHandler.Error("GameManager not found");
                         return null;
-                    } 
+                    }
 
                     s_Instance.Initialize();
                 }
@@ -580,7 +628,7 @@ namespace Game
             if (instance == null)
                 return false;
 
-            if (checkSpawned && ! instance.IsSpawned) 
+            if (checkSpawned && !instance.IsSpawned)
                 return false;
 
             instance.Initialize();
@@ -601,6 +649,8 @@ namespace Game
             }
         }
 
+        public virtual ulong m_PlayerId => NetworkManager.Singleton.LocalClientId;
+
         #endregion
 
 
@@ -614,7 +664,7 @@ namespace Game
         void OnStateValueChanged(EGameState oldValue, EGameState newState)
         {
             ErrorHandler.Log("New state : " + newState, ELogTag.GameSystem);
-            switch (newState) 
+            switch (newState)
             {
                 case EGameState.WaitingForConnection:
                     break;
@@ -652,14 +702,20 @@ namespace Game
             GameOverClientRPC(Owner.Team);
         }
 
+        [Command(KeyCode.B)]
+        public void AutoLoss()
+        {
+            GameOverClientRPC((Owner.Team + 1) % 2);
+        }
+
         [Command(KeyCode.M)]
-        public void RemoveLife() 
+        public void RemoveLife()
         {
             Owner.Life.Hit(50);
         }
 
         [Command(KeyCode.L)]
-        public void RemoveLifeEnemy() 
+        public void RemoveLifeEnemy()
         {
             GetFirstEnemy(Owner.Team).Life.Hit(50);
         }
@@ -677,6 +733,13 @@ namespace Game
 
                 controller.BehaviorTree.Activate(!controller.BehaviorTree.IsActivated);
             }
+        }
+
+        [Command(KeyCode.Space)]
+        public void Recharge()
+        {
+            Owner.EnergyHandler.AddEnergy(100);
+            Owner.SpellHandler.ResetCooldowns();
         }
 
         /// <summary>

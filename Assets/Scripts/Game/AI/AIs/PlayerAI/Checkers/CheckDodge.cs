@@ -1,8 +1,6 @@
 using AI;
 using Enums;
 using Game.AI;
-using Game.Character;
-using System;
 using Tools;
 using UnityEngine;
 
@@ -80,14 +78,14 @@ public class CheckDodge : Node
         float detectionRange = 3f; // How far ahead to check for projectiles
         float detectionWidth = 2f; // The width of the detection area to consider (for vertical variation in projectile paths)
 
-        // Calculate the forward direction relative to the character (assuming right is forward)
-        Vector2 forward = m_Controller.transform.right;
+        // Calculate the forward direction relative to the character (assuming left is forward)
+        Vector2 forward = new Vector3(-1, 0, 0);
 
         // Calculate the start position of the detection area (can adjust the y-value as needed to align with character height)
         Vector2 detectionOrigin = m_Position + (forward * detectionWidth / 2);
 
         // Perform a Physics2D BoxCast in the forward direction to detect incoming projectiles
-        RaycastHit2D hit = Physics2D.BoxCast(detectionOrigin, new Vector2(detectionWidth, detectionWidth), 0f, forward, detectionRange, LayerMask.GetMask("Projectiles"));
+        RaycastHit2D hit = Physics2D.BoxCast(detectionOrigin, new Vector2(detectionWidth, detectionWidth), 0f, forward, detectionRange, LayerMask.GetMask("Spell"));
 
         // If a hit is detected and it's a projectile, we know to dodge
         if (hit.collider != null)

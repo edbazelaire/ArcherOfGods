@@ -1,5 +1,4 @@
-﻿using Analytics.Events;
-using Assets;
+﻿using Assets;
 using Data.GameManagement;
 using Enums;
 using Game.Loaders;
@@ -150,9 +149,9 @@ namespace Save
         // -- Informations
         public Dictionary<Type, SInfoCollectable> InfoCollectables = new Dictionary<Type, SInfoCollectable>
         {
-            { typeof(ECharacter),   new SInfoCollectable(KEY_CHARACTERS,  new Enum[] { ECharacter.Alexander } ) },
-            { typeof(ESpell),       new SInfoCollectable(KEY_SPELLS,      new Enum[] { ESpell.RockShower, ESpell.Heal, ESpell.Counter, ESpell.IronSkin } ) },
-            { typeof(ERune),        new SInfoCollectable(KEY_RUNES,       new Enum[] { ERune.None } ) }
+            { typeof(ECharacter),   new SInfoCollectable(KEY_CHARACTERS,  new Enum[] { CharacterBuildsCloudData.DEFAULT_CHARACTER } ) },
+            { typeof(ESpell),       new SInfoCollectable(KEY_SPELLS,      CharacterBuildsCloudData.DEFAULT_BUILD.Cast<Enum>().ToArray() ) },
+            { typeof(ERune),        new SInfoCollectable(KEY_RUNES,       new Enum[] { CharacterBuildsCloudData.DEFAULT_RUNE } ) }
         };
 
         // ===============================================================================================
@@ -163,6 +162,8 @@ namespace Save
         public static Action<SCollectableCloudData> CollectableDataChangedEvent;
         /// <summary> event fired when a collectable data has been upgraded </summary>
         public static Action<SCollectableCloudData> CollectableUnlockedEvent;
+        /// <summary> event fired when reset called in the database </summary>
+        public static Action<ECollectableType> ResetCollectableEvent;
 
         /// <summary> SPECIFIC EVENT : for collectable data changed of type "Spell" : (remove ?) </summary>
         public static Action<SCollectableCloudData> SpellDataChangedEvent;
@@ -185,7 +186,7 @@ namespace Save
 
         #region Data Manipulators
 
-        public override void SetData(string key, object value, bool save = false)
+        public override void SetData(string key, object value, bool save = true)
         {
             object previousValue = m_Data[key];
 
@@ -198,9 +199,9 @@ namespace Save
             }
         }
 
-        public void SetData(ECurrency currency, object value)
+        public void SetData(ECurrency currency, object value, bool save = true)
         {
-            SetData(currency.ToString(), value);
+            SetData(currency.ToString(), value, save);
         }
 
         protected override object Convert(Item item)
@@ -336,6 +337,103 @@ namespace Save
         #endregion
 
 
+        #region Reset & Unlock
+
+        public override void Reset(string key)
+        {
+            base.Reset(key);    
+
+            switch (key)
+            {
+                case KEY_GOLDS:
+                    m_Data[KEY_GOLDS] = 0;
+                    CurrencyChangedEvent?.Invoke(ECurrency.Golds, 0);
+                    break;
+
+                case KEY_GEMS:
+                    m_Data[KEY_GEMS] = 0;
+                    CurrencyChangedEvent?.Invoke(ECurrency.Gems, 0);
+                    break;
+
+                case KEY_CHARACTERS:
+                    m_Data[KEY_CHARACTERS] = new List<SCollectableCloudData>();
+                    CheckMissingCollectable(typeof(ECharacter));
+
+                    CharacterBuildsCloudData.SetSelectedCharacter(CharacterBuildsCloudData.DEFAULT_CHARACTER);
+                    break;
+
+                case KEY_SPELLS:
+                    m_Data[KEY_SPELLS] = new List<SCollectableCloudData>();
+                    CheckMissingCollectable(typeof(ESpell));
+
+                    CharacterBuildsCloudData.Instance.Reset(CharacterBuildsCloudData.KEY_BUILDS);
+                    break;
+
+                case KEY_RUNES:
+                    m_Data[KEY_RUNES] = new List<SCollectableCloudData>();
+                    CheckMissingCollectable(typeof(ERune));
+
+                    CharacterBuildsCloudData.Instance.Reset(CharacterBuildsCloudData.KEY_BUILDS);
+                    break;
+
+                default:
+                    ErrorHandler.Warning("Unhandled key : " + key);
+                    return;
+            }
+
+            SaveValue(key);
+        }
+
+        public override bool IsUnlockable(string key)
+        {
+            return new List<string>() { KEY_CHARACTERS, KEY_SPELLS, KEY_RUNES }.Contains(key);
+        }
+
+        public override void Unlock(string key, bool save = true)
+        {
+            base.Unlock(key, save);
+
+            if (!IsUnlockable(key))
+                return;
+
+            switch (key)
+            {
+                case KEY_CHARACTERS:
+                    m_Data[KEY_CHARACTERS] = new List<SCollectableCloudData>();
+                    foreach (Enum collectable in Enum.GetValues(typeof(ECharacter)))
+                    {
+                        AddCollectableData(collectable, true);
+                    }
+                    break;
+
+                case KEY_SPELLS:
+                    m_Data[KEY_SPELLS] = new List<SCollectableCloudData>();
+                    foreach (Enum collectable in Enum.GetValues(typeof(ESpell)))
+                    {
+                        AddCollectableData(collectable, true);
+                    }
+                    break;
+
+                case KEY_RUNES:
+                    m_Data[KEY_RUNES] = new List<SCollectableCloudData>();
+                    foreach (Enum collectable in Enum.GetValues(typeof(ERune)))
+                    {
+                        AddCollectableData(collectable, true);
+                    }
+                    break;
+
+                default:
+                    ErrorHandler.Warning("Unhandled key : " + key);
+                    return;
+            }
+
+            if (save)
+                SaveValue(key);
+        }
+
+        #endregion
+
+
         #region Checkers
 
         void CheckCurrencies()
@@ -343,13 +441,13 @@ namespace Save
             if ((int)m_Data[KEY_GOLDS] < 0)
             {
                 ErrorHandler.Error("Golds (" + (int)m_Data[KEY_GOLDS] + ") < 0 : reseting back to 0");
-                m_Data[KEY_GOLDS] = 0;
+                Reset(KEY_GOLDS);
             }
 
             if ((int)m_Data[KEY_GEMS] < 0)
             {
                 ErrorHandler.Error("Golds (" + (int)m_Data[KEY_GEMS] + ") < 0 : reseting back to 0");
-                m_Data[KEY_GEMS] = 0;
+                Reset(KEY_GEMS);
             }
         }
 
@@ -372,29 +470,37 @@ namespace Save
 
             foreach (Enum collectable in Enum.GetValues(collectableType))
             {
-                if (IGNORED_COLLECTABLES.Contains(collectable))
-                    continue;
-
-                // linked spell : level is dependent on the character
-                if (collectableType == typeof(ESpell) && SpellLoader.GetSpellData((ESpell)collectable).Linked)
-                    continue;
-
-                // already in data : skip
-                if (GetCollectableIndex(collectable) >= 0)
-                    continue;
-
-                ErrorHandler.Warning("Unable to find " + collectable + " in cloud data : adding it manually");
-                hasMissing = true;
-
-                // if unlocked by default check start level, otherwise start level is 0
-                int startLevel = GetInfos(collectable).DefaultData.Contains(collectable) ? CollectablesManagementData.GetStartLevel(collectable) : 0;
-
-                // add new empty spell data, set save to false as we save the batch at the end
-                SetCollectable(new SCollectableCloudData(collectable, startLevel, 0), false);
+                bool addedData = AddCollectableData(collectable, GetInfos(collectable).DefaultData.Contains(collectable));
+                if (addedData)
+                    hasMissing = true;
             }
-
+            
             if (hasMissing)
                 SaveValue(InfoCollectables[collectableType].Key);
+        }
+
+        public bool AddCollectableData(Enum collectable, bool unlock)
+        {
+            if (IGNORED_COLLECTABLES.Contains(collectable))
+                return false;
+
+            // linked spell : level is dependent on the character
+            if (collectable.GetType() == typeof(ESpell) && SpellLoader.GetSpellData((ESpell)collectable).Linked)
+                return false;
+
+            // already in data : skip
+            if (GetCollectableIndex(collectable) >= 0)
+                return false;
+
+            ErrorHandler.Warning("Unable to find " + collectable + " in cloud data : adding it manually");
+
+            // if unlocked by default check start level, otherwise start level is 0
+            int startLevel = unlock ? CollectablesManagementData.GetStartLevel(collectable) : 0;
+
+            // add new empty spell data, set save to false as we save the batch at the end
+            SetCollectable(new SCollectableCloudData(collectable, startLevel, 0), false);
+
+            return true;
         }
 
         #endregion

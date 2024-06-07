@@ -1,4 +1,5 @@
 ﻿using Assets;
+using Assets.Scripts.Managers.Sound;
 using Data.GameManagement;
 using Enums;
 using Inventory;
@@ -27,12 +28,12 @@ namespace Menu.Common.Buttons
         protected CollectionFillBar m_CollectionFillBar = null;
 
         protected SCollectableCloudData m_CollectableCloudData;
-        protected EButtonState m_State;
 
         protected Enum m_Collectable => m_CollectableCloudData.GetCollectable();
         protected int m_Level => m_CollectableCloudData.Level;
 
         public SCollectableCloudData CollectableCloudData => m_CollectableCloudData;
+        public CollectionFillBar CollectionFillBar => m_CollectionFillBar;
 
         #endregion
 
@@ -158,36 +159,6 @@ namespace Menu.Common.Buttons
             SetState(EButtonState.Normal);
         }
 
-        public virtual void ForceState(EButtonState state)
-        {
-            SetState(state);
-        }
-
-        /// <summary>
-        /// Set UI according to the provided state
-        /// </summary>
-        /// <param name="state"></param>
-        protected virtual void SetState(EButtonState state)
-        {
-            m_State = state;
-
-            switch (state)
-            {
-                case (EButtonState.Locked):
-                    m_LockState.SetActive(true);
-                    break;
-
-                case (EButtonState.Updatable):
-                case (EButtonState.Normal):
-                    m_LockState.SetActive(false);
-                    break;
-
-                default:
-                    ErrorHandler.Error("UnHandled state " + state);
-                    break;
-            }
-        }
-
         public override void AsIconOnly(bool activate = false)
         {
             base.AsIconOnly(activate);
@@ -208,9 +179,9 @@ namespace Menu.Common.Buttons
             InventoryManager.CollectableUpgradedEvent       += OnCollectableUpgraded;
         }
 
-        protected override void UnregisterLiteners()
+        protected override void UnRegisterListeners()
         {
-            base.UnregisterLiteners();
+            base.UnRegisterListeners();
 
             InventoryCloudData.CollectableDataChangedEvent  -= OnCollectableDataChanged;
             InventoryManager.CollectableUpgradedEvent       -= OnCollectableUpgraded;
@@ -242,7 +213,23 @@ namespace Menu.Common.Buttons
 
         protected virtual void OnClickLocked()
         {
-            Main.SetPopUp(EPopUpState.ConfirmBuyItemPopUp, ShopManagementData.GetPrice(m_Collectable), m_Collectable, 1);
+            Main.ConfirmBuyCollectable(ShopManagementData.GetPrice(m_Collectable), m_Collectable, 1, OnPurchased);
+        }
+
+        protected virtual void OnPurchased(bool success)
+        {
+            if (!success)
+                return;
+
+            // on success of purchase : unlock collectable
+            InventoryManager.AddCollectable(m_Collectable, 1);
+
+            // for character and runes -> set directly
+            if (m_Collectable is ECharacter character)
+                CharacterBuildsCloudData.SetSelectedCharacter(character);
+
+            else if (m_Collectable is ERune rune)
+                CharacterBuildsCloudData.SetCurrentRune(rune);
         }
 
         #endregion

@@ -1,9 +1,5 @@
 ﻿using Enums;
 using Game.Loaders;
-using Managers;
-using System;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Tools
@@ -14,16 +10,20 @@ namespace Tools
         /// Remove all childs of a container
         /// </summary>
         /// <param name="gameObject"></param>
-        public static void CleanContent(GameObject gameObject)
+        public static void CleanContent(GameObject gameObject, int startAt = 0)
         {
             if (gameObject == null)
             {
                 ErrorHandler.Warning("Provided game object is null");
                 return;
-            }    
+            }
 
+            int index = 0;
             foreach (Transform child in gameObject.transform)
             {
+                if (index++ < startAt)
+                    continue;
+
                 GameObject.Destroy(child.gameObject);
             }
         }

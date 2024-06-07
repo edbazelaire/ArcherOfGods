@@ -2,6 +2,7 @@
 using Enums;
 using Game.Loaders;
 using Game.Spells;
+using MyBox;
 using System;
 using System.Collections.Generic;
 using Tools;
@@ -29,7 +30,10 @@ namespace Game.Character
         // ==============================================================================================
         // PUBLIC ACCESSORS
         public NetworkList<FixedString64Bytes> StateEffectList => m_StateEffectList;
-        public bool IsStunned => m_StateEffectList.Contains(EStateEffect.Stun.ToString());
+        public bool IsStunned => m_StateEffectList.Contains(EStateEffect.Stun.ToString()) 
+            || m_StateEffectList.Contains(EStateEffect.Scorched.ToString());
+        public bool IsSilenced => m_StateEffectList.Contains(EStateEffect.Silence.ToString()) 
+            || m_StateEffectList.Contains(EStateEffect.Malediction.ToString());
         public NetworkVariable<float> SpeedBonus => m_SpeedBonus;
         public NetworkVariable<int> RemainingShield => m_RemainingShield;
 
@@ -71,7 +75,6 @@ namespace Game.Character
             m_CharacterData = CharacterLoader.GetCharacterData(character, level);
         }
 
-
         public override void OnDestroy()
         {
             m_Controller.SpellHandler.IsCasting.OnValueChanged     -= OnIsCastingValueChanged;
@@ -85,12 +88,14 @@ namespace Game.Character
         void Update()
         {
             // only server applies the effects
-            if (! IsServer) 
+            if (! IsServer || !m_Controller.Life.IsAlive) 
                 return;
 
             for (int i = m_StateEffects.Count - 1; i >= 0; i--)
             {
                 m_StateEffects[i].Update();
+                if (!m_Controller.Life.IsAlive)
+                    return;
             }
         }
 
@@ -103,6 +108,9 @@ namespace Game.Character
         void OnStateEventClientRPC(EListEvent listEvent, string stateEffect, int stacks, float duration)
         {
             OnStateEvent?.Invoke(listEvent, stateEffect, stacks, duration);
+
+            if (listEvent == EListEvent.Add)
+                SpellLoader.GetStateEffect(stateEffect).PlaySoundEffect();
         }
 
         #endregion
@@ -128,7 +136,7 @@ namespace Game.Character
             m_Controller.Collider.enabled = !on;
 
             if (on)
-                AddStateEffect(new SStateEffectData(EStateEffect.Jump, duration: -1));
+                AddStateEffect(new SStateEffectData(EStateEffect.Jump, duration: -1), m_Controller);
             else
                 RemoveState(EStateEffect.Jump);
         }
@@ -151,6 +159,27 @@ namespace Game.Character
 
             // apply res fix first
             return (int)Mathf.Round(damages * GetFloat(EStateEffectProperty.BonusDamagesPerc));   
+        }
+
+        public float ApplyBonus(float baseValue, EStateEffectProperty stateEffectProperty)
+        {
+            switch (stateEffectProperty)
+            {
+                case EStateEffectProperty.TickDamages:
+                    return baseValue + GetInt(EStateEffectProperty.BonusTickDamages);
+
+                case EStateEffectProperty.TickHeal:
+                    return baseValue + GetInt(EStateEffectProperty.BonusTickHeal);
+            }
+
+            // apply percentage res
+            return baseValue + GetFloat(stateEffectProperty);
+        }
+
+        public int ApplyBonusInt(int baseValue, EStateEffectProperty stateEffectProperty)
+        {
+            // apply percentage res
+            return Math.Max(0, (int)Mathf.Round(ApplyBonus(baseValue, stateEffectProperty)));
         }
 
         #endregion
@@ -222,17 +251,17 @@ namespace Game.Character
         /// Add a state effect to the character
         /// </summary>
         /// <param name="stateEffect"></param>
-        public void AddStateEffect(SStateEffectData stateEffectData, int level = 1)
+        public void AddStateEffect(SStateEffectData stateEffectData, Controller caster, int level = 1)
         {
             if (! IsServer)
                 return;
 
             // create and add state effect  
             StateEffect stateEffect = SpellLoader.GetStateEffect(stateEffectData.StateEffect, level);
-            AddStateEffect(stateEffect, stateEffectData);
+            AddStateEffect(stateEffect, caster, stateEffectData);
         }
 
-        public void AddStateEffect(StateEffect stateEffect, SStateEffectData? overridingData = null)
+        public void AddStateEffect(StateEffect stateEffect, Controller caster, SStateEffectData? overridingData = null)
         {
             if (!IsServer)
                 return;
@@ -244,7 +273,7 @@ namespace Game.Character
                 return;
             }
 
-            if (! stateEffect.Initialize(m_Controller, overridingData))
+            if (! stateEffect.Initialize(m_Controller, caster, overridingData))
                 return;
 
             // add the state effect to the list of active effects
@@ -256,6 +285,9 @@ namespace Game.Character
 
             // recheck bonus potentially provided by this new stateEffect
             RecalculateBonus();
+
+            if (IsStunned)
+                m_Controller.AnimationHandler.SetStateAnimationClientRPC(isStunned: true);
         }
 
         /// <summary>
@@ -263,7 +295,7 @@ namespace Game.Character
         /// </summary>
         /// <param name="type"></param>
         /// <param name="duration"></param>
-        public void AddStateEffect(EStateEffect type, int? stacks = default, float? duration = default, float? speedBonus = default)
+        public void AddStateEffect(EStateEffect type, Controller caster, int? stacks = default, float? duration = default, float? speedBonus = default)
         {
             if (!IsServer)
                 return;
@@ -273,7 +305,7 @@ namespace Game.Character
                 stacks:     stacks      ??      1,
                 duration:   duration    ??     -1f,
                 speedBonus: speedBonus  ??      0           
-            ));
+            ), caster);
         }
 
         /// <summary>
@@ -284,6 +316,9 @@ namespace Game.Character
         {
             if (!IsServer)
                 return 0;
+
+            // check if was stunned
+            bool wasStunned = IsStunned;
 
             // remove effect type from list of active effects
             int index = m_StateEffectList.IndexOf(state);
@@ -306,6 +341,9 @@ namespace Game.Character
 
             // recalculate bonuses givent by state effects
             RecalculateBonus();
+
+            if (wasStunned && ! IsStunned)
+                m_Controller.AnimationHandler.SetStateAnimationClientRPC(isStunned: false);
 
             // return number of stacks this spell had (can be used when a spell consumes the state)
             return nStacks;
@@ -353,10 +391,16 @@ namespace Game.Character
             if (!IsServer)
                 return 1f;
 
-            float baseValue = 1f + m_CharacterData.GetValue(property);
+            float baseValue;
+            if (property == EStateEffectProperty.SpeedBonus)
+                baseValue = 1f;
+            else
+                baseValue = 1f + m_CharacterData.GetValue(property);
 
             foreach (var effect in m_StateEffects)
             {
+                if (!effect.HasProperty(property.ToString()))
+                    continue;
                 baseValue += effect.GetFloat(property);
             }
 
@@ -369,10 +413,14 @@ namespace Game.Character
             if (!IsServer)
                 return 0;
 
+            // get BASE VALUE from Character
             int baseValue = m_CharacterData.GetInt(property);
 
+            // add EXTRA VALUE from StateEffects
             foreach (var effect in m_StateEffects)
             {
+                if (!effect.HasProperty(property.ToString()))
+                    continue;
                 baseValue += effect.GetInt(property);
             }
 

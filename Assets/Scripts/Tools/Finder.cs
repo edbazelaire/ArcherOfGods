@@ -185,11 +185,6 @@ namespace Tools
             return components;
         }
 
-        internal static T FindComponent<T>(GameObject gameObject, object c_HealthBar)
-        {
-            throw new NotImplementedException();
-        }
-
         public static void CleanContent(GameObject gameObject)
         {
             foreach (Transform child in gameObject.transform)

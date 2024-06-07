@@ -16,7 +16,9 @@ namespace Menu.PopUps.Components.ProfilePopUp
         EBadge  m_Badge;
         ELeague m_League;
 
-        string m_BadgeName => ProfileCloudData.BadgeToString(m_Badge, m_League);
+        string m_BadgeName      => ProfileCloudData.BadgeToString(m_Badge, m_League);
+        public EBadge Badge     => m_Badge;
+        public ELeague League   => m_League;
 
         // =================================================================================
         // GameObjects & Components

@@ -145,6 +145,9 @@ namespace Tools
 
         public static void AddRaycast(GameObject parent, string id = "", float duration = -1f, Vector3 rotation = default, float size = 1f, Color color = default)
         {
+            if (color == default)
+                color = new Color(1f, 1f, 1f, 0.3f);
+
             // instantiate raycast object as first child of provided parent
             var raycast = GameObject.Instantiate(AssetLoader.LoadBackgroundAnimation("RayCast"), parent.transform);
             raycast.transform.SetAsFirstSibling();
@@ -178,7 +181,5 @@ namespace Tools
         }
 
         #endregion
-
-
     }
 }

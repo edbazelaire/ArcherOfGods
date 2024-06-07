@@ -1,28 +1,43 @@
 ﻿using Assets;
-using Assets.Scripts.Menu.Common.Buttons.TemplateItemButtons;
+using Assets.Scripts.Managers.Sound;
 using Data.GameManagement;
 using Enums;
-using Game.UI;
-using Inventory;
-using Menu.Common.Buttons;
+using Menu.Common.Displayers;
+using Menu.Common.Notifications;
 using Menu.MainMenu;
 using Menu.MainMenu.MainTab;
-using System;
+using Save;
 using Tools;
+using Tools.Animations;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Menu.PopUps
 {
+    enum EStageRewardState
+    {
+        Locked,
+        Unlocked,
+        Collected
+    }
+
     public class StageDisplayUI : MObject
     {
         #region Members
+       
+        SArenaLevelData     m_ArenaLevelData;
+        int                 m_ArenaLevel;
+        EArenaType          m_ArenaType;
 
-        SArenaLevelData m_ArenaLevelData;
+        EStageRewardState   m_State;
+        NotificationDisplay m_NotificationDisplay;
 
-        StageSectionUI  m_StageSectionUI;
-        GameObject      m_SpellsContainer;
-        GameObject      m_RewardsContainer;
+        StageSectionUI      m_StageSectionUI;
+        GameObject          m_SpellsContainer;
+        RewardsDisplayer    m_RewardsDisplayer;
+        GameObject          m_OverlayScreen;
+        Button              m_CollectButton;
 
         #endregion
 
@@ -33,18 +48,27 @@ namespace Menu.PopUps
         {
             base.FindComponents();
 
-            m_StageSectionUI = Finder.FindComponent<StageSectionUI>(gameObject, "StageSection");
-            m_SpellsContainer = Finder.Find(gameObject, "SpellsContainer");
-            m_RewardsContainer = Finder.Find(gameObject, "RewardsContainer");
+            m_StageSectionUI                = Finder.FindComponent<StageSectionUI>(gameObject);
+            m_SpellsContainer               = Finder.Find(gameObject, "SpellsContainer");
+            m_RewardsDisplayer              = Finder.FindComponent<RewardsDisplayer>(gameObject);
+            m_NotificationDisplay           = Finder.FindComponent<NotificationDisplay>(m_RewardsDisplayer.gameObject);
+            m_OverlayScreen                 = Finder.Find(m_RewardsDisplayer.gameObject, "OverlayScreen");
+            m_CollectButton                 = Finder.FindComponent<Button>(gameObject, "CollectButton");
+
         }
 
-        public void Initialize(ArenaData arenaData, int arenaLevel)
+        public void Initialize(ArenaData arenaData, int arenaLevel, EArenaType arenaType)
         {
+            m_ArenaLevelData = arenaData.GetArenaLevelData(arenaLevel);
+            m_ArenaLevel = arenaLevel;
+            m_ArenaType = arenaType;
+
             base.Initialize();
 
-            m_ArenaLevelData = arenaData.GetArenaLevelData(arenaLevel);
-
             m_StageSectionUI.Initialize(arenaData, arenaLevel);
+            m_NotificationDisplay.Initialize(Finder.FindComponent<Image>(m_RewardsDisplayer.gameObject), Vector2.one * 2);
+
+            RefreshState();
             SetUpSpells();
             SetUpRewards();
         }
@@ -70,50 +94,97 @@ namespace Menu.PopUps
                 spellItemUI.Button.interactable = true;
                 spellItemUI.Button.onClick.RemoveAllListeners();
                 spellItemUI.Button.onClick.AddListener(() => { Main.SetPopUp(EPopUpState.SpellInfoPopUp, spell, spellLevel, true); });
-
             }
         }
 
         void SetUpRewards()
         {
-            UIHelper.CleanContent(m_RewardsContainer);
-            var rewards = m_ArenaLevelData.rewardsData.Rewards;
-            foreach (SReward reward in rewards)
+            m_RewardsDisplayer.Initialize(m_ArenaLevelData.rewardsData, m_ArenaLevelData.rewardsData.Count <= 4 ? 2 : 3);
+        }
+
+        #endregion
+
+
+        #region State
+
+        void RefreshState()
+        {
+            if (NotificationCloudData.HasRewardsForArenaTypeAtLevel(m_ArenaType, m_ArenaLevel))
             {
-                // Display CHEST
-                if (reward.RewardType == typeof(EChest))
-                {
-                    var icon = Instantiate(AssetLoader.LoadTemplateItem("Icon"), m_RewardsContainer.transform);
-                    icon.GetComponent<Image>().sprite = AssetLoader.LoadIcon(reward.RewardName, reward.RewardType);
-                }
-
-                // Display CURRENCY
-                else if (reward.RewardType == typeof(ECurrency)) 
-                {
-                    if (! Enum.TryParse(reward.RewardName, out ECurrency currency))
-                    {
-                        ErrorHandler.Error("Unable to parse " + reward.RewardName + " into a currency");
-                        continue;
-                    }
-
-                    var template = Instantiate(AssetLoader.LoadTemplateItem("CurrencyItem"), m_RewardsContainer.transform);
-                    template.GetComponent<TemplateCurrencyItem>().Initialize(currency, reward.Qty);
-                }
-
-                else
-                {
-                    var template = Instantiate(AssetLoader.LoadTemplateItem("Collectable"), m_RewardsContainer.transform).GetComponent<TemplateCollectableItemUI>();
-                    template.Initialize(CollectablesManagementData.Cast(reward.RewardName, reward.RewardType), asIconOnly: true);
-                    template.SetBottomOverlay("x" + reward.Qty);
-
-                    template.Button.interactable = true;
-                    template.Button.onClick.RemoveAllListeners();
-
-                    // link spell to spell info popup
-                    if (Enum.TryParse(reward.RewardName, out ESpell spell))
-                        template.Button.onClick.AddListener(() => { Main.SetPopUp(EPopUpState.SpellInfoPopUp, spell, 1, true); });
-                }
+                SetState(EStageRewardState.Unlocked);
+                return;
             }
+
+            if (m_ArenaLevel < ProgressionCloudData.SoloArenas[m_ArenaType].CurrentLevel)
+            {
+                SetState(EStageRewardState.Collected);
+                return;
+            }
+
+            SetState(EStageRewardState.Locked);
+        }
+
+        void SetState(EStageRewardState state)
+        {
+            m_State = state;
+
+            switch (state)
+            {
+                case EStageRewardState.Locked:
+                    m_NotificationDisplay.Deactivate();
+                    m_CollectButton.gameObject.SetActive(false);
+                    m_OverlayScreen.SetActive(false);
+                    return;
+
+                case EStageRewardState.Unlocked:
+                    m_NotificationDisplay.Activate(); 
+                    m_CollectButton.gameObject.SetActive(true);
+                    var pulse = m_CollectButton.AddComponent<Pulse>();
+                    pulse.Initialize("", -1, pauseDuration: 1.5f);
+
+                    m_OverlayScreen.SetActive(false);
+                    return;
+                    
+                case EStageRewardState.Collected:
+                    m_NotificationDisplay.Deactivate();
+                    m_CollectButton.gameObject.SetActive(false);
+                    m_OverlayScreen.SetActive(true);
+                    return;
+
+                default: 
+                    ErrorHandler.Error("Unknown state : " + state);
+                    return;
+            }
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        protected override void RegisterListeners()
+        {
+            base.RegisterListeners();
+          
+            m_CollectButton.onClick.AddListener(OnCollectedButtonClicked);
+        }
+
+        protected override void UnRegisterListeners()
+        {
+            base.UnRegisterListeners();
+         
+            m_CollectButton.onClick.RemoveListener(OnCollectedButtonClicked);
+        }
+
+        void OnCollectedButtonClicked()
+        {
+            SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
+
+            if (! NotificationCloudData.CollectArenaReward(m_ArenaType, m_ArenaLevel))
+                return;
+
+            Main.DisplayRewards(m_ArenaLevelData.rewardsData, ERewardContext.ArenaReward);
+            RefreshState();
         }
 
         #endregion

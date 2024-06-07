@@ -12,13 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bec91e441d966e438d35c0133adae84, type: 3}
   m_Name: IronSkin
   m_EditorClassIdentifier: 
+  m_Description: 
+  m_DescriptionVariables: 
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 0.3679245, g: 0.3679245, b: 0.3679245, a: 1}
+  m_Animation: 0
   m_Duration: 3
   m_MaxStacks: 1
   m_SpeedBonus: -0.2
+  m_CastSpeed: 0
+  m_AttackSpeed: 0
   m_Shield: 0
-  m_ResistanceFix: 5
+  m_ResistanceFix: 50
   m_ResistancePerc: 0.1
   m_BonusDamages: 0
   m_BonusDamagesPerc: 0

@@ -71,6 +71,11 @@ namespace Game.Spells
         {
             base.End();
 
+            // force pos to original Y
+            var pos = m_Controller.transform.position;
+            pos.y = m_OriginalPosition.y;
+            m_Controller.transform.position = pos;
+
             // re activate collider
             m_Controller.Collider.enabled = true;
 

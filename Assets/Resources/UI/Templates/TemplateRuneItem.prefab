@@ -335,7 +335,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5098714503365570636, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_fontSize
-      value: 17.85
+      value: 16.15
       objectReference: {fileID: 0}
     - target: {fileID: 5191892919688070642, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_Pivot.x
@@ -481,6 +481,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8656332208191700126, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
+      propertyPath: m_OnClickAudio
+      value: 
+      objectReference: {fileID: 8300000, guid: e7a133bfc7b724a4e8b237b627a2d8a7, type: 3}
     - target: {fileID: 8660903471826499385, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_SizeDelta.y
       value: 28.5082
@@ -532,6 +536,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 125b9af55d9c0c6469fb8fb99bf300d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_OnClickAudio: {fileID: 0}
 --- !u!222 &1030628639427135536
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -84,6 +84,8 @@ namespace Game.Spells
             if (!IsServer)
                 return;
 
+            Debug.Log("OnTriggerEnter2D() : Counter");
+
             // has to be type of SelfTrigger to be able to trigger itself
             if (m_SpellData.CounterActivation != ECounterActivation.SelfTrigger) 
                 return;
@@ -129,7 +131,7 @@ namespace Game.Spells
                 // cast the counter spell on the enemy
                 case ECounterType.Proc:
                     spellData = SpellLoader.GetSpellData(m_SpellData.OnCounterProc);
-                    spellData.Cast(OwnerClientId, targetPosition, transform.position);
+                    spellData.Cast(OwnerClientId, targetPosition, transform.position, recalculateTarget: false);
                     break;
 
                 // block the spell : do nothing
@@ -139,7 +141,7 @@ namespace Game.Spells
 
                 // Recast the spell to the enemy
                 case ECounterType.Reflect:
-                    enemySpell.SpellData.Cast(OwnerClientId, targetPosition, transform.position);
+                    enemySpell.SpellData.Cast(OwnerClientId, targetPosition, transform.position, recalculateTarget: false);
                     break;
 
                 default:
@@ -147,7 +149,7 @@ namespace Game.Spells
                     break;
             }
 
-            enemySpell.DestroySpell();
+            Destroy(enemySpell.gameObject);
 
             m_HittedPlayerId.Add(0);
             if (m_SpellData.MaxHit > 0 && m_HittedPlayerId.Count >= m_SpellData.MaxHit)

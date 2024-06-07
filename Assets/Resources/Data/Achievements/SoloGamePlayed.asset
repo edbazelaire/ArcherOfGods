@@ -16,54 +16,78 @@ MonoBehaviour:
   Analytics: 0
   AnalyticsFilters:
   - AnalyticParam: 1
-    Value: Solo
+    Value: Arena
     Comparator: 3
   AchievementSubData:
+  - MaxValue: 1
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+      AchievementRewards:
+      - AchievementReward: 4
+        Title: 4
+        Avatar: 0
+        Border: 0
+        Badge: 202
+        League: 0
   - MaxValue: 10
-    AchivementRewardData:
-    - AchievementReward: 1
-      Title: 0
-      Avatar: 0
-      Border: 0
-      Badge: 201
-      League: 1
     Rewards:
       Currencies: []
       Chests: 
       Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 0
+        Avatar: 0
+        Border: 0
+        Badge: 201
+        League: 1
+  - MaxValue: 25
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+      AchievementRewards:
+      - AchievementReward: 3
+        Title: 0
+        Avatar: 0
+        Border: 2
+        Badge: 202
+        League: 0
   - MaxValue: 50
-    AchivementRewardData:
-    - AchievementReward: 1
-      Title: 0
-      Avatar: 0
-      Border: 0
-      Badge: 201
-      League: 2
     Rewards:
       Currencies: []
       Chests: 
       Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 0
+        Avatar: 0
+        Border: 0
+        Badge: 201
+        League: 2
   - MaxValue: 75
-    AchivementRewardData:
-    - AchievementReward: 4
-      Title: 5
-      Avatar: 0
-      Border: 0
-      Badge: 2
-      League: 3
     Rewards:
       Currencies: []
       Chests: 
       Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 0
+        Avatar: 0
+        Border: 0
+        Badge: 201
+        League: 3
   - MaxValue: 100
-    AchivementRewardData:
-    - AchievementReward: 1
-      Title: 0
-      Avatar: 0
-      Border: 0
-      Badge: 201
-      League: 3
     Rewards:
       Currencies: []
       Chests: 
       Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 0
+        Avatar: 0
+        Border: 0
+        Badge: 202
+        League: 0

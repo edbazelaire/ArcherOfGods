@@ -56,8 +56,13 @@ namespace Save
         public const    int                 N_BUILDS                = 3;
         /// <summary> number of spells in one build </summary>
         public const    int                 N_SPELLS_IN_BUILDS      = 4;
+
+        /// <summary> default Character on loading </summary>
+        public static ECharacter            DEFAULT_CHARACTER       => ECharacter.Alexander;
+        /// <summary> default Rune on loading </summary>
+        public static ERune                 DEFAULT_RUNE            => ERune.None;
         /// <summary> default build if none was created by the player </summary>
-        public static ESpell[]              DEFAULT_BUILD           => new ESpell[N_SPELLS_IN_BUILDS]    { ESpell.RockShower, ESpell.Heal, ESpell.Counter, ESpell.IronSkin }; 
+        public static ESpell[]              DEFAULT_BUILD           => new ESpell[N_SPELLS_IN_BUILDS]    { ESpell.RockShower, ESpell.Heal, ESpell.Blizzard, ESpell.ScorchedEarth }; 
         /// <summary> defualt list of None runes when initializing a new character data </summary>
         public static ERune[]               DEFAULT_RUNES           => new ERune[N_BUILDS]               { ERune.None, ERune.None, ERune.None }; 
 
@@ -77,7 +82,7 @@ namespace Save
         // DATA
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
-            { KEY_SELECTED_CHARACTER, ECharacter.Alexander },
+            { KEY_SELECTED_CHARACTER, DEFAULT_CHARACTER },
             { KEY_BUILDS, new Dictionary<ECharacter, SCharacterBuildData>() }
         };
 
@@ -178,6 +183,39 @@ namespace Save
 
             Instance.SaveValue(KEY_BUILDS);
             CurrentRuneChangedEvent?.Invoke();  
+        }
+
+        #endregion
+
+
+        #region Reset & Unlock
+
+        public override void Reset(string key)
+        {
+            base.Reset(key);
+
+            switch (key)
+            {
+                case KEY_SELECTED_CHARACTER:
+                    SetSelectedCharacter(DEFAULT_CHARACTER);
+                    break;
+
+                case KEY_BUILDS:
+                    var data = new Dictionary<ECharacter, SCharacterBuildData>();
+                    foreach (ECharacter character in Enum.GetValues(typeof(ECharacter)))
+                    {
+                        data[character] = new SCharacterBuildData(index: 0, builds: new ESpell[N_BUILDS][] { DEFAULT_BUILD, DEFAULT_BUILD, DEFAULT_BUILD });
+                    }
+
+                    m_Data[key] = data;
+
+                    CurrentBuildIndexChangedEvent.Invoke();
+                    break;
+
+                default:
+                    ErrorHandler.Error("Unhandled key : " + key);
+                    return;
+            }
         }
 
         #endregion

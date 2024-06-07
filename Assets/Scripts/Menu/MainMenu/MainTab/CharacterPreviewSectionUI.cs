@@ -294,7 +294,7 @@ namespace Menu.MainMenu
 
         void OnUpgradeButtonClicked()
         {
-            Main.SetPopUp(EPopUpState.CharacterInfoPopUp, CharacterBuildsCloudData.SelectedCharacter, InventoryCloudData.Instance.GetCollectable(CharacterBuildsCloudData.SelectedCharacter).Level);
+            Main.SetPopUp(EPopUpState.CollectableInfoPopUp, CharacterBuildsCloudData.SelectedCharacter, InventoryCloudData.Instance.GetCollectable(CharacterBuildsCloudData.SelectedCharacter).Level);
         }
 
         #endregion

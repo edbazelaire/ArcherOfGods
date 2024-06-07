@@ -5,9 +5,10 @@ public class MObject : MonoBehaviour
 {
     #region Members
 
-    bool m_Initialized = false;
+    protected bool m_Initialized = false;
 
     #endregion
+
 
     #region Init & End
 
@@ -23,7 +24,8 @@ public class MObject : MonoBehaviour
         if (Debugger.Instance != null && !Debugger.Instance.IsRegistered(this))
             Debugger.Instance.UnregisterClass(this);
 
-        UnRegisterListeners();
+        if (m_Initialized)
+            UnRegisterListeners();
     }
 
     public virtual void Initialize()
@@ -46,8 +48,6 @@ public class MObject : MonoBehaviour
     protected virtual void UnRegisterListeners() { }
 
     #endregion
-
-
 
 
     protected virtual void OnEnable()

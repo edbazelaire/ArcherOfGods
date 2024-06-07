@@ -1,4 +1,5 @@
-﻿using Data;
+﻿using Assets.Scripts.Managers.Sound;
+using Data;
 using Data.GameManagement;
 using Enums;
 using Game.Loaders;
@@ -23,7 +24,7 @@ namespace Menu.PopUps
 
         // =========================================================================================
         // Data
-        protected CollectionData                        m_Data;
+        protected CollectableData                       m_Data;
         protected bool                                  m_InfoOnly;
         protected GameObject                            m_InfoPrefab;
         protected GameObject                            m_TemplateItemUI;
@@ -124,7 +125,7 @@ namespace Menu.PopUps
         #endregion
 
 
-        #region UIManipulators
+        #region GUI Manipulators
 
         protected virtual void SetUpTitle()
         {
@@ -178,6 +179,12 @@ namespace Menu.PopUps
             }
         }
 
+        /// <summary>
+        /// Set up value of a singular Info row
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        /// <param name="newDataValue"></param>
         protected virtual void SetUpInfoRow(string key, object value, object newDataValue = null)
         {
             // spawn a spellRowInfo from prefab and init with spell data
@@ -250,7 +257,7 @@ namespace Menu.PopUps
                 || property.EndsWith("Perc");
         }
 
-        CollectionData LoadCollectionData(Enum enumValue, int level)
+        CollectableData LoadCollectionData(Enum enumValue, int level)
         {
             // load data of the item
             if (enumValue.GetType() == typeof(ECharacter))
@@ -291,6 +298,8 @@ namespace Menu.PopUps
 
             InventoryManager.Upgrade(m_Collectable);
 
+            SoundFXManager.PlayOnce(SoundFXManager.LevelUpSoundFX);
+
             if (AnimationHandler.IsPlaying(UPGRADE_ANIMATION_ID))
                 return;
 
@@ -298,7 +307,7 @@ namespace Menu.PopUps
             pulse.Initialize(UPGRADE_ANIMATION_ID, 2f, 0.9f, 1.1f, pulseDuration: 0.5f, pauseDuration:0f);
 
             var particles = m_CollectableItemUI.IconObject.AddComponent<ParticlesAnimation>();
-            particles.Initialize(UPGRADE_ANIMATION_ID, 2f, particlesName: "LevelUpAnimation", size: 1f, layer: "Overlay");
+            particles.Initialize(UPGRADE_ANIMATION_ID, 2f, particlesName: "LevelUpAnimation", size: Vector2.one, layer: "Overlay");
         }
 
         /// <summary>

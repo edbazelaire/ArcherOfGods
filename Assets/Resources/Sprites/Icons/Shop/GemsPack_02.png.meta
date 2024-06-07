@@ -135,10 +135,10 @@ TextureImporter:
       name: GemsPack_02_0
       rect:
         serializedVersion: 2
-        x: 83
-        y: 48
-        width: 350
-        height: 439
+        x: 50
+        y: 67
+        width: 109
+        height: 87
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -156,10 +156,10 @@ TextureImporter:
       name: GemsPack_02_1
       rect:
         serializedVersion: 2
-        x: 83
-        y: 14
-        width: 81
-        height: 61
+        x: 65
+        y: 111
+        width: 363
+        height: 334
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -177,10 +177,10 @@ TextureImporter:
       name: GemsPack_02_2
       rect:
         serializedVersion: 2
-        x: 397
-        y: 48
-        width: 79
-        height: 63
+        x: 362
+        y: 77
+        width: 102
+        height: 90
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

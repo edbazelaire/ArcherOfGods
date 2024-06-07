@@ -19,13 +19,19 @@ MonoBehaviour:
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 8300000, guid: 3ecced41c79ec3840824bd3813604df2, type: 3}
+  PermanantSoundFX: {fileID: 8300000, guid: d32aa812842de304aa0d55afebfbbed9, type: 3}
+  OnHitSoundFX: {fileID: 8300000, guid: 3ecced41c79ec3840824bd3813604df2, type: 3}
+  OnEndSoundFX: {fileID: 0}
   SpellTarget: 4
   MaxHit: 0
-  EnergyGain: 3
+  EnergyGain: 5
   EnergyCost: 0
   m_Damage: 0
-  m_Heal: 30
+  m_Heal: 50
   Distance: -1
+  OverrideOnHitProperties: 
   m_Duration: 5
   Delay: 0
   m_Size: 5
@@ -37,7 +43,7 @@ MonoBehaviour:
   IsCancellable: 0
   AnimationTimer: 0.5
   CastAt: 1
-  m_Cooldown: 20
+  m_Cooldown: 15
   DurationTick: 0.5
   GrowSizeFactor: 0
   MaxSizeAt: 1

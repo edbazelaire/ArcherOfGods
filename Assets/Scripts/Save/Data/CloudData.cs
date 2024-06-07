@@ -33,7 +33,12 @@ namespace Save
             LoadingCompleted = false;
             m_KeysToLoad = m_Data.Keys.ToList();
             Load();
+
+            RegisterListeners();
         }
+
+        protected virtual void RegisterListeners() { }
+        protected virtual void UnRegisterListeners() { }
 
         #endregion
 
@@ -166,10 +171,39 @@ namespace Save
         #endregion
 
 
+        #region Reset & Unlock
+
+        public virtual void Reset(string key) { }
+
+        public virtual void ResetAll()
+        {
+            var keys = m_Data.Keys.ToArray();
+            foreach (string dataKey in keys)
+            {
+                Reset(dataKey);
+            }
+
+            Save();
+        }
+
+        public virtual bool IsUnlockable(string key)
+        {
+            return false;
+        }
+
+        public virtual void Unlock(string key, bool save = true)
+        {
+            if (!m_Data.ContainsKey(key))
+                ErrorHandler.Error("Key does not exist in the data");
+        }
+
+        #endregion
+
+
         #region Checkers
 
         protected virtual void CheckData() { }
-
+        
         #endregion
 
 

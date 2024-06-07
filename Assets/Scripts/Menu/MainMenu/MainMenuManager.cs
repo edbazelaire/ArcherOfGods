@@ -19,7 +19,7 @@ namespace Menu.MainMenu
         #region Members
 
         /// <summary> scroll percentage of the window to consider going to the next tab </summary>
-        [SerializeField] float m_NewTabScrollThreshold = 0.15f;
+        [SerializeField] float m_NewTabScrollThreshold = 0.7f;
         /// <summary> time that the scroll animation will take to move an entire tab window </summary>
         [SerializeField] float m_ScrollTime = 0.5f;
 
@@ -88,6 +88,17 @@ namespace Menu.MainMenu
         protected override void DisplayCurrentTab(bool withAnim = true)
         {
             m_ScrollCoroutine = StartCoroutine(ResetCurrentTabPositionCoroutine(withAnim));
+        }
+
+        public override void SelectTab(Enum tabIndex, bool withAnim = true)
+        {
+            if (m_ScrollCoroutine != null)
+            {
+                StopCoroutine(m_ScrollCoroutine);
+                m_ScrollCoroutine = null;
+            }
+
+            base.SelectTab(tabIndex, withAnim); 
         }
 
         /// <summary>

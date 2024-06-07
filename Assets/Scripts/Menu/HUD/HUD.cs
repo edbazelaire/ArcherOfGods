@@ -14,6 +14,7 @@ namespace Assets.Scripts.Menu
         #region Members
 
         GameObject m_ButtonsContainer;
+        Button m_SettingsButton;
 
         #endregion
 
@@ -30,6 +31,7 @@ namespace Assets.Scripts.Menu
             base.FindComponents();
 
             m_ButtonsContainer = Finder.Find(gameObject, "ButtonsContainer");
+            m_SettingsButton = Finder.FindComponent<Button>(m_ButtonsContainer, "SettingsButton");
         }
 
         #endregion
@@ -40,11 +42,15 @@ namespace Assets.Scripts.Menu
         protected override void RegisterListeners()
         {
             base.RegisterListeners();
+
+            m_SettingsButton.onClick.AddListener(() => Main.SetPopUp(EPopUpState.SettingsPopUp));
         }
 
         protected override void UnRegisterListeners()
         {
             base.UnRegisterListeners();
+
+            m_SettingsButton.onClick.RemoveAllListeners();
         }
 
         #endregion

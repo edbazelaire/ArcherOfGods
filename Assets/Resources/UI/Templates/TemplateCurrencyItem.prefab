@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 670730189954743397, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_fontSize
-      value: 20.45
+      value: 18.25
       objectReference: {fileID: 0}
     - target: {fileID: 2019045929560499728, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_Color.b
@@ -122,7 +122,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5098714503365570636, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_fontSize
-      value: 35.85
+      value: 31.45
       objectReference: {fileID: 0}
     - target: {fileID: 5191892919688070642, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}
       propertyPath: m_Pivot.x
@@ -282,6 +282,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3bde78bf4826604cb26c07dcc38db78, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_OnClickAudio: {fileID: 8300000, guid: 660da55754dd18941a308e9a6771b281, type: 3}
 --- !u!1 &8930602704234944747 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2087184692005261313, guid: bd8a39ec7a4bdd34faf07f94d8e1c8a3, type: 3}

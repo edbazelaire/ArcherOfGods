@@ -21,6 +21,11 @@ MonoBehaviour:
   - {fileID: 610942752557020422, guid: 4c012a077fc8a714fb23670e129fb0eb, type: 3}
   OnHit:
   - {fileID: 11400000, guid: 96980145c41455a4aaebef628b96d1a6, type: 2}
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 8300000, guid: 3ecced41c79ec3840824bd3813604df2, type: 3}
+  PermanantSoundFX: {fileID: 8300000, guid: f8467e937c75c934c9865b5ec35e4e6e, type: 3}
+  OnHitSoundFX: {fileID: 8300000, guid: 3ecced41c79ec3840824bd3813604df2, type: 3}
+  OnEndSoundFX: {fileID: 8300000, guid: 299a1418d59067345b65a80b8a8b7e87, type: 3}
   SpellTarget: 1
   MaxHit: 0
   EnergyGain: 5
@@ -28,9 +33,10 @@ MonoBehaviour:
   m_Damage: 25
   m_Heal: 0
   Distance: -1
+  OverrideOnHitProperties: 
   m_Duration: 2
   Delay: 1
-  m_Size: 3
+  m_Size: 4
   TriggerPlayer: 1
   EnemyStateEffects:
   - StateEffect: 6

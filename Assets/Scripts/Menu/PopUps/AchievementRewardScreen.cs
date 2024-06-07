@@ -1,5 +1,5 @@
-﻿using Data;
-using Enums;
+﻿using Assets.Scripts.Managers.Sound;
+using Data;
 using Menu.Common.Buttons;
 using Menu.PopUps;
 using System.Collections;
@@ -17,7 +17,7 @@ namespace Scripts.Menu.PopUps
         #region Members
 
         // Data
-        List<SAchievementRewardData> m_AchivementRewardDataList;
+        List<SAchievementReward> m_AchivementRewardDataList;
 
         // GameObjects & Components
         GameObject      m_RewardContainer;
@@ -36,7 +36,7 @@ namespace Scripts.Menu.PopUps
             m_RewardName        = Finder.FindComponent<TMP_Text>(gameObject, "RewardName");
         }
 
-        public void Initialize(List<SAchievementRewardData> data)
+        public void Initialize(List<SAchievementReward> data)
         {
             m_AchivementRewardDataList = data;
 
@@ -61,7 +61,7 @@ namespace Scripts.Menu.PopUps
         /// <returns></returns>
         IEnumerator StartDisplay()
         {
-            foreach (SAchievementRewardData data in m_AchivementRewardDataList)
+            foreach (SAchievementReward data in m_AchivementRewardDataList)
             {
                 yield return DisplayReward(data);
                 yield return new WaitUntil(() => Input.touchCount > 0 || Input.GetMouseButtonDown(0));
@@ -75,8 +75,10 @@ namespace Scripts.Menu.PopUps
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        IEnumerator DisplayReward(SAchievementRewardData data)
+        IEnumerator DisplayReward(SAchievementReward data)
         {
+            SoundFXManager.PlayOnce(SoundFXManager.AchievementRewardCollectedSoundFX);
+
             // clean previous content
             UIHelper.CleanContent(m_RewardContainer);
 
@@ -103,7 +105,7 @@ namespace Scripts.Menu.PopUps
         {
             // add fadeIn enter animation
             var fadeIn = template.AddComponent<Fade>();
-            fadeIn.Initialize(duration: 0.2f, startOpacity: 0, startScale: 0.8f);
+            fadeIn.Initialize(duration: 0.2f, startOpacity: 0f, startScale: 0.8f);
 
             yield return new WaitUntil(() => fadeIn.IsOver);
 

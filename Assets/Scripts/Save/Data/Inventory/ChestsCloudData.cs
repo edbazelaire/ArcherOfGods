@@ -3,6 +3,7 @@ using Enums;
 using Game.Loaders;
 using System;
 using System.Collections.Generic;
+using Tools;
 using Unity.Services.CloudSave.Models;
 
 namespace Save
@@ -81,6 +82,27 @@ namespace Save
             }
 
             return false;
+        }
+
+        #endregion
+
+
+        #region Reset & Unlock
+
+        public override void Reset(string key)
+        {
+            base.Reset(key);
+
+            switch (key)
+            {
+                case KEY_CHESTS:
+                    m_Data[KEY_CHESTS] = new ChestData[4] { null, null, null, null };
+                    break;
+
+                default:
+                    ErrorHandler.Warning("Unhandled key : " + key);
+                    return;
+            }
         }
 
         #endregion

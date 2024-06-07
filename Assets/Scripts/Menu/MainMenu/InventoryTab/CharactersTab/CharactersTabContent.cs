@@ -12,9 +12,9 @@ namespace Menu.MainMenu
 
         #region Init & End
 
-        public override void Initialize(TabButton tabButton)
+        public override void Initialize(TabButton tabButton, AudioClip activationSoundFX)
         {
-            base.Initialize(tabButton);
+            base.Initialize(tabButton, activationSoundFX);
 
             m_CharacterSelectionUI = Finder.FindComponent<CharacterSelectionUI>(gameObject);
             m_CharacterSelectionUI.Initialize();

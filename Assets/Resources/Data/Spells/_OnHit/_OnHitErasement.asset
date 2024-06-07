@@ -19,13 +19,17 @@ MonoBehaviour:
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 8300000, guid: 2d9d4551cc82c4e44b690cdc898a8c06, type: 3}
+  OnHitSoundFX: {fileID: 0}
   SpellTarget: 0
   MaxHit: 0
   EnergyGain: 0
   EnergyCost: 0
-  m_Damage: 200
+  m_Damage: 0
   m_Heal: 0
   Distance: -1
+  OverrideOnHitProperties: 
   m_Duration: 0
   Delay: 0
   m_Size: 3

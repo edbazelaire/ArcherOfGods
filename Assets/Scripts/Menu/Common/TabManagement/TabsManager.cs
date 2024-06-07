@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Menu
 {
@@ -17,6 +16,8 @@ namespace Menu
         protected const string      c_TabButtonSuffix           = "Button";
         protected const string      c_TabsContainer             = "TabsContainer";
         protected const string      c_TabsContainerContent      = "Content";
+
+        [SerializeField] protected AudioClip m_ChangeTabSoundFX = null;
 
         /// <summary> </summary>
         protected GameObject        m_TabButtonsContainer;
@@ -69,7 +70,10 @@ namespace Menu
         protected virtual void InitTabsContent()
         {
             m_TabsContainer = Finder.Find(gameObject, c_TabsContainer);
-            m_TabsContainerContent = Finder.Find(m_TabsContainer, c_TabsContainerContent);
+            m_TabsContainerContent = Finder.Find(m_TabsContainer, c_TabsContainerContent, false);
+
+            if (m_TabsContainerContent == null)
+                m_TabsContainerContent = m_TabsContainer;
         }
 
         protected virtual void InitTabsButtonContainer()
@@ -143,7 +147,7 @@ namespace Menu
             }
 
             // initialize tab content (with tab button if any)
-            tabObject.Initialize(tabButton);
+            tabObject.Initialize(tabButton, m_ChangeTabSoundFX);
 
             // register to tab button event
             if (tabButton != null)
@@ -197,21 +201,18 @@ namespace Menu
 
         protected virtual void UnRegisterTab(Enum tab)
         {
-            m_Tabs[tab].UnRegister();
-
             // unregister from tab button event
             if (m_Tabs[tab].TabButton != null)
                 m_Tabs[tab].TabButton.TabButtonClickedEvent -= () => { SelectTab(tab); };
+
+            m_Tabs[tab].UnRegister();
         }
 
         /// <summary>
         /// Display the currently selected tab
         /// </summary>
         /// <param name="withAnim"></param>
-        protected virtual void DisplayCurrentTab(bool withAnim = true)
-        {
-
-        }
+        protected virtual void DisplayCurrentTab(bool withAnim = true) { }
 
         #endregion
     }

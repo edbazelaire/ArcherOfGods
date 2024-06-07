@@ -3,6 +3,7 @@ using Game.Spells;
 using Save;
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -15,15 +16,15 @@ namespace Managers
     [Serializable]
     public struct SPlayerData : INetworkSerializable
     {
-        public string               PlayerName;
+        public FixedString32Bytes   PlayerName;
         public int                  CharacterLevel;
         public ECharacter           Character;
         public ERune                Rune;
         public ESpell[]             Spells;
         public int[]                SpellLevels;
-        public SProfileCurrentData  ProfileData;
+        public SProfileDataNetwork  ProfileData;
 
-        public SPlayerData(string playerName, int characterLevel, ECharacter character, ERune rune, ESpell[] spells, int[] spellLevels, SProfileCurrentData profileData)
+        public SPlayerData(FixedString32Bytes playerName, int characterLevel, ECharacter character, ERune rune, ESpell[] spells, int[] spellLevels, SProfileDataNetwork profileData)
         {
             PlayerName      = playerName;
             CharacterLevel  = characterLevel;
@@ -40,8 +41,31 @@ namespace Managers
             serializer.SerializeValue(ref CharacterLevel);
             serializer.SerializeValue(ref Character);
             serializer.SerializeValue(ref Rune);
-            serializer.SerializeValue(ref Spells);
-            serializer.SerializeValue(ref SpellLevels);
+
+            // Serialize Spells array
+            int spellsLength = Spells != null ? Spells.Length : 0;
+            serializer.SerializeValue(ref spellsLength);
+            if (serializer.IsReader)
+            {
+                Spells = new ESpell[spellsLength];
+            }
+            for (int i = 0; i < spellsLength; i++)
+            {
+                serializer.SerializeValue(ref Spells[i]);
+            }
+
+            // Serialize SpellLevels array
+            int spellLevelsLength = SpellLevels != null ? SpellLevels.Length : 0;
+            serializer.SerializeValue(ref spellLevelsLength);
+            if (serializer.IsReader)
+            {
+                SpellLevels = new int[spellLevelsLength];
+            }
+            for (int i = 0; i < spellLevelsLength; i++)
+            {
+                serializer.SerializeValue(ref SpellLevels[i]);
+            }
+
             ProfileData.NetworkSerialize(serializer);
         }
     }
@@ -88,7 +112,7 @@ namespace Managers
         /// <returns></returns>
         public static SPlayerData ToStruct()
         {
-            return new SPlayerData(PlayerName, CharacterLevel, Character, Rune, Spells, SpellLevels, ProfileCloudData.CurrentProfileData);
+            return new SPlayerData(PlayerName, CharacterLevel, Character, Rune, Spells, SpellLevels, ProfileCloudData.CurrentProfileData.AsNetworkSerializable());
         }
 
         /// <summary>

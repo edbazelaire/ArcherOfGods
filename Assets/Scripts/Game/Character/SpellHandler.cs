@@ -27,7 +27,9 @@ namespace Game.Character
         /// <summary> list of spells that links spellID to spellValue <summary>
         NetworkList<int>                    m_SpellsNet;
         /// <summary> list of spells that links spellID to spellValue <summary>
-        NetworkList<int>                    m_SpellLevelsNet;
+        NetworkList<int>                    m_SpellLevelsNet;        
+        /// <summary> which spells are set as autotarget and which are not </summary>
+        NetworkList<bool>                   m_IsAutoTarget;
         /// <summary> global cooldown when a spell is cast </summary>
         NetworkVariable<float>              m_GlobalCooldown        = new NetworkVariable<float>(0);
         /// <summary> currently selected spell </summary>
@@ -45,8 +47,6 @@ namespace Game.Character
         Controller                          m_Controller;
         /// <summary> coroutine of casting a spell </summary>
         Coroutine                           m_CastCoroutine;
-        /// <summary> which spells are set as autotarget and which are not </summary>
-        List<bool>                          m_IsAutoTarget;
         /// <summary> enum of the character's auto attack </summary>
         ESpell                              m_AutoAttack;
         /// <summary> enum of the character's ultimate </summary>
@@ -57,6 +57,10 @@ namespace Game.Character
         ESpell                              m_NextSelectedSpell;
         /// <summary> time before the animation ends </summary>
         float                               m_AnimationTimer;
+
+        // -- Client Side
+        /// <summary> is currently selected spell an AutoTarget ? </summary>
+        bool m_IsSelectedAutoTarget = false;
 
         // ===================================================================================
         // PUBLIC ACCESSORS
@@ -85,12 +89,15 @@ namespace Game.Character
             m_SpellsNet         = new NetworkList<int>(default);
             m_SpellLevelsNet    = new NetworkList<int>(default);
             m_CooldownsNet      = new NetworkList<float>(default);
+            m_IsAutoTarget      = new NetworkList<bool>(default);
         }
 
         public override void OnNetworkSpawn()
         {
             m_Controller = Finder.FindComponent<Controller>(gameObject);
             m_SpellSpawn = Finder.FindComponent<Transform>(gameObject, c_SpellSpawn);
+
+            m_SelectedSpellNet.OnValueChanged += OnSelectedSpellChanged;
         }
 
         void Update()
@@ -118,10 +125,7 @@ namespace Game.Character
         {
             if (!IsServer)
                 return;
-            
-            // setup auto target spells
-            m_IsAutoTarget = new List<bool>();
-
+          
             m_AutoAttack = autoAttack;
             m_Ultimate = ultimate;
 
@@ -350,9 +354,8 @@ namespace Game.Character
         public bool HasStateBlockingCast()
         {
             return m_Controller.StateHandler.IsStunned                          // is stunned
+                || m_Controller.StateHandler.IsSilenced                         // is silenced
                 || m_Controller.StateHandler.HasState(EStateEffect.Frozen)      // is frozen 
-                || m_Controller.StateHandler.HasState(EStateEffect.Silence)     // is silenced 
-                || m_Controller.StateHandler.HasState(EStateEffect.Scorched)    // is stunned 
                 || m_Controller.CounterHandler.IsBlockingCast.Value;            // is using a counter
         }
 
@@ -396,8 +399,6 @@ namespace Game.Character
             // only owner can ask for cast
             if (!IsServer)
                 yield break;
-
-
 
             m_IsCasting.Value = true;
 
@@ -457,7 +458,7 @@ namespace Game.Character
                 ErrorHandler.Log("Cast : " + spell, ELogTag.SpellHandler);
 
             SpellData spellData = SpellLoader.GetSpellData(spell, m_SpellLevelsNet[GetSpellIndex(spell)]);
-            if (IsAutoTarget(spell))
+            if (m_IsSelectedAutoTarget)
                 spellData.ForceAutoTarget();
 
             // recalculate target depending on spell and conditions (autocast, ...)
@@ -607,7 +608,28 @@ namespace Game.Character
         /// <returns></returns>
         public float GetCooldown(ESpell spellType)
         {
+            if (! NetworkManager.Singleton.IsConnectedClient || GameManager.IsGameOver)
+                return 0f;
             return m_CooldownsNet[GetSpellIndex(spellType)];
+        }
+
+        public void ResetCooldowns()
+        {
+            if (!IsServer)
+                return;
+
+            foreach (var spellId in m_SpellsNet)
+            {
+                ResetSpell((ESpell)spellId);
+            }
+        }
+
+        public void ResetSpell(ESpell spell)
+        {
+            if (!IsServer)
+                return;
+
+            SetCooldown(spell, 0f);
         }
 
         #endregion
@@ -622,6 +644,9 @@ namespace Game.Character
         /// <returns></returns>
         public bool IsAutoTarget(ESpell spell)
         {
+            if (spell == ESpell.Count)
+                return false;
+
             return m_IsAutoTarget[GetSpellIndex(spell)];
         }
 
@@ -686,6 +711,15 @@ namespace Game.Character
 
         #endregion
 
+
+        #region Listeners
+
+        void OnSelectedSpellChanged(int oldValue, int newValue)
+        {
+            m_IsSelectedAutoTarget = IsAutoTarget(m_SelectedSpell);
+        }
+
+        #endregion
 
         #region Getter / Setter / Dependent Properties
 

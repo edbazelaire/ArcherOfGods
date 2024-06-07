@@ -57,8 +57,8 @@ namespace Game.UI
 
             // HealthBar
             m_ShieldBar = Finder.FindComponent<PlayerBarUI>(gameObject, "ShieldBar");
-            m_ShieldBar.Initialize(controller.StateHandler.RemainingShield.Value, controller.Life.MaxHp.Value);
-            controller.Life.MaxHp.OnValueChanged                    += m_ShieldBar.OnMaxValueChanged;
+            m_ShieldBar.Initialize(controller.StateHandler.RemainingShield.Value + controller.Life.Shield.Value, controller.Life.MaxHp.Value);
+            controller.Life.Shield.OnValueChanged                   += m_ShieldBar.OnValueChanged;
             controller.StateHandler.RemainingShield.OnValueChanged  += m_ShieldBar.OnValueChanged;
 
             // Energy Bar

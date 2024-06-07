@@ -1,5 +1,5 @@
-﻿using Data.GameManagement;
-using Inventory;
+﻿using Assets.Scripts.Managers.Sound;
+using Data.GameManagement;
 using Save;
 using System;
 using System.Collections;
@@ -19,6 +19,7 @@ namespace Menu.Common
         const string COLLECTION_PERC_FORMAT     = "{0}%";
 
         [SerializeField] float  m_CollectionAnimationDuration = 1.0f;
+        [SerializeField] Color  m_BaseColor;
         [SerializeField] Color  m_FullColor;
         [SerializeField] float  m_GlowSpeed;
         [SerializeField] float  m_GlowPause;
@@ -26,7 +27,6 @@ namespace Menu.Common
         Image                   m_CollectionFill;
         RectTransform           m_CollectionFillRectT;
         TMP_Text                m_CollectionValue;
-        Color                   m_BaseColor;
         GameObject              m_Glow;
 
         SCollectableCloudData?  m_CollectableCloudData = null;
@@ -70,12 +70,14 @@ namespace Menu.Common
 
         protected override void FindComponents()
         {
-            m_CollectionFill = Finder.FindComponent<Image>(gameObject, "Fill");
-            m_CollectionFillRectT = Finder.FindComponent<RectTransform>(m_CollectionFill.gameObject);
-            m_CollectionValue = Finder.FindComponent<TMP_Text>(gameObject, "Value");
-            m_BaseColor = m_CollectionFill.color;
-            m_Glow = Finder.Find(gameObject, "Glow");
+            m_CollectionFill        = Finder.FindComponent<Image>(gameObject, "Fill");
+            m_CollectionFillRectT   = Finder.FindComponent<RectTransform>(m_CollectionFill.gameObject);
+            m_CollectionValue       = Finder.FindComponent<TMP_Text>(gameObject, "Value");
+            m_Glow                  = Finder.Find(gameObject, "Glow");
 
+            if (m_BaseColor == default(Color))
+                m_BaseColor = m_CollectionFill.color;
+            
             m_Glow.SetActive(false);
         }
 
@@ -118,6 +120,7 @@ namespace Menu.Common
 
 
         #region GUI Manipulators
+
         void RefreshUI()
         {
             if (m_MaxCollection == 0)
@@ -196,15 +199,24 @@ namespace Menu.Common
 
         public IEnumerator CollectionAnimationCoroutine(float amount)
         {
+            var audioSource = SoundFXManager.PlaySoundFXClip(SoundFXManager.ProgressBarSoundFX, null);
+
             float goal = m_CurrentCollection + amount;
             float newValue = m_CurrentCollection;
-            while (m_CurrentCollection < goal) 
+
+            if (amount > 1)
             {
-                newValue += (amount * Time.deltaTime / m_CollectionAnimationDuration);
-                UpdateCollection(Math.Min((int)Math.Round(newValue), goal));
-                yield return null;
+                while (m_CurrentCollection < goal)
+                {
+                    newValue += (amount * Time.deltaTime / m_CollectionAnimationDuration);
+                    UpdateCollection(Math.Min((int)Math.Round(newValue), goal));
+                    yield return null;
+                }
             }
 
+            Destroy(audioSource.gameObject);
+
+            UpdateCollection(goal);
             m_Animation = null;
         }
 

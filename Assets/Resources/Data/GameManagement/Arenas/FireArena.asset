@@ -17,7 +17,7 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 1500
+        Qty: 1000
       - Currency: 1
         Qty: 15
       Chests: 
@@ -25,6 +25,7 @@ MonoBehaviour:
       - CollectableType: 2
         CollectableName: FireBarrage
         Qty: 15
+      AchievementRewards: []
     StageData:
     - Character: 1
       CharacterLevel: 1
@@ -36,7 +37,7 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 3500
+        Qty: 1500
       - Currency: 1
         Qty: 15
       Chests: 04000000
@@ -44,6 +45,13 @@ MonoBehaviour:
       - CollectableType: 2
         CollectableName: FireBomb
         Qty: 15
+      AchievementRewards:
+      - AchievementReward: 2
+        Title: 0
+        Avatar: 3
+        Border: 0
+        Badge: 0
+        League: 0
     StageData:
     - Character: 1
       CharacterLevel: 2
@@ -55,14 +63,21 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 5000
+        Qty: 2500
       - Currency: 1
         Qty: 15
-      Chests: 0400000004000000
+      Chests: 04000000
       Collectables:
       - CollectableType: 2
         CollectableName: ScorchedEarth
         Qty: 15
+      AchievementRewards:
+      - AchievementReward: 2
+        Title: 0
+        Avatar: 103
+        Border: 0
+        Badge: 0
+        League: 0
     StageData:
     - Character: 1
       CharacterLevel: 3
@@ -74,11 +89,18 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 10000
+        Qty: 5000
       - Currency: 1
         Qty: 25
-      Chests: 05000000
+      Chests: 04000000
       Collectables: []
+      AchievementRewards:
+      - AchievementReward: 2
+        Title: 0
+        Avatar: 2
+        Border: 0
+        Badge: 0
+        League: 0
     StageData:
     - Character: 1
       CharacterLevel: 4
@@ -94,44 +116,89 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 15000
+        Qty: 7500
       - Currency: 1
         Qty: 25
-      Chests: 0500000004000000
+      Chests: 05000000
       Collectables:
-      - CollectableType: 2
-        CollectableName: PyrotoxinMist
+      - CollectableType: 3
+        CollectableName: FireRune
         Qty: 1
+      AchievementRewards:
+      - AchievementReward: 4
+        Title: 10
+        Avatar: 0
+        Border: 0
+        Badge: 0
+        League: 0
     StageData:
     - Character: 1
       CharacterLevel: 6
     - Character: 2
       CharacterLevel: 6
-    - Character: 0
+    - Character: 4
       CharacterLevel: 7
     - Character: 3
       CharacterLevel: 7
     - Character: 0
       CharacterLevel: 8
-  - Spells: 03000000110000001b00000001000000
+  - Spells: 03000000110000001b00000020000000
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 25000
+        Qty: 10000
       - Currency: 1
         Qty: 25
-      Chests: 06000000
-      Collectables: []
+      Chests: 05000000
+      Collectables:
+      - CollectableType: 2
+        CollectableName: Meteor
+        Qty: 1
+      AchievementRewards:
+      - AchievementReward: 3
+        Title: 0
+        Avatar: 0
+        Border: 201
+        Badge: 0
+        League: 0
     StageData:
     - Character: 1
       CharacterLevel: 8
     - Character: 2
       CharacterLevel: 8
-    - Character: 0
+    - Character: 4
       CharacterLevel: 9
     - Character: 3
       CharacterLevel: 9
     - Character: 0
       CharacterLevel: 10
-  LastLevel: 0
-  LastStage: 0
+  - Spells: 20000000030000001100000001000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 15000
+      - Currency: 1
+        Qty: 25
+      Chests: 06000000
+      Collectables:
+      - CollectableType: 1
+        CollectableName: Kahnan
+        Qty: 1
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 10
+        Avatar: 0
+        Border: 0
+        Badge: 1001
+        League: 0
+    StageData:
+    - Character: 1
+      CharacterLevel: 11
+    - Character: 2
+      CharacterLevel: 11
+    - Character: 4
+      CharacterLevel: 11
+    - Character: 3
+      CharacterLevel: 11
+    - Character: 0
+      CharacterLevel: 12

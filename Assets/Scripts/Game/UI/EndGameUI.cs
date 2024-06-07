@@ -146,8 +146,8 @@ public class EndGameUI : MonoBehaviour
     {
         switch (LobbyHandler.Instance.GameMode)
         {
-            case EGameMode.Solo:
-                Debug.Log("Loading Arena Data : " + PlayerPrefsHandler.GetArenaType().ToString());
+            case EGameMode.Arena:
+                ErrorHandler.Log("HandleProgression() : Loading Arena Data : " + PlayerPrefsHandler.GetArenaType().ToString(), ELogTag.GameSystem);
                 ArenaData arenaData = AssetLoader.LoadArenaData(PlayerPrefsHandler.GetArenaType());
                 arenaData.UpdateStageValue(win);
                 break;

@@ -28,6 +28,7 @@ MonoBehaviour:
   m_Damage: 200
   m_Heal: 0
   Distance: -1
+  OverrideOnHitProperties: 02000000
   m_Duration: 0
   Delay: 0
   m_Size: 1

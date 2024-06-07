@@ -13,7 +13,7 @@ using UnityEngine;
 namespace Data
 {
     [Serializable]
-    public struct SAchievementRewardData
+    public struct SAchievementReward
     {
         public EAchievementReward AchievementReward;
 
@@ -28,26 +28,78 @@ namespace Data
         [ConditionalField("AchievementReward", false, EAchievementReward.Badge)]
         public ELeague  League;
 
-        public string Value
+        public void Set(Enum value)
+        {
+            // try to extract type from provided value
+            if (! ProfileCloudData.TryGetType(value, out AchievementReward))
+                return;
+
+            // try to set value from string
+            Value = value.ToString();
+        }
+
+        public Enum EnumValue
         {
             get
             {
                 switch (AchievementReward)
                 {
                     case EAchievementReward.Title:
-                        return Title.ToString();
+                        return Title;
                     case EAchievementReward.Avatar:
-                        return Avatar.ToString();
+                        return Avatar;
                     case EAchievementReward.Border:
-                        return Border.ToString();
-
+                        return Border;
                     case EAchievementReward.Badge:
-                        return ProfileCloudData.BadgeToString(Badge, League);
+                        return Badge;
 
                     default:
                         ErrorHandler.Error("Unahandled case : " + AchievementReward);
-                        return "";
+                        return default;
                 }
+            }
+        }
+
+        public string Value
+        {
+            get
+            {
+                if (AchievementReward == EAchievementReward.Badge)
+                    return ProfileCloudData.BadgeToString(Badge, League);
+
+                return EnumValue.ToString();
+            }
+
+            set
+            {
+                switch (AchievementReward)
+                {
+                    case EAchievementReward.Title:
+                        if (!Enum.TryParse(value, out Title))
+                            break;
+                        return;
+
+                    case EAchievementReward.Avatar:
+                        if (!Enum.TryParse(value, out Avatar))
+                            break;
+                        return;
+
+                    case EAchievementReward.Border:
+                        if (!Enum.TryParse(value, out Border))
+                             break;
+                        return;
+
+                    case EAchievementReward.Badge:
+                        if (!ProfileCloudData.TryGetBadgeFromString(value, out Badge, out League))
+                            break;
+                        return;
+
+                    default:
+                        ErrorHandler.Error("Unahandled case : " + AchievementReward);
+                        return;
+                }
+
+                ErrorHandler.Error("Unable to set value " + value + " for achievement of type " + AchievementReward);
             }
         }
     }
@@ -58,11 +110,13 @@ namespace Data
         [Description("Treshold value that provides the reward")]
         public float                            MaxValue;
 
-        [Description("Rewards specific to achivements")]
-        public List<SAchievementRewardData>     AchivementRewardData;
+        //[Description("Rewards specific to achivements")]
+        //public List<SAchievementReward>     AchivementRewardData;
 
         [Description("Extra rewards (golds, xp, chests, ...)")]
         public SRewardsData                     Rewards;
+
+        public List<SAchievementReward> AchivementRewardData => Rewards.AchievementRewards;
     }
 
     [Serializable]
@@ -168,28 +222,36 @@ namespace Data
 
         public void Unlock()
         {
+            if (! Current.HasValue)
+            {
+                ErrorHandler.Error("Current has no value");
+                return;
+            }    
+
             SAchievementSubData achievementData = Current.Value;
 
-            // ACHIEVEMENT REWARDS
-            bool saveAR = false;
-            foreach (SAchievementRewardData data in achievementData.AchivementRewardData)
+            // ACHIEVEMENT REWARDS (only)
+            if (achievementData.AchivementRewardData.Count == achievementData.Rewards.Count) 
             {
-                ErrorHandler.Log("Unlocking AchievementReward : " + data.AchievementReward + " - " + data.Value);
-                ProfileCloudData.AddAchievementReward(data.AchievementReward, data.Value, false);
-            }
-            if (saveAR)
+                foreach (SAchievementReward data in achievementData.AchivementRewardData)
+                {
+                    ErrorHandler.Log("Unlocking Achievement Reward : " + data.AchievementReward + " - " + data.Value, ELogTag.Achievements);
+                    ErrorHandler.Log("- data : ", ELogTag.Achievements);
+                    ErrorHandler.Log("     + AchievementRewardType : " + data.AchievementReward, ELogTag.Achievements);
+                    ErrorHandler.Log("     + Value : " + data.Value, ELogTag.Achievements);
+                    ProfileCloudData.AddAchievementReward(data.AchievementReward, data.Value, false);
+                }
+
+                Main.DisplayAchievementRewards(achievementData.AchivementRewardData);
                 ProfileCloudData.Instance.SaveValue(ProfileCloudData.KEY_ACHIEVEMENT_REWARDS);
+            }
+
+            // MULTIPLE REWARDS
+            else if (!achievementData.Rewards.IsEmpty)
+                Main.DisplayRewards(achievementData.Rewards, ERewardContext.Achievements);
 
             // save that the achievement was completed
             ProfileCloudData.CompleteAchievement(Name);
-
-            // display rewards
-            if (achievementData.AchivementRewardData.Count > 0)
-                Main.DisplayAchievementRewards(achievementData.AchivementRewardData);
-
-            // REWARDS
-            if (! achievementData.Rewards.IsEmpty)
-                Main.DisplayRewards(achievementData.Rewards, ERewardContext.Achievements);
         }
 
         #endregion

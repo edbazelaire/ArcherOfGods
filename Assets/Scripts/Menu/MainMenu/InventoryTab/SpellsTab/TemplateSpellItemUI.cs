@@ -49,11 +49,6 @@ namespace Menu.MainMenu
             m_SubButtons.SetActive(false);
         }
 
-        protected override void SetUpUI()
-        {
-            base.SetUpUI();
-        }
-
         protected override void RegisterListeners()
         {
             base.RegisterListeners();
@@ -67,12 +62,12 @@ namespace Menu.MainMenu
             TemplateSpellItemUI.ButtonClickedEvent      += OnAnyItemButtonClicked;
         }
 
-        protected override void UnregisterLiteners()
+        protected override void UnRegisterListeners()
         {
            if (! m_IsInitialized)
                 return;
 
-            base.UnregisterLiteners();
+            base.UnRegisterListeners();
 
             m_UseButton.onClick.RemoveAllListeners();
             m_RemoveButton.onClick.RemoveAllListeners();
@@ -187,7 +182,7 @@ namespace Menu.MainMenu
         /// Set UI according to the provided state
         /// </summary>
         /// <param name="state"></param>
-        protected override void SetState(EButtonState state)
+        public override void SetState(EButtonState state)
         {
             base.SetState(state);
 
@@ -238,6 +233,15 @@ namespace Menu.MainMenu
                     ToggleSubButtons();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Do nothing on clicked while beeing locked
+        /// </summary>
+        protected override void OnClickLocked()
+        {
+            // TODO : lock message ?
+            return;
         }
 
         /// <summary>

@@ -1,6 +1,5 @@
 ﻿using Enums;
 using Game.Loaders;
-using Inventory;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -64,7 +63,7 @@ namespace Data.GameManagement
 
         #region Data Management
 
-        public static CollectionData GetData(Enum collectable, int level)
+        public static CollectableData GetData(Enum collectable, int level)
         {
             // load data of the item
             if (collectable.GetType() == typeof(ECharacter))
@@ -84,6 +83,20 @@ namespace Data.GameManagement
 
 
         #region Type & Cast
+
+        public static bool IsCollectableType(Type type)
+        {
+            foreach (ECollectableType collectableType in Enum.GetValues(typeof(ECollectableType)))
+            {
+                if (collectableType == ECollectableType.None)
+                    continue;
+
+                if (GetEnumType(collectableType) == type)
+                    return true;
+            }
+
+            return false;
+        }
 
         public static Type GetEnumType(ECollectableType collectableType)
         {
@@ -118,6 +131,18 @@ namespace Data.GameManagement
             }
 
             return true;
+        }
+
+        public static bool TryCast(string name, Type collectableType, out Enum collectable)
+        {
+            collectable = null;
+            if (Enum.TryParse(collectableType, name, out object result))
+            {
+                collectable = (Enum)result;
+                return true;
+            }
+
+            return false;
         }
 
         public static Enum Cast(string name, ECollectableType collectableType)

@@ -12,8 +12,9 @@
         ArenaPathScreen,
 
         // -- info PopUps
-        SpellInfoPopUp,
+        CollectableInfoPopUp,
         CharacterInfoPopUp,
+        SpellInfoPopUp,
         StateEffectPopUp,
         RuneSelectionPopUp,
 
@@ -23,11 +24,14 @@
         ConfirmBuyPopUp,
         ConfirmBuyItemPopUp,
         ConfirmBuyBundlePopUp,
+
+        // -- config popup
+        SettingsPopUp,
     }
 
     public enum EGameMode
     {
-        Solo,
+        Arena,
         Multi
     }
 
@@ -84,6 +88,9 @@
         FrostLeap,
         Meteor,
         Comets,
+        VenomousBite,
+        ShadowShurikens,
+        CursedTimes,
 
         Count
     }
@@ -126,6 +133,15 @@
         CurseRune,
     }
 
+    public enum ESpellActionPart
+    {
+        Animation,
+        Cast,
+        During,
+        OnHit,
+        OnEnd,
+    }
+
     public enum EAppState
     {
         /// <summary> entry point </summary>
@@ -144,6 +160,9 @@
 
     public enum EGameState
     {
+        /// <summary> no GameState set </summary>
+        None, 
+
         /// <summary> waiting for player data & connections </summary>
         WaitingForConnection,
         /// <summary> The GameManager received all data and clients, is now preparing the game (spawning players, UI, etc..) </summary>
@@ -154,8 +173,6 @@
         GameRunning,
         /// <summary> game is over </summary>
         GameOver,
-
-        Count
     }
 
     public enum ESpellTrajectory 
@@ -254,6 +271,8 @@
         Silence,
         Scorched,
         IceBreak,
+        Infected,
+        Malediction,
     }
 
     public enum ESpellProperty
@@ -286,6 +305,9 @@
         AttackSpeed,
         CastSpeed,
         ConsumeState,
+        BonusTickDamages,
+        BonusTickHeal,
+        BonusTickShield,
     }
 
     public enum EAnimation
@@ -300,6 +322,7 @@
         Win,
         Loss,
         CastBuff,
+        CancelStateEffect,
     }
 
     public enum ECounterType
@@ -330,13 +353,16 @@
 
     public enum ELogTag
     {
+        Debug = -1,
+        Debugger = -2,
+
         None = 0,
         All = 1,
 
         System              = 2, 
         Network             = 3,
-        Debug               = 4,
-        Debugger            = 5,
+        Lobby               = 4,
+        Achievements        = 5,
 
         // Game
         Game                = 100,    
@@ -345,6 +371,8 @@
         Rewards             = 103,      // end game rewards handling
         GameSystem          = 104,      // login, new player, stages, ...
         SpellHandler        = 105,      // casting error/success messages, cancel, all stages of spell casting, spell ending, ...
+        Animation           = 106,      // animations playing
+        StateEffects        = 107,      // animations playing
 
         // AI
         AI                  = 200,
@@ -511,7 +539,7 @@
         None = 0,
 
         Dicks_Slayer,
-        Noobs_Crucher,
+        Noobs_Crusher,
         Rank_1,
         First,
         Forever_Alone,
@@ -519,6 +547,8 @@
         The_Money_Maker,
         Cresus,
         Lone_Wolf,
+        Pyro_Master,
+        Glacial_Conqueror,
     }
 
     public enum EAvatar
@@ -534,11 +564,14 @@
         ChibiSakura     = 7,
         Tao             = 8,
         ChibiTao        = 9,
+        Snowman         = 10,
+        FrostMaster     = 11,
 
         BlueFlameChibi  = 101,
         CosmicChibi     = 102,
         DemonicChibi    = 103,
         FireChibi       = 104,
+        ChibiFrostDemon = 105,
 
         Alexander       = 1000,
         YoungAlexander  = 1001,
@@ -567,6 +600,10 @@
 
         // Others
         Sakura = 101,
+
+        // Speical Events
+        Fire = 201,
+        Frost = 202,
 
     }
 
@@ -604,5 +641,12 @@
         Avatar      = 2,
         Border      = 3,
         Title       = 4,
+    }
+
+    public enum EVolumeOption
+    {
+        MasterVolume,
+        SoundEffectsVolume,
+        MusicVolume,
     }
 }

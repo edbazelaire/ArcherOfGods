@@ -24,7 +24,7 @@ namespace Game.Spells
             if (! m_Controller.StateHandler.HasState(EStateEffect.Frost))
             {
                 // add frost state
-                m_Controller.StateHandler.AddStateEffect(EStateEffect.Frost);
+                m_Controller.StateHandler.AddStateEffect(EStateEffect.Frost, m_Caster);
                 return false;
             }
 

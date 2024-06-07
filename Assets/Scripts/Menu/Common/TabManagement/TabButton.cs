@@ -20,6 +20,7 @@ namespace Menu
         protected Image     m_Border;
         protected Image     m_BackgroundImage;
         protected Image     m_Icon;
+        protected Mask      m_IconMask;
         protected TMP_Text  m_Text;
 
         protected Color m_BaseBorderColor;
@@ -38,6 +39,7 @@ namespace Menu
             m_Button            = Finder.FindComponent<Button>(gameObject);
             m_Border            = Finder.FindComponent<Image>(gameObject,       "Border",           false);
             m_BackgroundImage   = Finder.FindComponent<Image>(gameObject,       "BackgroundImage",  false);
+            m_IconMask          = Finder.FindComponent<Mask>(gameObject,        "IconMask",         false);
             m_Icon              = Finder.FindComponent<Image>(gameObject,       "TabIcon",          false);
             m_Text              = Finder.FindComponent<TMP_Text>(gameObject,    "TabText",          false);
 
@@ -68,24 +70,13 @@ namespace Menu
             if (m_Activated == activate)
                 return;
 
-            if (m_Border != null && m_BaseBackgroundColor != default)
-                m_Border.color                  = activate ? m_BaseBackgroundColor : m_BaseBorderColor;
+            if (m_Border != null && m_BorderColorActivated != default)
+                m_Border.color                  = activate ? m_BorderColorActivated : m_BaseBorderColor;
             if (m_BackgroundImage != null && m_BackgroundColorActivated != default)
                 m_BackgroundImage.color         = activate ? m_BackgroundColorActivated : m_BaseBackgroundColor;
 
-            if (m_Icon != null)
-            {
-                m_Icon.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
-                if (m_ColorActivated != default)
-                    m_Icon.color = activate ? m_ColorActivated : m_BaseColor;
-            }
-
-            if (m_Text != null)
-            {
-                m_Text.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
-                if (m_ColorActivated != default)
-                    m_Text.color = activate ? m_ColorActivated : m_BaseColor;
-            }
+            SetActivationColor(activate);
+            SetActivationSize(activate);
 
             m_Activated = activate;
         }
@@ -94,6 +85,38 @@ namespace Menu
         {
             if (m_Button != null)
                 m_Button.onClick.RemoveAllListeners();
+        }
+
+        #endregion
+
+
+        #region GUI Manipulators
+
+        protected virtual void SetActivationSize(bool activate)
+        {
+            if (m_IconMask != null)
+                m_IconMask.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
+            else if (m_Icon != null)
+                m_Icon.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
+
+            if (m_Text != null)
+                m_Text.transform.localScale = activate ? new Vector3(1.2f, 1.2f, 1f) : Vector3.one;
+        }
+
+        protected virtual void SetActivationColor(bool activate)
+        {
+            if (m_ColorActivated == default)
+                return;
+
+            if (m_Icon != null)
+            {
+                m_Icon.color = activate ? m_ColorActivated : m_BaseColor;
+            }
+
+            if (m_Text != null)
+            {
+                m_Text.color = activate ? m_ColorActivated : m_BaseColor;
+            }
         }
 
         #endregion

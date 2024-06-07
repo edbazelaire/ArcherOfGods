@@ -96,6 +96,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6178214022028017282, guid: 5427380f25ed33246841ba428296125c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.102
+      objectReference: {fileID: 0}
     - target: {fileID: 6843240138076716187, guid: 5427380f25ed33246841ba428296125c, type: 3}
       propertyPath: m_AnchoredPosition.x
       value: -0.046
@@ -103,6 +107,14 @@ PrefabInstance:
     - target: {fileID: 6843240138076716187, guid: 5427380f25ed33246841ba428296125c, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -0.549
+      objectReference: {fileID: 0}
+    - target: {fileID: 7608590245707429554, guid: 5427380f25ed33246841ba428296125c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.614
+      objectReference: {fileID: 0}
+    - target: {fileID: 7608590245707429554, guid: 5427380f25ed33246841ba428296125c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 6372075467258118441, guid: 5427380f25ed33246841ba428296125c, type: 3}
@@ -516,7 +528,7 @@ Animator:
   m_GameObject: {fileID: 8113223159518336871}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 9257d0fd0ceb43f4780c18d5ed527712, type: 2}
+  m_Controller: {fileID: 22100000, guid: 89ee88eafbc26bf449d4150470cce915, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -540,42 +552,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad8deae8091111f4eb30a56c1f4e0d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TransitionStateInfoList:
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: -1956492617
-    DestinationState: 1174292052
-    TransitionDuration: 0
-    TriggerNameHash: 890595506
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 949982143
-    DestinationState: 1174292052
-    TransitionDuration: 0
-    TriggerNameHash: 890595506
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 85770469
-    DestinationState: 1174292052
-    TransitionDuration: 0
-    TriggerNameHash: 890595506
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 179095230
-    DestinationState: 1174292052
-    TransitionDuration: 0
-    TriggerNameHash: 890595506
-    TransitionIndex: 0
-  - IsCrossFadeExit: 0
-    Layer: 0
-    OriginatingState: 1047131479
-    DestinationState: 1174292052
-    TransitionDuration: 0
-    TriggerNameHash: 890595506
-    TransitionIndex: 0
+  TransitionStateInfoList: []
   m_Animator: {fileID: 2725762009597194340}
 --- !u!114 &4687639512583167036
 MonoBehaviour:

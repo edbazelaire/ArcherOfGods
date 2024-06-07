@@ -243,17 +243,42 @@ namespace Game.Loaders
         /// </summary>
         /// <param name="rarety"></param>
         /// <returns></returns>
-        public static List<SpellData> GetSpellsFromRarety(ERarety rarety) 
+        public static List<SpellData> GetSpellsFromRarety(ERarety rarety, bool? unlocked = null) 
         { 
             List<SpellData> spells = new List<SpellData>();
             foreach (var spellData in Instance.m_Spells.Values)
             {
                 if (spellData.Linked || spellData.Rarety != rarety)
                     continue;
+
+                if (unlocked != null)
+                {
+                    // if UNLOCKED is required : check that spell is already unlocked
+                    if (unlocked.Value && InventoryCloudData.Instance.GetSpell(spellData.Spell).Level == 0)
+                        continue;
+
+                    // if NOT UNLOCKED is required : check that spell is not already unlocked
+                    if (! unlocked.Value && InventoryCloudData.Instance.GetSpell(spellData.Spell).Level > 0)
+                        continue;
+                }
+
                 spells.Add(spellData);
             }
 
             return spells;
+        }
+
+        public static SpellData GetRandomSpell(List<ERarety> raretyFilters = default, List<ESpellType> spellTypeFilters = default, List<EStateEffect> stateEffectFilters = default, List<ESpell> notAllowedSpellsFilter = default, bool? unlocked = null)
+        {
+            var spells = FilterSpells(raretyFilters, spellTypeFilters, stateEffectFilters, notAllowedSpellsFilter, unlocked);
+            if (spells.Count == 0)
+            {
+                ErrorHandler.Warning("Unable to find any spell matching provided filters");
+                return null;
+            }
+
+            int randomIndex = UnityEngine.Random.Range(0, spells.Count);
+            return spells[randomIndex];
         }
 
         /// <summary>
@@ -266,24 +291,28 @@ namespace Game.Loaders
         /// <param name="spellTypeFilters"></param>
         /// <param name="stateEffectFilters"></param>
         /// <returns></returns>
-        public static List<SpellData> FilterSpells(List<ERarety> raretyFilters = default, List<ESpellType> spellTypeFilters = default, List<EStateEffect> stateEffectFilters = default)
+        public static List<SpellData> FilterSpells(List<ERarety> raretyFilters = default, List<ESpellType> spellTypeFilters = default, List<EStateEffect> stateEffectFilters = default, List<ESpell> notAllowedSpellsFilter = default, bool? unlocked = null)
         {
             List<SpellData> spells = new List<SpellData>();
             foreach (var spellData in Instance.m_Spells.Values)
             {
-                // check not linked
+                // CHECK : not linked
                 if (spellData.Linked)
                     continue;
 
-                // check rarety
+                // CHECK : not in not allowed spells
+                if (notAllowedSpellsFilter != null && notAllowedSpellsFilter.Contains(spellData.Spell))
+                    continue;
+
+                // CHECK : rarety
                 if (raretyFilters != null && raretyFilters.Count > 0 && !raretyFilters.Contains(spellData.Rarety))
                     continue;
                 
-                // check type
+                // CHECK : type
                 if (spellTypeFilters != null && spellTypeFilters.Count > 0 && !spellTypeFilters.Contains(spellData.SpellType))
                     continue;
                 
-                // check check spell filter
+                // CHECK : spell filter
                 if (stateEffectFilters != null && stateEffectFilters.Count > 0)
                 {
                     var spellInfos = spellData.GetInfos();
@@ -298,6 +327,22 @@ namespace Game.Loaders
 
                     var filteredEffects = spellEffects.Where(effect => stateEffectFilters.Contains(effect.StateEffect)).ToList();
                     if (filteredEffects.Count == 0)
+                        continue;
+                }
+
+                // CHECK : not in not allowed spells
+                if (notAllowedSpellsFilter != null && notAllowedSpellsFilter.Contains(spellData.Spell))
+                    continue;
+
+                // CHECK : is owned
+                if (unlocked != null)
+                {
+                    // if UNLOCKED is required : check that spell is already unlocked
+                    if (unlocked.Value && InventoryCloudData.Instance.GetSpell(spellData.Spell).Level == 0)
+                        continue;
+
+                    // if NOT UNLOCKED is required : check that spell is not already unlocked
+                    if (!unlocked.Value && InventoryCloudData.Instance.GetSpell(spellData.Spell).Level > 0)
                         continue;
                 }
 

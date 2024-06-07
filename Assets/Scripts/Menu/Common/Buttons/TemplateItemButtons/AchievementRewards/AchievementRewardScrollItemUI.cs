@@ -22,6 +22,7 @@ public class AchievementRewardScrollItemUI : MObject
     // Public Accessors
     public AchievementRewardUI AchievementRewardUI => m_AchievementRewardUI;
     public Button Button => m_AchievementRewardUI.Button;
+    public string Name => m_AchievementRewardName;
 
     #endregion
 
@@ -48,7 +49,6 @@ public class AchievementRewardScrollItemUI : MObject
     {
         base.SetUpUI();
 
-
         SetUpTitle();
         SetUpIcon();
     }
@@ -57,6 +57,12 @@ public class AchievementRewardScrollItemUI : MObject
 
 
     #region GUI Manipulators
+
+    public void RefreshUI(string rewardName)
+    {
+        m_AchievementRewardName = rewardName;
+        SetUpUI();
+    }
 
     void SetUpTitle()
     {
@@ -91,5 +97,4 @@ public class AchievementRewardScrollItemUI : MObject
     }
 
     #endregion
-
 }

@@ -16,6 +16,10 @@ namespace Game.Character
         NetworkVariable<bool>       m_MovementCancelled     = new(false);
         NetworkVariable<bool>       m_MovementBlocked       = new(false);
 
+        // [Client Data]
+        int m_MovementInput = 0;
+        float m_SpeedBonus = 0f;
+
         float m_InitialSpeed;
 
         #endregion
@@ -34,6 +38,8 @@ namespace Game.Character
         /// <param name="characterSpeed"></param>
         public void Initialize(float characterSpeed)
         {
+            m_Controller.StateHandler.SpeedBonus.OnValueChanged += OnSpeedBonusValueChanged;
+
             if (!IsServer)
                 return;
 
@@ -69,10 +75,7 @@ namespace Game.Character
             if (!IsServer)
                 return;
 
-            if (!CanMove)
-                moveX = 0;
-
-            m_MoveX.Value = moveX;
+            m_MovementInput = moveX;
         }
 
         #endregion
@@ -85,8 +88,15 @@ namespace Game.Character
         /// </summary>
         void UpdateMovement()
         {
-            if (m_MoveX.Value == 0 || ! CanMove)
+            if (! CanMove || m_MovementInput == 0)
+            {
+                if (m_MoveX.Value != 0)
+                    m_MoveX.Value = 0;
                 return;
+            }
+
+            if (m_MoveX.Value != m_MovementInput)
+                m_MoveX.Value = m_MovementInput;
 
             // depending on team, the camera is rotated implying that movement is inverted
             float teamFactor = m_Controller.Team == 0 ? 1f : -1f;
@@ -134,7 +144,11 @@ namespace Game.Character
                 moveX = 1;
             }
 
-            SetMovementServerRPC(moveX);
+            if (m_MovementInput != moveX)
+            {
+                m_MovementInput = moveX;
+                SetMovementServerRPC(moveX);
+            }
         }
 
         void ResetRotation()
@@ -191,11 +205,24 @@ namespace Game.Character
         #endregion
 
 
+        #region Listeners
+
+        private void OnSpeedBonusValueChanged(float oldValue, float newValue)
+        {
+            m_SpeedBonus = (float)newValue - 1f;
+        }
+
+        #endregion
+
+
         #region Dependent Attributes
 
         public float Speed
         {
-            get { return Math.Max(0, Settings.CharacterSpeedFactor * m_InitialSpeed * m_Controller.StateHandler.SpeedBonus.Value); }
+            get 
+            {
+                return Math.Max(0, Settings.CharacterSpeedFactor * (m_InitialSpeed + m_SpeedBonus));
+            }
         }
 
         public bool IsMoving

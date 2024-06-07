@@ -93,6 +93,7 @@ namespace Data
             // setup data
             int remaining = Qty;
             List<SReward> rewardsList = new();
+            var usedSpells = new List<ESpell>() { };
 
             if (stateEffectFilter == default)
                 stateEffectFilter = new EStateEffect[] {};
@@ -121,7 +122,7 @@ namespace Data
                 // generate random quantity of cards and add it to list of rewards
                 rewardsList.Add(new SReward(
                     typeof(ESpell),
-                    GenerateRandomSpell(Rarety, stateEffectFilter.ToList()).ToString(),
+                    GenerateRandomSpell(Rarety, ref usedSpells, stateEffectFilter.ToList()).ToString(),
                     qty
                 ));
 
@@ -138,22 +139,41 @@ namespace Data
         /// <param name="rarety"></param>
         /// <param name="stateEffectFilter"></param>
         /// <returns></returns>
-        public static ESpell GenerateRandomSpell(ERarety rarety, List<EStateEffect> stateEffectFilter = default)
+        public static ESpell GenerateRandomSpell(ERarety rarety, ref List<ESpell> usedSpells, List<EStateEffect> stateEffectFilter = default)
         {
             var spells = SpellLoader.FilterSpells(
-                raretyFilters:      new List<ERarety>() { rarety }, 
-                stateEffectFilters: stateEffectFilter
+                raretyFilters:          new List<ERarety>() { rarety }, 
+                stateEffectFilters:     stateEffectFilter,
+                notAllowedSpellsFilter: usedSpells
             );
 
+            // remove unallowed spells if this is bloquant
             if (spells.Count == 0)
             {
-                ErrorHandler.Warning("Not able to find any spells with rarety " + rarety + " and state effects : " + TextHandler.ToString(stateEffectFilter));
-                spells = SpellLoader.GetSpellsFromRarety(rarety);
-            }
+                spells = SpellLoader.FilterSpells(
+                    raretyFilters: new List<ERarety>() { rarety },
+                    stateEffectFilters: stateEffectFilter
+                );
 
-            return spells[UnityEngine.Random.Range(0, spells.Count)].Spell;
+                // COUNT still 0 : ERROR
+                if (spells.Count == 0)
+                {
+                    ErrorHandler.Warning("Not able to find any spells with rarety " + rarety + " and state effects : " + TextHandler.ToString(stateEffectFilter));
+                    spells = SpellLoader.GetSpellsFromRarety(rarety);
+                } 
+            } 
+
+            // generate random spell
+            var spell = spells[UnityEngine.Random.Range(0, spells.Count)].Spell;
+
+            // add spell to already used spells
+            if (usedSpells != null && ! usedSpells.Contains(spell))
+                usedSpells.Add(spell);
+
+            return spell;
         }
     }
+
 
     [CreateAssetMenu(fileName = "ChestRewardData", menuName = "Game/ChestRewardData")]
     public class ChestRewardData : ScriptableObject
@@ -162,6 +182,8 @@ namespace Data
 
         [Header("Unlocking")]
         public int UnlockTime;
+        public AudioClip IdleSoundFX;
+        public AudioClip OpenSoundFX;
 
         [Header("Collectables")]
         [Description("Min/Max Golds from that chest")]
@@ -233,6 +255,7 @@ namespace Data
 
         List<SReward> GenerateExtraCardsRewards(int extraCardsQty, Dictionary<ERarety, float> extraCardsPerc)
         {
+            List<ESpell> usedSpells = default;
             var rewards = new Dictionary<ERarety, SReward>();
             for (int i = 0; i < extraCardsQty; i++)
             {
@@ -243,8 +266,8 @@ namespace Data
                     if (item.Value < randValue)
                         continue;
 
-                    // rarety exists already : add one more qty (and is not legendary - which are not provided with multiple quantities)
-                    if (rewards.ContainsKey(item.Key) && item.Key != ERarety.Legendary)
+                    // rarety exists already : add one more qty
+                    if (rewards.ContainsKey(item.Key))
                     {
                         var reward = rewards[item.Key];
                         reward.Qty++;
@@ -254,7 +277,7 @@ namespace Data
 
                     rewards.Add(item.Key, new SReward(
                         typeof(ESpell),
-                        SSpellDistributionData.GenerateRandomSpell(item.Key, StateEffectFilter.ToList()).ToString(),
+                        SSpellDistributionData.GenerateRandomSpell(item.Key, ref usedSpells, StateEffectFilter.ToList()).ToString(),
                         1
                     ));
                     break;

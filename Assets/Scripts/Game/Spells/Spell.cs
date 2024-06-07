@@ -1,9 +1,7 @@
-﻿using Analytics.Events;
+﻿using Assets.Scripts.Managers.Sound;
 using Data;
 using Enums;
 using Game.Loaders;
-using Managers;
-using Network;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -91,6 +89,9 @@ namespace Game.Spells
             }
 
             transform.localScale = new Vector3(m_SpellData.Size, m_SpellData.Size, 1f);
+
+            if (m_SpellData.PermanantSoundFX != null)
+                SoundFXManager.PlaySoundFXClip(m_SpellData.PermanantSoundFX, transform);
         }
 
         /// <summary>
@@ -106,6 +107,10 @@ namespace Game.Spells
 
             // visual ending effect
             SpawnOnHitPrefab();
+
+            // play sound effect
+            if (m_SpellData.OnEndSoundFX != null)
+                GameManager.Instance.PlaySoundClientRPC(m_SpellData.Name, ESpellActionPart.OnEnd);
 
             // destroy the spell game object
             StartCoroutine(DestroySpell());
@@ -205,6 +210,9 @@ namespace Game.Spells
             // energy gain
             m_Controller.EnergyHandler.AddEnergy(m_SpellData.EnergyGain);
 
+            // play sound effect
+            GameManager.Instance.PlaySoundClientRPC(m_SpellData.Name, ESpellActionPart.OnHit);
+
             // update hit count
             if (m_HittedPlayerId.Count <= m_SpellData.MaxHit && m_SpellData.MaxHit > 0)
                 End();
@@ -237,6 +245,8 @@ namespace Game.Spells
             if (finalDamages > 0)
                 m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Damage, finalDamages);
 
+            ErrorHandler.Log(m_SpellData.Name + " : " + finalDamages, ELogTag.Spells);
+
             // apply lifesteal if any (remove 1 because floats values are always based on 1 as default value)
             float lifeSteal = Mathf.Max(0f, m_Controller.StateHandler.GetFloat(EStateEffectProperty.LifeSteal) - 1);
             if (lifeSteal > 0 && finalDamages > 0)
@@ -249,7 +259,7 @@ namespace Game.Spells
             // if spell is AutoAttack & controller has a "AutoAttackRune" : add effects of the rune to the spell
             if (m_Controller.RuneData.GetType() == typeof(AutoAttackRune) && m_SpellData.Name == CharacterLoader.GetCharacterData(m_Controller.Character).AutoAttack.ToString())
             {
-                ((AutoAttackRune)m_Controller.RuneData).ApplyOnHit(ref controller);
+                ((AutoAttackRune)m_Controller.RuneData).ApplyOnHit(ref controller, m_Controller);
             }
 
             // apply state effects specifics to enemies
@@ -316,7 +326,7 @@ namespace Game.Spells
 
             foreach (var effect in stateEffects)
             {
-                targetController.StateHandler.AddStateEffect(effect, m_SpellData.Level);
+                targetController.StateHandler.AddStateEffect(effect, m_Controller, m_SpellData.Level);
             }
         }
 

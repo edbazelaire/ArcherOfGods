@@ -1,5 +1,4 @@
-﻿using Data;
-using Enums;
+﻿using Enums;
 using Inventory;
 using MyBox;
 using Save;
@@ -18,6 +17,7 @@ namespace Tools
 
         static Debugger s_Instance;
 
+        bool m_IsActivated = false;
         /// <summary> list of commands registered in the code </summary>
         List<SCommand>                                  m_Commands      = new();
         /// <summary> collection of classes currently alive and accessible threw the console </summary>
@@ -25,7 +25,11 @@ namespace Tools
         /// <summary> dictionary of variables saved from the console </summary>
         Dictionary<string, object>                      m_Variables     = new();
 
+        /// <summary> displayer of game perfs monitors </summary>
+        PerformanceMonitor m_PerformanceMonitor;
+
         public static Debugger                          Instance        => s_Instance;
+        public static bool                              IsActivated     => Instance.m_IsActivated;
         public static List<SCommand>                    Commands        => Instance.m_Commands;
         public static List<object>                      ClassesAlive    => Instance.m_ClassesAlive;
         public static Dictionary<string, object>        Variables       => Instance.m_Variables;
@@ -45,6 +49,14 @@ namespace Tools
 
             // keep this debugger alive
             DontDestroyOnLoad(this); 
+
+            // get and hide perf monitor
+            m_PerformanceMonitor = Finder.FindComponent<PerformanceMonitor>(gameObject);
+            m_PerformanceMonitor.gameObject.SetActive(false);
+
+#if UNITY_EDITOR
+            m_IsActivated = true;
+#endif
         }
 
         #endregion
@@ -61,6 +73,10 @@ namespace Tools
             // check callback inputs
             foreach (SCommand sCommand in m_Commands)
             {
+                // Only display console works when not activated
+                if (! m_IsActivated && sCommand.keyCode != KeyCode.KeypadMinus)
+                    continue;
+
                 if (Input.GetKeyDown(sCommand.keyCode))
                     sCommand.callback.Invoke();
             }
@@ -371,6 +387,12 @@ namespace Tools
 
         #region Default Callbacks
 
+        [Command]
+        public void Activates()
+        {
+            m_IsActivated = !m_IsActivated;
+        }
+
         /// <summary>
         /// Display all commands
         /// </summary>
@@ -384,6 +406,12 @@ namespace Tools
             {
                 sCommand.Display();
             }
+        }
+
+        [Command]
+        public void Monitors()
+        {
+            m_PerformanceMonitor.gameObject.SetActive(!m_PerformanceMonitor.gameObject.activeInHierarchy);
         }
 
         /// <summary>
@@ -443,7 +471,7 @@ namespace Tools
         [Command]
         public void ResetAchievements()
         {
-            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_ACHIEVEMENTS);
+            ProfileCloudData.Instance.Reset(ProfileCloudData.KEY_ACHIEVEMENTS);
         }
 
         #endregion
@@ -467,10 +495,10 @@ namespace Tools
         [Command]
         public void ResetAllAR()
         {
-            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_ACHIEVEMENT_REWARDS);
+            ProfileCloudData.Instance.Reset(ProfileCloudData.KEY_ACHIEVEMENT_REWARDS);
         
             // -- also reset current profile data to avoid settings not unlocked
-            ProfileCloudData.SetDefaultValue(ProfileCloudData.KEY_CURRENT_PROFILE_DATA);
+            ProfileCloudData.Instance.Reset(ProfileCloudData.KEY_CURRENT_PROFILE_DATA);
         }
 
         [Command]
@@ -574,6 +602,5 @@ namespace Tools
         }
 
         #endregion
-
     }
 }

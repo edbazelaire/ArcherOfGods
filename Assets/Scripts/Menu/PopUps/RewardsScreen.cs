@@ -1,4 +1,5 @@
-﻿using Assets.Scripts.Menu.Common.Buttons.TemplateItemButtons;
+﻿using Assets.Scripts.Managers.Sound;
+using Assets.Scripts.Menu.Common.Buttons.TemplateItemButtons;
 using Assets.Scripts.Menu.MainMenu.MainTab.Chests;
 using Data;
 using Data.GameManagement;
@@ -74,11 +75,11 @@ namespace Menu.PopUps
         /// <param name="chestIndex"></param>
         public void Initialize(SRewardsData rewardsData, string context)
         {
-            base.Initialize();
-
             m_RewardsData = rewardsData;
             m_Context = context;
-            m_CurrentChestRewardData    = null;
+            m_CurrentChestRewardData = null;
+
+            base.Initialize();
         }
 
         protected override void OnPrefabLoaded()
@@ -94,6 +95,29 @@ namespace Menu.PopUps
         {
             base.OnInitializationCompleted();
             StartCoroutine(StartDisplay());
+
+            SoundFXManager.MusicAudioSource.volume /= 2;
+        }
+
+        protected override void EnterAnimation()
+        {
+            var fadeIn = gameObject.AddComponent<Fade>();
+            fadeIn.Initialize("", duration: 0.2f, startOpacity: 0);
+        }
+
+        protected override void OnExit()
+        {
+            base.OnExit();
+
+            SoundFXManager.MusicAudioSource.volume *= 2;
+        }
+
+        protected override IEnumerable ExitAnimation()
+        {
+            var fadeOut = gameObject.AddComponent<Fade>();
+            fadeOut.Initialize("", duration: 0.2f, endOpacity: 0);
+
+            yield return new WaitUntil(() => fadeOut.IsOver);
         }
 
         #endregion
@@ -112,9 +136,11 @@ namespace Menu.PopUps
         {
             // depth of the current coroutine 
             int myDepth = m_Depth;
-            
+
+            int i = 0;
             foreach (SReward reward in rewards)
             {
+                ErrorHandler.Log("Reward : " + (++i) + "/" + rewards.Count, ELogTag.Rewards);
                 yield return DisplayReward(reward);
 
                 // Wait for the player to touch the screen before displaying the next reward
@@ -128,16 +154,29 @@ namespace Menu.PopUps
 
         IEnumerator DisplayReward(SReward reward)
         {
-            if (Enum.TryParse(reward.RewardName, out EChest chestType))
+            ErrorHandler.Log("DisplayReward : " + reward.RewardName, ELogTag.Rewards);
+
+            if (reward.RewardType == typeof(EChest) && Enum.TryParse(reward.RewardName, out EChest chestType))
             {
                 yield return DisplayChestReward(chestType, reward.Qty);
             } 
-            else if (Enum.TryParse(reward.RewardName, out ECurrency currency))
+            else if (reward.RewardType == typeof(ECurrency) && Enum.TryParse(reward.RewardName, out ECurrency currency))
             {
                 yield return DisplayCurrencyReward(currency, reward.Qty);
+            } 
+            else if (ProfileCloudData.TryGetType(reward.RewardType, out EAchievementReward arType, false))
+            {
+                yield return DisplayAchievementReward(arType, reward.RewardName);
             }
             else
             {
+                var collectable = CollectablesManagementData.Cast(reward.RewardName, reward.RewardType);
+                if (collectable == null)
+                {
+                    ErrorHandler.Error("Unable to display reward " + reward.RewardName + " with type " + reward.RewardType);
+                    yield break;
+                }
+
                 yield return DisplayCollectableReward(CollectablesManagementData.Cast(reward.RewardName, reward.RewardType), reward.Qty);
             }
         }
@@ -149,6 +188,10 @@ namespace Menu.PopUps
 
         IEnumerator DisplayChestReward(EChest chestType, int qty)
         {
+            ErrorHandler.Log("DisplayChestReward() : ", ELogTag.Rewards);
+            ErrorHandler.Log("      + chestType : " + chestType, ELogTag.Rewards);
+            ErrorHandler.Log("      + qty : " + qty, ELogTag.Rewards);
+
             if (qty > 1)
                 ErrorHandler.Warning("Multiple Chests not handled yet");
 
@@ -168,7 +211,7 @@ namespace Menu.PopUps
 
             // instantiate chest prefab
             m_ChestUI = m_CurrentChestRewardData.Instantiate(m_ChestContainer);
-            m_ChestUI.ActivateIdle(true);
+            m_ChestUI.ActivateIdle(true, true);
 
             // wait until touch to display reward
             yield return new WaitUntil(() => Input.touchCount > 0 || Input.GetMouseButtonDown(0));
@@ -178,7 +221,7 @@ namespace Menu.PopUps
             yield return DisplayRewards(m_CurrentChestRewardData.GenerateRewards());
         }
 
-        IEnumerable OpenChest()
+        IEnumerator OpenChest()
         {
             yield return m_ChestUI.PlayOpenAnimation();
         }
@@ -190,8 +233,15 @@ namespace Menu.PopUps
 
         IEnumerator DisplayCurrencyReward(ECurrency currency, int qty)
         {
+            ErrorHandler.Log("DisplayCurrencyReward() : ", ELogTag.Rewards);
+            ErrorHandler.Log("      + currency : " + currency, ELogTag.Rewards);
+
+            // play sound effect
+            SoundFXManager.PlayOnce(SoundFXManager.GoldsCollectedSoundFX);
+
             // activate rewards display container
             m_RewardDisplayContainer.SetActive(true);
+            m_RewardInfosSection.SetActive(true);
             // deactivate chest container
             m_ChestContainer.SetActive(false);
 
@@ -220,6 +270,8 @@ namespace Menu.PopUps
 
         IEnumerator DisplayCollectableReward(Enum collectable, int qty)
         {
+            SoundFXManager.PlayOnce(SoundFXManager.RewardCollectedSoundFX);
+
             // activate rewards display container
             m_RewardDisplayContainer.SetActive(true);
             // deactivate chest containers
@@ -244,6 +296,40 @@ namespace Menu.PopUps
             InventoryManager.AddCollectable(collectable, qty);
         }
 
+        IEnumerator DisplayAchievementReward(EAchievementReward arType, string value)
+        {
+            ErrorHandler.Log("DisplayAchievementReward : ", ELogTag.Rewards);
+            ErrorHandler.Log("      + EAchievementReward : " + arType, ELogTag.Rewards);
+            ErrorHandler.Log("      + value : " + value, ELogTag.Rewards);
+
+            // play sound effect
+            SoundFXManager.PlayOnce(SoundFXManager.AchievementRewardCollectedSoundFX);
+
+            // activate rewards display container
+            m_RewardDisplayContainer.SetActive(true);
+            m_RewardInfosSection.SetActive(false);
+            // deactivate chest containers
+            m_ChestContainer.SetActive(false);
+
+            // clean content before next display
+            UIHelper.CleanContent(m_RewardIconSection);
+
+            // setup ui of the new template
+            SetUpAchievementRewardTemplate(arType, value);
+            if (m_CurrentTemplateItem == null)
+                yield break;
+
+            yield return PlayAchievementRewardAnimation();
+
+            AnimationHandler.AddRaycast(m_RewardIconSection, size: 2f, color: new Color(1f, 1f, 1f, 0.3f));
+
+            // add reward to collection of rewards
+            ProfileCloudData.AddAchievementReward(arType, value);
+
+            // wait for click to display next
+            yield return new WaitUntil(() => Input.touchCount > 0 || Input.GetMouseButtonDown(0));
+        }
+
         void SetUpTemplateItem(Enum collectable, int qty)
         {
             m_CurrentTemplateItem = Instantiate(AssetLoader.LoadTemplateItem(collectable), m_RewardIconSection.transform);
@@ -251,6 +337,16 @@ namespace Menu.PopUps
             template.Initialize(collectable, true);
             template.SetMysteryIcon(true);
             template.ForceState(EButtonState.Normal);
+        }
+
+        void SetUpAchievementRewardTemplate(EAchievementReward ar, string value)
+        {
+            var template = Instantiate(AssetLoader.LoadAchievementRewardTemplate(ar), m_RewardIconSection.transform);
+            if (template == null)
+                return;
+
+            m_CurrentTemplateItem = template.gameObject;
+            template.Initialize(value, ar);
         }
 
         void SetUpRewardInfos(Enum collectable, int qty)
@@ -297,7 +393,7 @@ namespace Menu.PopUps
 
             // fade-in animation on the Informations content
             var fadeIn = m_RewardInfosSection.AddComponent<Fade>();
-            fadeIn.Initialize(duration: 0.2f, startOpacity: 0, startScale: 0.8f);
+            fadeIn.Initialize(duration: 0.2f, startOpacity: 0f, startScale: 0.8f);
 
             yield return new WaitUntil(() => fadeIn.IsOver);
         }
@@ -339,6 +435,19 @@ namespace Menu.PopUps
                 yield break;
             }
 
+        }
+
+        #endregion
+
+
+        #region Achievement Rewards Animation
+
+        IEnumerator PlayAchievementRewardAnimation()
+        {
+            var fadeIn = m_CurrentTemplateItem.AddComponent<Fade>();
+            fadeIn.Initialize(duration: 0.35f, startScale: 0.8f, endScale:2f);
+
+            yield return new WaitUntil(() => fadeIn.IsOver);
         }
 
         #endregion

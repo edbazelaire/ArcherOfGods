@@ -16,8 +16,6 @@ namespace Menu.Common.Buttons
         
         PriceDisplay m_PriceDisplay;
 
-        
-
         #endregion
 
 
@@ -51,9 +49,9 @@ namespace Menu.Common.Buttons
             CharacterBuildsCloudData.SelectedCharacterChangedEvent  += OnSelectedCharacterChanged;
         }
 
-        protected override void UnregisterLiteners()
+        protected override void UnRegisterListeners()
         {
-            base.UnregisterLiteners();
+            base.UnRegisterListeners();
             CharacterBuildsCloudData.SelectedCharacterChangedEvent  -= OnSelectedCharacterChanged;
         }
 

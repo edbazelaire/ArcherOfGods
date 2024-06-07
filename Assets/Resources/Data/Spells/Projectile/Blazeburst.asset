@@ -22,6 +22,11 @@ MonoBehaviour:
     IsFollowing: 1
   OnCastPrefabs: []
   OnHit: []
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 8300000, guid: d9a41ca151c698a48b368f64d0e238ad, type: 3}
+  PermanantSoundFX: {fileID: 8300000, guid: 42555712e2be6c0438f8b7bb375b6702, type: 3}
+  OnHitSoundFX: {fileID: 8300000, guid: 76f93a0ccb5bb7e4a8cbb37577895623, type: 3}
+  OnEndSoundFX: {fileID: 0}
   SpellTarget: 6
   MaxHit: 0
   EnergyGain: 10
@@ -29,6 +34,7 @@ MonoBehaviour:
   m_Damage: 100
   m_Heal: 0
   Distance: 7
+  OverrideOnHitProperties: 
   m_Duration: 0
   Delay: 0
   m_Size: 2
@@ -36,14 +42,14 @@ MonoBehaviour:
   EnemyStateEffects:
   - StateEffect: 1
     Stacks: 1
-    Duration: 3
+    Duration: 1.5
     SpeedBonus: 0
   AllyStateEffects: []
   PersistanceAfterEnd: 0
   Animation: 1
   IsCancellable: 0
-  AnimationTimer: 3
+  AnimationTimer: 1.5
   CastAt: 1
-  m_Cooldown: 20
+  m_Cooldown: 30
   Trajectory: 2
-  m_Speed: 25
+  m_Speed: 15

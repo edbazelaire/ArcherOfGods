@@ -16,7 +16,14 @@ MonoBehaviour:
   AutoAttack: 14
   Ultimate: 13
   Size: 0.9
-  Speed: 1.2
-  MaxHealth: 800
+  BaseSpeed: 0.1
+  BaseHealth: 800
   MaxEnergy: 100
-  CharacterStatScaling: []
+  HealthScaleFactor: 0.1
+  CharacterStatScaling:
+  - StateEffectProperty: 3
+    BaseValue: 1
+    ScalingFactor: 0.05
+  - StateEffectProperty: 7
+    BaseValue: 10
+    ScalingFactor: 0.1
