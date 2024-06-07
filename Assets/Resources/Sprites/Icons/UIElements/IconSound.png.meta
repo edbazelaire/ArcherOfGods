@@ -252,7 +252,12 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      IconSound_0: 6280926382116586516
+      IconSound_1: -6458369134058735522
+      IconSound_2: -3340828473168014612
+      IconSound_3: 938092015271499509
+      IconSound_4: -2360662601583687490
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
