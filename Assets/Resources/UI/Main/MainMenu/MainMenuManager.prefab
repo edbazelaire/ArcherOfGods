@@ -159,7 +159,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_ChangeTabSoundFX: {fileID: 8300000, guid: c2819f4a8f4681f48af1344c680ae837, type: 3}
-  m_NewTabScrollThreshold: 0.15
+  m_NewTabScrollThreshold: 0.05
   m_ScrollTime: 0.5
 --- !u!222 &5585202610454747548
 CanvasRenderer:

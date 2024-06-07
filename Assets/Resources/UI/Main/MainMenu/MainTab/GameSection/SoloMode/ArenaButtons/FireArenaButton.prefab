@@ -90,8 +90,20 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6553441682606756536, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
       propertyPath: m_Name
-      value: ArenaButton
+      value: FireArenaButton
       objectReference: {fileID: 0}
+    - target: {fileID: 6829693750232828151, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6829693750232828151, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8096742324718065017, guid: 317f64980e8650b47b003793c01b8e81, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 279695271b63f5546ac1e0922db7f95f, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

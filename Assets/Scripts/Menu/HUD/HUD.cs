@@ -15,6 +15,7 @@ namespace Assets.Scripts.Menu
 
         GameObject m_ButtonsContainer;
         Button m_SettingsButton;
+        Button m_ConsoleButton;
 
         #endregion
 
@@ -32,6 +33,7 @@ namespace Assets.Scripts.Menu
 
             m_ButtonsContainer = Finder.Find(gameObject, "ButtonsContainer");
             m_SettingsButton = Finder.FindComponent<Button>(m_ButtonsContainer, "SettingsButton");
+            m_ConsoleButton = Finder.FindComponent<Button>(m_ButtonsContainer, "ConsoleButton");
         }
 
         #endregion
@@ -44,6 +46,7 @@ namespace Assets.Scripts.Menu
             base.RegisterListeners();
 
             m_SettingsButton.onClick.AddListener(() => Main.SetPopUp(EPopUpState.SettingsPopUp));
+            m_ConsoleButton.onClick.AddListener(() => ConsoleUI.Instance.Hide());
         }
 
         protected override void UnRegisterListeners()
