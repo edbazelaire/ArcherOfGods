@@ -1,5 +1,6 @@
 ﻿using Tools.Debugs.Monitoring;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace Tools.Debugs
 {
@@ -40,9 +41,20 @@ namespace Tools.Debugs
             m_FpsMonitor.AddValue(fps);
 
             // Update the memory usage
-            long totalMemory = System.GC.GetTotalMemory(false);
+            long totalMemory = Profiler.GetTotalAllocatedMemoryLong();
             m_MemoryMonitor.AddValue(totalMemory / 1024f / 1024f); // Convert bytes to MB
             m_MemoryMonitor.Text.text = "Mem.Usg \n" + FormatBytes(totalMemory);
+        }
+
+        #endregion
+
+
+        #region GUI Manipulators
+
+        public void Toggle()
+        {
+            gameObject.SetActive(!gameObject.activeInHierarchy);
+            PlayerPrefsHandler.SetDebug(EDebugOption.Monitor, gameObject.activeInHierarchy);
         }
 
         #endregion
@@ -58,7 +70,7 @@ namespace Tools.Debugs
             while (len >= 1024 && order < sizes.Length - 1)
             {
                 order++;
-                len = len / 1024;
+                len /= 1024;
             }
             return string.Format("{0:0.##} {1}", len, sizes[order]);
         }

@@ -8,7 +8,17 @@ namespace Tools
     {
         public static void DelayMethod(Action method, int nFrames = 1)
         {
-            Main.Instance.StartCoroutine(DelayMethodByFrames(method, nFrames));
+            if (Main.Instance != null)
+                Main.Instance.StartCoroutine(DelayMethodByFrames(method, nFrames));
+
+            else if (Debugger.Instance != null)
+                Debugger.Instance.StartCoroutine(DelayMethodByFrames(method, nFrames));
+
+            else
+            {
+                ErrorHandler.Error("Unable to find any instance to play coroutines");
+                return;
+            }
         }
 
         static IEnumerator DelayMethodByFrames(Action method, int nFrames = 1)

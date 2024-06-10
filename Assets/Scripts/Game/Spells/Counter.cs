@@ -84,8 +84,6 @@ namespace Game.Spells
             if (!IsServer)
                 return;
 
-            Debug.Log("OnTriggerEnter2D() : Counter");
-
             // has to be type of SelfTrigger to be able to trigger itself
             if (m_SpellData.CounterActivation != ECounterActivation.SelfTrigger) 
                 return;

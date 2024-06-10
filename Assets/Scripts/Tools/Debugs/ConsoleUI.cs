@@ -289,7 +289,7 @@ namespace Tools
                 {
                     s_Instance = FindFirstObjectByType<ConsoleUI>();
                     if (s_Instance == null)
-                        ErrorHandler.FatalError("Unable to find console");
+                        return null;
                     
                     s_Instance.Initialize();
                 }

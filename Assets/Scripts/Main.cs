@@ -59,7 +59,7 @@ namespace Assets
         public static EAppState State                           => Instance.m_State;
         public static Canvas Canvas                             => Instance.m_Canvas;
         public static bool ActivateSaveOnClose                  => Instance.m_ActivateSaveOnClose;
-        public static List<ELogTag> LogTags                     => Instance.m_LogTags;  
+        public static List<ELogTag> LogTags                     => s_Instance != null ? Instance.m_LogTags : new List<ELogTag>();
 
         #endregion
 
@@ -153,8 +153,8 @@ namespace Assets
 
         void InitializeSettings()
         {
-            //QualitySettings.vSyncCount = 0;     // Disable V-Sync
-            //Application.targetFrameRate = 120;   // Set desired frame rate
+            QualitySettings.vSyncCount = 0;         // Disable V-Sync
+            Application.targetFrameRate = 120;      // Set desired frame rate
         }
 
         #endregion
