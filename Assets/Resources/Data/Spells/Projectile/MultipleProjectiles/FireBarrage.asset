@@ -24,7 +24,7 @@ MonoBehaviour:
   PermanantSoundFX: {fileID: 0}
   OnHitSoundFX: {fileID: 8300000, guid: 017af4cef4e7a1a42a86aa360023d995, type: 3}
   OnEndSoundFX: {fileID: 0}
-  SpellTarget: 7
+  SpellTarget: 9
   MaxHit: 1
   EnergyGain: 10
   EnergyCost: 0

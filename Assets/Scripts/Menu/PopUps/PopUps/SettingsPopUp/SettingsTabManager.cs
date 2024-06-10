@@ -7,6 +7,7 @@ namespace Tools.Debugs.BetaTest
         Sound,
         Data,
         Settings,
+        Debug,
     }
 
     public class SettingsTabManager : TabsManager
@@ -14,7 +15,7 @@ namespace Tools.Debugs.BetaTest
         #region Members
 
         protected override Type m_TabEnumType { get; set; } = typeof(ESettingsItemTab);
-        protected override Enum m_DefaultTab { get; set; } = ESettingsItemTab.Data;
+        protected override Enum m_DefaultTab { get; set; } = ESettingsItemTab.Sound;
 
         #endregion
 

@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b829d596b80e4f042aa5d80d985cf693, type: 3}
+  m_Script: {fileID: 11500000, guid: be1429166f6c7054fa65815783a3681a, type: 3}
   m_Name: Invisibility
   m_EditorClassIdentifier: 
   Rarety: 0
@@ -19,22 +19,33 @@ MonoBehaviour:
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 8300000, guid: e86ddeb0f20073542ac357a8657789e0, type: 3}
+  PermanantSoundFX: {fileID: 0}
+  OnHitSoundFX: {fileID: 0}
+  OnEndSoundFX: {fileID: 0}
   SpellTarget: 4
   MaxHit: 1
-  EnergyGain: 0
+  EnergyGain: 10
   EnergyCost: 0
   m_Damage: 0
   m_Heal: 0
   Distance: -1
-  m_Duration: 5
+  OverrideOnHitProperties: 
+  m_Duration: 0
   Delay: 0
   m_Size: 1
   TriggerPlayer: 1
   EnemyStateEffects: []
-  AllyStateEffects: []
+  AllyStateEffects:
+  - StateEffect: 4
+    Stacks: 0
+    Duration: 3
+    SpeedBonus: 0.25
   PersistanceAfterEnd: 0
-  Animation: 9
-  IsCancellable: 0
-  AnimationTimer: 0.3
+  Animation: 0
+  IsCancellable: 1
+  AnimationTimer: 0
   CastAt: 1
   m_Cooldown: 20
+  IsAttachedToTarget: 0

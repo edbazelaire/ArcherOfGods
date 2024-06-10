@@ -12,15 +12,16 @@ namespace Game.Character
     {
         #region Members
 
-        private NetworkVariable<bool> m_IsBlockingMovement    = new(false);
-        private NetworkVariable<bool> m_IsBlockingCast        = new(false);
+        private NetworkVariable<bool> m_HasCounter              = new(false);
+        private NetworkVariable<bool> m_IsBlockingMovement      = new(false);
+        private NetworkVariable<bool> m_IsBlockingCast          = new(false);
 
         Controller m_Controller;
         List<Counter> m_Counters = new List<Counter>();
 
         public NetworkVariable<bool> IsBlockingMovement => m_IsBlockingMovement;
         public NetworkVariable<bool> IsBlockingCast => m_IsBlockingCast;
-        public bool HasCounter => m_Counters.Count > 0;
+        public NetworkVariable<bool> HasCounter => m_HasCounter;
 
         #endregion
 
@@ -83,6 +84,9 @@ namespace Game.Character
             // add counter to list of counters
             m_Counters.Add(counterSpell);
 
+            if (!m_HasCounter.Value)
+                m_HasCounter.Value = true;
+
             // now that this spell has been added, check if there is still blocking actions
             CheckBlockingActions();
         }
@@ -111,6 +115,9 @@ namespace Game.Character
 
             // now that this spell has been removed, check if there is still blocking actions
             CheckBlockingActions();
+
+            // check if still has counter
+            m_HasCounter.Value = m_Counters.Count > 0;
         }
 
         #endregion

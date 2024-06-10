@@ -14,6 +14,13 @@ namespace Tools
         WarningMessageAccepted,
     }
 
+    public enum EDebugOption
+    {
+        Console,
+        Monitor,
+        ErrorHandler,
+    }
+
     public static class PlayerPrefsHandler
     {
         #region Members
@@ -103,6 +110,7 @@ namespace Tools
         {
             return PlayerPrefs.GetFloat(volume.ToString(), 1f);
         }
+
         public static void SetMuted(EVolumeOption volume, int muted)
         {
             PlayerPrefs.SetInt(volume.ToString() + "_Muted", muted);
@@ -123,6 +131,17 @@ namespace Tools
         public static bool GetWarningAccepted()
         {
             return PlayerPrefs.GetInt(EPlayerPref.WarningMessageAccepted.ToString(), 0) > 0;
+        }
+
+        public static void SetDebug(EDebugOption option, bool activate)
+        {
+            PlayerPrefs.SetInt(option.ToString(), activate ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
+        public static bool GetDebug(EDebugOption option)
+        {
+            return PlayerPrefs.GetInt(option.ToString(), option == EDebugOption.ErrorHandler ? 1 : 0) == 1;
         }
 
         #endregion

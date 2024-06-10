@@ -21,6 +21,7 @@ namespace Game.Character
         NetworkList<FixedString64Bytes>     m_StateEffectList;
         NetworkVariable<float>              m_SpeedBonus = new(1f);
         NetworkVariable<int>                m_RemainingShield = new(0);
+        NetworkVariable<EAnimation>         m_AnimationState = new(EAnimation.None);
 
         // -- SERVER SIDE
         Controller              m_Controller;
@@ -34,8 +35,11 @@ namespace Game.Character
             || m_StateEffectList.Contains(EStateEffect.Scorched.ToString());
         public bool IsSilenced => m_StateEffectList.Contains(EStateEffect.Silence.ToString()) 
             || m_StateEffectList.Contains(EStateEffect.Malediction.ToString());
+        public bool IsUnTargetable => m_StateEffectList.Contains(EStateEffect.Invisible.ToString()) 
+            || m_StateEffectList.Contains(EStateEffect.Jump.ToString());
         public NetworkVariable<float> SpeedBonus => m_SpeedBonus;
         public NetworkVariable<int> RemainingShield => m_RemainingShield;
+        public NetworkVariable<EAnimation> AnimationState => m_AnimationState;
 
         // ==============================================================================================
         // EVENTS
@@ -261,10 +265,16 @@ namespace Game.Character
             AddStateEffect(stateEffect, caster, stateEffectData);
         }
 
+        /// <summary>
+        /// Add a state effect to the character
+        /// </summary>
+        /// <param name="stateEffect"></param>
         public void AddStateEffect(StateEffect stateEffect, Controller caster, SStateEffectData? overridingData = null)
         {
             if (!IsServer)
                 return;
+
+            var pastState = GetAnimationState();
 
             // if already in the list of state effects, refresh it
             if (HasState(stateEffect.StateEffectName))
@@ -286,8 +296,9 @@ namespace Game.Character
             // recheck bonus potentially provided by this new stateEffect
             RecalculateBonus();
 
-            if (IsStunned)
-                m_Controller.AnimationHandler.SetStateAnimationClientRPC(isStunned: true);
+            var currentState = GetAnimationState();
+            if (currentState != pastState)
+                m_AnimationState.Value = currentState;
         }
 
         /// <summary>
@@ -317,8 +328,8 @@ namespace Game.Character
             if (!IsServer)
                 return 0;
 
-            // check if was stunned
-            bool wasStunned = IsStunned;
+            // check state before removing value
+            var pastState = GetAnimationState();
 
             // remove effect type from list of active effects
             int index = m_StateEffectList.IndexOf(state);
@@ -342,8 +353,9 @@ namespace Game.Character
             // recalculate bonuses givent by state effects
             RecalculateBonus();
 
-            if (wasStunned && ! IsStunned)
-                m_Controller.AnimationHandler.SetStateAnimationClientRPC(isStunned: false);
+            var currentState = GetAnimationState();
+            if (currentState != pastState)
+                m_AnimationState.Value = currentState;
 
             // return number of stacks this spell had (can be used when a spell consumes the state)
             return nStacks;
@@ -356,6 +368,20 @@ namespace Game.Character
         public int RemoveState(EStateEffect state)
         {
             return RemoveState(state.ToString());
+        }
+
+        public EAnimation GetAnimationState()
+        {
+            if (HasState(EStateEffect.Frozen))
+                return EAnimation.Frozen;
+
+            if (IsStunned)
+                return EAnimation.Stun;
+
+            if (IsSilenced)
+                return EAnimation.Silenced;
+
+            return EAnimation.None;
         }
 
         /// <summary>

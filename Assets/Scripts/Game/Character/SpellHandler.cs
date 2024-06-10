@@ -344,6 +344,13 @@ namespace Game.Character
                 return false;
             }
 
+            if (! CheckEnemyTargetable(spell))
+            {
+                if (m_Controller.IsPlayer || Main.LogTags.Contains(ELogTag.AI))
+                    ErrorHandler.Log("Spell cast (" + spell + ") BLOCKED : Enemy is not targetable", ELogTag.SpellHandler);
+                return false;
+            }
+
             return true;
         }
 
@@ -359,6 +366,18 @@ namespace Game.Character
                 || m_Controller.CounterHandler.IsBlockingCast.Value;            // is using a counter
         }
 
+        public bool CheckEnemyTargetable(ESpell spell)
+        {
+            SpellData spellData = SpellLoader.GetSpellData(spell);
+            if (IsAutoTarget(spell))
+                spellData.ForceAutoTarget();
+
+            if (spellData.SpellTarget != ESpellTarget.FirstEnemy)
+                return true;
+
+            return ! GameManager.Instance.GetFirstEnemy(GameManager.Instance.GetPlayer(m_Controller.PlayerId).Team).StateHandler.IsUnTargetable;
+        }
+
         /// <summary>
         /// Cast the given spell
         /// </summary>
@@ -372,6 +391,9 @@ namespace Game.Character
                 return false;
 
             if (!CanCast(spell))
+                return false;
+
+            if (!CheckEnemyTargetable(spell))
                 return false;
 
             m_SelectedSpell = spell;

@@ -104,6 +104,7 @@
         Jump,
         Zone,
         Buff,
+        MultiProjectiles,
 
         Count
     }
@@ -323,6 +324,9 @@
         Loss,
         CastBuff,
         CancelStateEffect,
+        Stun,
+        Frozen,
+        Silenced,
     }
 
     public enum ECounterType

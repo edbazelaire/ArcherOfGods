@@ -28,11 +28,12 @@ namespace Tools
         /// <summary> displayer of game perfs monitors </summary>
         PerformanceMonitor m_PerformanceMonitor;
 
-        public static Debugger                          Instance        => s_Instance;
-        public static bool                              IsActivated     => Instance.m_IsActivated;
-        public static List<SCommand>                    Commands        => Instance.m_Commands;
-        public static List<object>                      ClassesAlive    => Instance.m_ClassesAlive;
-        public static Dictionary<string, object>        Variables       => Instance.m_Variables;
+        public static Debugger                          Instance            => s_Instance;
+        public static PerformanceMonitor                PerformanceMonitor  => Instance.m_PerformanceMonitor;
+        public static bool                              IsActivated         => Instance.m_IsActivated;
+        public static List<SCommand>                    Commands            => Instance.m_Commands;
+        public static List<object>                      ClassesAlive        => Instance.m_ClassesAlive;
+        public static Dictionary<string, object>        Variables           => Instance.m_Variables;
 
         #endregion
 
@@ -52,9 +53,9 @@ namespace Tools
 
             // get and hide perf monitor
             m_PerformanceMonitor = Finder.FindComponent<PerformanceMonitor>(gameObject);
-            m_PerformanceMonitor.gameObject.SetActive(false);
+            m_PerformanceMonitor.gameObject.SetActive(PlayerPrefsHandler.GetDebug(EDebugOption.Monitor));
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR 
             m_IsActivated = true;
 #endif
         }
@@ -67,7 +68,7 @@ namespace Tools
         private void Update()
         {
             // deactivate all key commands when the input field is currently selected
-            if (ConsoleUI.InputFieldSelected)
+            if (ConsoleUI.Instance != null && ConsoleUI.InputFieldSelected)
                 return;
 
             // check callback inputs
@@ -411,7 +412,7 @@ namespace Tools
         [Command]
         public void Monitors()
         {
-            m_PerformanceMonitor.gameObject.SetActive(!m_PerformanceMonitor.gameObject.activeInHierarchy);
+            m_PerformanceMonitor.Toggle();
         }
 
         /// <summary>

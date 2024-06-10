@@ -10,6 +10,7 @@ namespace Tools.Debugs.Monitoring
     {
         #region Members
 
+        private float m_LastValue;
         private List<float> m_Values = new List<float>();
  
         LineRenderer    m_LineRenderer;
@@ -92,19 +93,13 @@ namespace Tools.Debugs.Monitoring
             if (value <= 0)
                 return;
 
-            m_Values.Add(value);
+            if (value < m_MinRecordedValue || m_LastValue == 0)
+                m_MinRecordedValue = value;
 
-            if (value < m_MinRecordedValue || m_Values.Count <= 1) 
+            if (value > m_MaxRecordedValue || m_LastValue == 0)
                 m_MaxRecordedValue = value;
 
-            if (value > m_MaxRecordedValue || m_Values.Count <= 1)
-                m_MaxRecordedValue = value;
-
-            // Limit the number of points
-            if (m_Values.Count > m_GraphWidth)
-            {
-                m_Values.RemoveAt(0);
-            }
+            m_LastValue = value;
 
             m_Avg = (m_Avg * m_Count + value) / ++m_Count;
 
@@ -120,14 +115,22 @@ namespace Tools.Debugs.Monitoring
                 }
             }
 
-            UpdateGraph();
+            UpdateGraph(value);
             UpdateText();
         }
 
-        public void UpdateGraph()
+        public void UpdateGraph(float value)
         {
             if (! m_LineRenderer.gameObject.activeInHierarchy)
                 return;
+
+            m_Values.Add(value);
+
+            // Limit the number of points
+            if (m_Values.Count > m_GraphWidth)
+            {
+                m_Values.RemoveAt(0);
+            }
 
             // Create points for the graph
             Vector3[] points = new Vector3[m_Values.Count];
@@ -144,7 +147,7 @@ namespace Tools.Debugs.Monitoring
 
         public void UpdateText()
         {
-            m_Text.text = m_ValueName + " : " + m_Values[^1];
+            m_Text.text = m_ValueName + " : " + m_LastValue;
 
             m_AvgText.text = "Avg\n" + Mathf.Round(m_Avg);
             m_MinText.text = "Min\n" + m_MinRecordedValue;

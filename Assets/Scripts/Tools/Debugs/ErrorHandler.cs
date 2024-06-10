@@ -7,7 +7,21 @@ namespace Tools
     {
         #region Members
 
+        public static bool IsActivated => PlayerPrefsHandler.GetDebug(EDebugOption.ErrorHandler);
         public static List<Error> Errors = new List<Error>();
+
+        #endregion
+
+
+        #region Init & End
+
+        public static void Toggle()
+        {
+            PlayerPrefsHandler.SetDebug(EDebugOption.ErrorHandler, !IsActivated);
+
+            if (!IsActivated)
+                Reset();
+        }
 
         #endregion
 
@@ -16,21 +30,29 @@ namespace Tools
 
         public static void Log(string message, ELogTag logTag = ELogTag.None, int frame = 0)
         {
+            if (!IsActivated)
+                return;
             AddError(message, EError.Log, frame + 1, logTag);
         }
 
         public static void Warning(string message, int frame = 0)
         {
+            if (!IsActivated)
+                return;
             AddError(message, EError.Warning, frame + 1);
         }
 
         public static void Error(string message, int frame = 0)
         {
+            if (!IsActivated)
+                return;
             AddError(message, EError.Error, frame + 1);
         }
 
         public static void FatalError(string message, int frame=0)
         {
+            if (!IsActivated)
+                return;
             AddError(message, EError.FatalError, frame + 1);
         }
 
@@ -74,7 +96,7 @@ namespace Tools
         /// <summary>
         /// Reset all errors
         /// </summary>
-        static void Reset()
+        public static void Reset()
         {
             Errors = new List<Error>();
         }

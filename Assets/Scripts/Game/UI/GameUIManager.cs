@@ -106,8 +106,7 @@ public class GameUIManager : MonoBehaviour
         m_RightMovementButton   = Finder.FindComponent<Button>(container.gameObject, "RightMovementButton");
 
         // link pressed button bools to pressed envents
-        Finder.FindComponent<HoldOnButton>(m_LeftMovementButton.gameObject).PressedEvent += (bool pressed) => { m_LeftMovementButtonPressed = pressed; };
-        Finder.FindComponent<HoldOnButton>(m_RightMovementButton.gameObject).PressedEvent += (bool pressed) => { m_RightMovementButtonPressed = pressed; };
+        Finder.FindComponent<MovementButtonsContainer>(container).MovementInputEvent += (int moveX) => { m_LeftMovementButtonPressed = moveX == -1; m_RightMovementButtonPressed = moveX == 1; };
     }
 
     /// <summary>

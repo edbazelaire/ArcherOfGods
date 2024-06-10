@@ -59,7 +59,7 @@ namespace Assets
         public static EAppState State                           => Instance.m_State;
         public static Canvas Canvas                             => Instance.m_Canvas;
         public static bool ActivateSaveOnClose                  => Instance.m_ActivateSaveOnClose;
-        public static List<ELogTag> LogTags                     => Instance.m_LogTags;  
+        public static List<ELogTag> LogTags                     => s_Instance != null ? Instance.m_LogTags : new List<ELogTag>();
 
         #endregion
 
@@ -81,9 +81,13 @@ namespace Assets
         {
             try
             {
+                // initialize Managers & Loaders
                 PlayerPrefsHandler.Initialize();
                 AchievementLoader.Initialize();
                 ItemLoader.Initialize();
+
+                // init settings
+                InitializeSettings();
 
                 // register to state changes 
                 StateChangedEvent += OnStateChanged;
@@ -93,7 +97,7 @@ namespace Assets
 
                 StartCoroutine(CheckInitialization());
 
-                // initialize UnituServices
+                // initialize Unity Services
                 var options = new InitializationOptions();
                 options.SetEnvironmentName("dev");
                 await UnityServices.InitializeAsync(options);
@@ -145,6 +149,12 @@ namespace Assets
             }
 
             InitializationCompletedEvent?.Invoke();
+        }
+
+        void InitializeSettings()
+        {
+            QualitySettings.vSyncCount = 0;         // Disable V-Sync
+            Application.targetFrameRate = 120;      // Set desired frame rate
         }
 
         #endregion
