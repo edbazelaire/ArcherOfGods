@@ -189,6 +189,9 @@ namespace Game.Loaders
         /// <returns></returns>
         public static GameObject GetSpellPrefab(string spellName, ESpellType spellType)
         {
+            if (spellType == ESpellType.MultiProjectiles)
+                spellType = ESpellType.Projectile;
+
             // check for specific prefab of the spell
             if (Instance.m_SpellsPrefabs.ContainsKey(spellName))
                 return Instance.m_SpellsPrefabs[spellName];

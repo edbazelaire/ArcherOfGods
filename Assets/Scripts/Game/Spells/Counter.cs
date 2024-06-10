@@ -11,7 +11,7 @@ namespace Game.Spells
     {
         #region Members
 
-        public static ESpellType[] COUNTER_PROCABLE_SPELLTYPE = { ESpellType.Projectile };
+        public static ESpellType[] COUNTER_PROCABLE_SPELLTYPE = { ESpellType.Projectile, ESpellType.MultiProjectiles };
 
         CounterData m_SpellData => m_BaseSpellData as CounterData;
         public new CounterData SpellData => m_SpellData;
@@ -141,6 +141,12 @@ namespace Game.Spells
 
                 // Recast the spell to the enemy
                 case ECounterType.Reflect:
+                    if (enemySpell.SpellData.SpellType == ESpellType.MultiProjectiles)
+                    {
+                        ((MultiProjectilesData)enemySpell.SpellData).CastOneProjectile(OwnerClientId, targetPosition, transform.position);
+                        break;
+                    }
+
                     enemySpell.SpellData.Cast(OwnerClientId, targetPosition, transform.position, recalculateTarget: false);
                     break;
 

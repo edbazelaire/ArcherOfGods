@@ -1,15 +1,11 @@
 ﻿using Enums;
 using Game;
-using Game.Spells;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Tools;
 using UnityEngine;
 using Assets;
-using static UnityEngine.GraphicsBuffer;
-using Unity.IO.LowLevel.Unsafe;
 using Unity.VisualScripting;
 using Data.GameManagement;
 
@@ -20,7 +16,7 @@ namespace Data
     {
         #region Members
 
-        public override ESpellType SpellType => ESpellType.Projectile;
+        public override ESpellType SpellType => ESpellType.MultiProjectiles;
 
         [Header("Projectile")]
         [Description("Type of path that the spell is taking")]
@@ -139,13 +135,7 @@ namespace Data
 
             for (int i = 0; i < NProjectiles; i++)
             {
-                // if specific projectile data are provided : use theme
-                if (ProjectileData != null)
-                    ProjectileData.Cast(clientId, CalculateMultiProjectileTarget(target, i, controller.Team), position, rotation, false);
-                // otherwise use config of the file
-                else
-                    base.Cast(clientId, CalculateMultiProjectileTarget(target, i, controller.Team), position, rotation, false);
-                    
+                CastOneProjectile(clientId, CalculateMultiProjectileTarget(target, i, controller.Team), position, rotation);    
                 var delay = DelayBetweenLaunches;
 
                 while (delay > 0)
@@ -162,19 +152,21 @@ namespace Data
             }
         }
 
+        public void CastOneProjectile(ulong clientId, Vector3 target, Vector3 position = default, Quaternion rotation = default)
+        {
+            // if specific projectile data are provided : use theme
+            if (ProjectileData != null)
+                ProjectileData.Cast(clientId, target, position, rotation, false);
+
+            // otherwise use config of the file
+            else
+                base.Cast(clientId, target, position, rotation, false);
+        }
+
         #endregion
 
 
         #region Postion & Target
-
-        public override void CalculateTarget(ref Vector3 target, ulong clientId)
-        {
-            base.CalculateTarget(ref target, clientId);
-
-            target.x -= ProjectileZoneSize / 2;
-
-            ClampTargetX(ref target, clientId);
-        }
 
         /// <summary>
         /// Calculate position of the projectile number "i" depending on his type
@@ -193,11 +185,11 @@ namespace Data
                     break;
 
                 case (EMultiProjectileType.Line):
-                    target.x += i * (team == 0 ? 1 : -1) * zoneSize / (NProjectiles - 1);
+                    target.x += ((team == 0 ? -1 : 1) * zoneSize / 2) + i * (team == 0 ? 1 : -1) * zoneSize / (NProjectiles - 1);
                     break;
 
                 case (EMultiProjectileType.Random):
-                    target.x += UnityEngine.Random.Range(-zoneSize / 2, zoneSize / 2);
+                    target.x += Random.Range(-zoneSize / 2, zoneSize / 2);
                     break;
 
                 default:

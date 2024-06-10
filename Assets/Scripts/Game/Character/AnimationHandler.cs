@@ -53,6 +53,8 @@ namespace Game.Character
             m_Controller.SpellHandler.IsCasting.OnValueChanged              += OnIsCastingValueChanged;
             m_Controller.StateHandler.StateEffectList.OnListChanged         += OnStateEffectListChanged;
             m_Controller.StateHandler.SpeedBonus.OnValueChanged             += OnSpeedBonusValueChanged;
+            m_Controller.StateHandler.AnimationState.OnValueChanged         += OnStateAnimationValueChanged;
+            m_Controller.CounterHandler.HasCounter.OnValueChanged           += OnHasCounterValueChanged;
 
             m_Initialized = true;
         }
@@ -116,17 +118,6 @@ namespace Game.Character
 
             Destroy(m_StateEffectGraphics[index]);
             m_StateEffectGraphics.RemoveAt(index);
-        }
-
-        /// <summary>
-        /// change the color of this character on each clients
-        /// </summary>
-        /// <param name="color"></param>
-        [ClientRpc]
-        public void SetStateAnimationClientRPC(bool isStunned)
-        {
-            ErrorHandler.Log("STATE ANIMATION CHANGED : isStunned = " + isStunned.ToString().ToUpper(), ELogTag.Animation);
-            m_Animator.SetBool("IsStunned", isStunned);
         }
 
         /// <summary>
@@ -342,6 +333,33 @@ namespace Game.Character
         void OnSpeedBonusValueChanged(float oldValue, float newValue)
         {
             UpdateMovementSpeed();
+        }
+
+        /// <summary>
+        /// Change MovementSpeed parameter in the Animator when the speed value changes
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        void OnStateAnimationValueChanged(EAnimation oldValue, EAnimation newValue)
+        {
+            ErrorHandler.Log("STATE ANIMATION CHANGED : animation = " + newValue.ToString().ToUpper(), ELogTag.Animation);
+
+            if (newValue == EAnimation.None)
+                m_Animator.SetTrigger("StopStateAnimation");
+
+            m_Animator.SetTrigger(newValue.ToString());
+        }
+
+        /// <summary>
+        /// Change MovementSpeed parameter in the Animator when the speed value changes
+        /// </summary>
+        /// <param name="oldValue"></param>
+        /// <param name="newValue"></param>
+        void OnHasCounterValueChanged(bool oldValue, bool newValue)
+        {
+            ErrorHandler.Log("STATE ANIMATION CHANGED : Counter = " + newValue.ToString().ToUpper(), ELogTag.Animation);
+
+            m_Animator.SetBool("HasCounter", newValue);
         }
 
         /// <summary>

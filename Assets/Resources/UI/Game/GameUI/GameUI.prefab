@@ -84,6 +84,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1854445489482849021}
   - component: {fileID: 5052759288617639184}
+  - component: {fileID: 5992402996011225772}
   m_Layer: 5
   m_Name: MovementButtonsContainer
   m_TagString: Untagged
@@ -138,6 +139,23 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &5992402996011225772
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3737480646453302084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13e3a5fb24523474b91cb9160dc9be58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ActivationColor: {r: 0.33962262, g: 0.33962262, b: 0.33962262, a: 1}
+  m_LeftMovementButton: {fileID: 396616859446301539}
+  m_RightMovementButton: {fileID: 8510555290513819019}
+  m_LeftMovementButtonImage: {fileID: 6259468262236431882}
+  m_RightMovementButtonImage: {fileID: 2685439661512372450}
 --- !u!1 &4156068351519502913
 GameObject:
   m_ObjectHideFlags: 0
@@ -275,6 +293,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_IntroGameUI: {fileID: 0}
   m_EndGameUI: {fileID: 0}
+  m_Background: {fileID: 0}
   m_PlayerUITemplate: {fileID: 42941702189104153, guid: ceb8649a07749a644b89f9ca85c8da35, type: 3}
   SpellTemplate: {fileID: 907986355969698494, guid: 91238690da4c37845a1e403a7d12f8fb, type: 3}
 --- !u!1 &5627129684713623609
@@ -549,6 +568,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1854445489482849021}
     m_Modifications:
+    - target: {fileID: 690012192282333110, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 990785543520171676, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -629,6 +652,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: -180
       objectReference: {fileID: 0}
+    - target: {fileID: 4024986741774103380, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4098805430649263831, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
       propertyPath: m_Name
       value: LeftMovementButton
@@ -638,11 +665,27 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+--- !u!1 &396616859446301539 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4098805430649263831, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+  m_PrefabInstance: {fileID: 4422800074253321652}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &3521545596310418216 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 990785543520171676, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
   m_PrefabInstance: {fileID: 4422800074253321652}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &6259468262236431882 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7763897913240970174, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+  m_PrefabInstance: {fileID: 4422800074253321652}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &4574737843723535594
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -903,6 +946,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1854445489482849021}
     m_Modifications:
+    - target: {fileID: 690012192282333110, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 990785543520171676, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -983,6 +1030,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4024986741774103380, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4098805430649263831, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
       propertyPath: m_Name
       value: RightMovementButton
@@ -992,9 +1043,25 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+--- !u!114 &2685439661512372450 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7763897913240970174, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+  m_PrefabInstance: {fileID: 5690985463623406428}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!224 &4847433489117865408 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 990785543520171676, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
+  m_PrefabInstance: {fileID: 5690985463623406428}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8510555290513819019 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4098805430649263831, guid: c49ef49d504d4ea4e992028978acfdf7, type: 3}
   m_PrefabInstance: {fileID: 5690985463623406428}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6212295041621806218
@@ -1397,7 +1464,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8693341043291647431, guid: ae8857d8b1728c84e8d5275dedb4111d, type: 3}
       propertyPath: m_fontSize
-      value: 27.3
+      value: 30.5
       objectReference: {fileID: 0}
     - target: {fileID: 8728871881689183171, guid: ae8857d8b1728c84e8d5275dedb4111d, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -1910,7 +1977,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8693341043291647431, guid: ae8857d8b1728c84e8d5275dedb4111d, type: 3}
       propertyPath: m_fontSize
-      value: 27.3
+      value: 30.5
       objectReference: {fileID: 0}
     - target: {fileID: 8728871881689183171, guid: ae8857d8b1728c84e8d5275dedb4111d, type: 3}
       propertyPath: m_AnchoredPosition.y
