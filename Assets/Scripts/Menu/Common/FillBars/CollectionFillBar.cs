@@ -175,7 +175,7 @@ namespace Menu.Common
             if (!m_CollectableCloudData.HasValue)
                 return;
 
-            UpdateCollection(m_CollectableCloudData.Value.Qty, CollectablesManagementData.GetLevelData(m_CollectableCloudData.Value.GetCollectable(), m_CollectableCloudData.Value.Level).RequiredQty);
+            UpdateCollection(m_CollectableCloudData.Value.GetQty(), CollectablesManagementData.GetLevelData(m_CollectableCloudData.Value.GetCollectable(), m_CollectableCloudData.Value.Level).RequiredQty);
         }
 
         public void UpdateCollection(float newValue, float? maxCollection = null)

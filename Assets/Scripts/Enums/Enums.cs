@@ -405,7 +405,8 @@
     {
         Golds,
         Gems,
-        Dollars
+        Dollars,
+        Xp,
     }
 
     public enum EChest

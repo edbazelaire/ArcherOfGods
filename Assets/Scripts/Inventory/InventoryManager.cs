@@ -135,7 +135,7 @@ namespace Inventory
             }
 
             // add xp to character and save
-            collectableData.Qty += qty;
+            collectableData.AddQty(qty);
             InventoryCloudData.Instance.SetCollectable(collectableData);
 
             if (collectable.GetType() == typeof(ECharacter))
@@ -177,7 +177,7 @@ namespace Inventory
             if (! Spend(levelData.RequiredGolds, ECurrency.Golds, "Upgrade" + collectable.GetType()))
                 return;
 
-            data.Qty -= levelData.RequiredQty;
+            data.AddQty(- levelData.RequiredQty);
             data.Level++;
 
             // SAVE : update cloud data
@@ -197,7 +197,7 @@ namespace Inventory
             if (IsMaxLevel(collectable))
                 return false;
 
-            if (data.Qty < levelData.RequiredQty)
+            if (data.GetQty() < levelData.RequiredQty)
                 return false;
 
             if (!CanBuy(levelData.RequiredGolds, ECurrency.Golds))

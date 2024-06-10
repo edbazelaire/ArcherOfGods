@@ -17,20 +17,10 @@ namespace Save
     {
         public string   CollectableName;
         public int      Level;
-        public int      Qty;
+        public int Qty;
 
         [NonSerialized]
         private Enum m_Collectable;
-               
-        public SCollectableCloudData(string collectableName, int value, int level = 1, int qty = 0)
-        {
-            CollectableName = collectableName;
-            Level           = level;
-            Qty             = qty;
-
-            m_Collectable = null;
-            SetCollectable();
-        }
 
         public SCollectableCloudData(Enum collectable, int level = 1, int qty = 0)
         {
@@ -39,6 +29,30 @@ namespace Save
             Qty             = qty;
 
             m_Collectable   = collectable;
+        }
+
+        public int GetQty()
+        {
+            if (GetCollectable().GetType() == typeof(ECharacter))
+                return InventoryCloudData.Instance.GetCurrency(ECurrency.Xp);
+
+            return Qty;
+        }
+
+        public void SetQty(int value)
+        {
+            if (GetCollectable().GetType() == typeof(ECharacter))
+            {
+                InventoryCloudData.Instance.SetCurrency(ECurrency.Xp, value);
+                return;
+            }
+
+            Qty = value;
+        }
+
+        public void AddQty(int value)
+        {
+            SetQty(GetQty() + value);
         }
 
         public void SetCollectable()
@@ -90,7 +104,7 @@ namespace Save
 
         public bool HasEnoughQty()
         {
-            return Qty >= CollectablesManagementData.GetLevelData(GetCollectable(), Level).RequiredQty;
+            return GetQty() >= CollectablesManagementData.GetLevelData(GetCollectable(), Level).RequiredQty;
         }
 
         public bool IsUpgradable()
@@ -104,7 +118,7 @@ namespace Save
             sb.Append("SCollectableCloudData : { \n");
             sb.Append("     Collectable : " + TextHandler.ToString(GetCollectable()) + ",\n");
             sb.Append("     Level : " + TextHandler.ToString(Level) + ",\n");
-            sb.Append("     Qty : " + TextHandler.ToString(Qty) + ",\n");
+            sb.Append("     Qty : " + TextHandler.ToString(GetQty()) + ",\n");
             sb.Append("}\n");
 
             return sb.ToString();
@@ -142,6 +156,7 @@ namespace Save
         // -- Keys
         public const string KEY_GOLDS       = "Golds";
         public const string KEY_GEMS        = "Gems";
+        public const string KEY_XP          = "Xp";
         public const string KEY_SPELLS      = "Spells";
         public const string KEY_CHARACTERS  = "Characters";
         public const string KEY_RUNES       = "Runes";
@@ -163,7 +178,7 @@ namespace Save
         /// <summary> event fired when a collectable data has been upgraded </summary>
         public static Action<SCollectableCloudData> CollectableUnlockedEvent;
         /// <summary> event fired when reset called in the database </summary>
-        public static Action<ECollectableType> ResetCollectableEvent;
+        public static Action<ECollectableType>      ResetCollectableEvent;
 
         /// <summary> SPECIFIC EVENT : for collectable data changed of type "Spell" : (remove ?) </summary>
         public static Action<SCollectableCloudData> SpellDataChangedEvent;
@@ -176,6 +191,7 @@ namespace Save
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
             { KEY_GOLDS,        0                                   },
             { KEY_GEMS,         0                                   },
+            { KEY_XP,           0                                   },
             { KEY_CHARACTERS,   new List<SCollectableCloudData>()   },
             { KEY_SPELLS,       new List<SCollectableCloudData>()   },
             { KEY_RUNES,        new List<SCollectableCloudData>()   },
@@ -304,6 +320,21 @@ namespace Save
             }
 
             return InfoCollectables[collectable.GetType()].Key;
+        }
+
+        #endregion
+
+
+        #region Currencies
+
+        public int GetCurrency(ECurrency currency)
+        {
+            return (int)m_Data[currency.ToString()];
+        }
+
+        public void SetCurrency(ECurrency currency, int value)
+        {
+            SetData(currency.ToString(), value);
         }
 
         #endregion

@@ -358,7 +358,7 @@ namespace Menu.PopUps
             m_CollectionQty.text = "+ " + qty.ToString();
 
             // -- setup collection fill bar
-            m_CollectionFillBar.Initialize(cloudData.Qty, CollectablesManagementData.GetLevelData(collectable, cloudData.Level).RequiredQty);
+            m_CollectionFillBar.Initialize(cloudData.GetQty(), CollectablesManagementData.GetLevelData(collectable, cloudData.Level).RequiredQty);
         }
 
         #endregion

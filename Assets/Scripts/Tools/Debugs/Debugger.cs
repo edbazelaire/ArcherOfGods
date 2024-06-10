@@ -462,7 +462,7 @@ namespace Tools
                 if (data.Level == 0)
                     InventoryManager.Unlock(ref data);
 
-                data.Qty = 1000000;
+                data.SetQty(1000000);
                 InventoryCloudData.Instance.SetCollectable(data);
             }
         }
