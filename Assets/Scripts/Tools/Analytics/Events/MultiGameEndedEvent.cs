@@ -6,7 +6,7 @@ namespace Analytics.Events
     public class SoloGameEndedEvent : GameEndedEvent
     {
         // Constructor for SoloGameEndedEvent
-        public SoloGameEndedEvent(bool win, ECharacter character, int playerLevel, int elo, ECharacter enemyCharacter, int enemyLevel) : base(EGameMode.Multi, win, character, playerLevel)
+        public SoloGameEndedEvent(bool win, ECharacter character, int playerLevel, int elo, ECharacter enemyCharacter, int enemyLevel) : base(EGameMode.Ranked, win, character, playerLevel)
         {
             // Additional parameters specific to SoloGameEndedEvent
             SetParameter("Elo",                 elo);

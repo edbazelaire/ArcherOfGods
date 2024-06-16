@@ -26,8 +26,8 @@ namespace Menu.PopUps
         {
             base.FindComponents();
 
-            m_MessageContainer = Finder.Find(m_WindowContent, "MessageContainer");
-            m_MessageText = Finder.FindComponent<TMP_Text>(m_WindowContent, "Message");
+            m_MessageContainer = Finder.Find(m_WindowContent, "MessageContainer", false);
+            m_MessageText = Finder.FindComponent<TMP_Text>(m_MessageContainer != null ? m_WindowContent : m_WindowContent, "Message");
         }
 
         public void Initialize(string message, string title = "", Action onValidate = null, Action onCancel = null)

@@ -242,7 +242,7 @@ namespace Game.Spells
             
             // get final damages after shields and resistances
             int finalDamages = controller.Life.Hit(damages);
-            if (finalDamages > 0)
+            if (finalDamages > 0 && m_Controller.ClientAnalytics != null)
                 m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Damage, finalDamages);
 
             ErrorHandler.Log(m_SpellData.Name + " : " + finalDamages, ELogTag.Spells);
@@ -252,12 +252,16 @@ namespace Game.Spells
             if (lifeSteal > 0 && finalDamages > 0)
             {
                 m_Controller.Life.Heal((int)Mathf.Round(lifeSteal * finalDamages));
-                m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Heal, (int)Mathf.Round(lifeSteal * finalDamages));
-                m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.LifeSteal, (int)Mathf.Round(lifeSteal * finalDamages));
+
+                if (m_Controller.ClientAnalytics != null)
+                {
+                    m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Heal, (int)Mathf.Round(lifeSteal * finalDamages));
+                    m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.LifeSteal, (int)Mathf.Round(lifeSteal * finalDamages));
+                }
             }
 
             // if spell is AutoAttack & controller has a "AutoAttackRune" : add effects of the rune to the spell
-            if (m_Controller.RuneData.GetType() == typeof(AutoAttackRune) && m_SpellData.Name == CharacterLoader.GetCharacterData(m_Controller.Character).AutoAttack.ToString())
+            if (m_Controller.RuneData.GetType() == typeof(AutoAttackRune) && m_SpellData.Name == m_Controller.SpellHandler.AutoAttack.ToString())
             {
                 ((AutoAttackRune)m_Controller.RuneData).ApplyOnHit(ref controller, m_Controller);
             }
@@ -280,9 +284,12 @@ namespace Game.Spells
 
             if (m_SpellData.Heal <= 0 && m_SpellData.AllyStateEffects.Count == 0)
                 return false;
-                        
+
             controller.Life.Heal(m_SpellData.Heal);
-            m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Heal, m_SpellData.Heal);
+            
+            if (m_Controller.ClientAnalytics != null)
+                m_Controller.ClientAnalytics.SendSpellDataClientRPC(m_SpellData.Name, EHitType.Heal, m_SpellData.Heal);
+            
             ApplyAllyStateEffects(controller);
 
             return true;

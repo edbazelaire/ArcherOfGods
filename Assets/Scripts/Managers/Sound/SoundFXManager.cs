@@ -39,6 +39,7 @@ namespace Assets.Scripts.Managers.Sound
 
         [Header("Menu")]
         [SerializeField] private AudioClip m_ClickButtonSoundFX;
+        [SerializeField] private AudioClip m_ErrorSoundFX;
         [SerializeField] private AudioClip m_LevelUpSoundFX;
         [SerializeField] private AudioClip m_OpenOverlayScreenSoundFX;
 
@@ -63,6 +64,7 @@ namespace Assets.Scripts.Managers.Sound
         public static AudioSource MusicAudioSource => Instance.m_AudioSource;
         public static AudioClip LevelUpSoundFX => Instance.m_LevelUpSoundFX;
         public static AudioClip ClickButtonSoundFX => Instance.m_ClickButtonSoundFX;
+        public static AudioClip ErrorSoundFX => Instance.m_ErrorSoundFX;
         public static AudioClip ProgressBarSoundFX => Instance.m_ProgressBarSoundFX;
         public static AudioClip OpenOverlayScreenSoundFX => Instance.m_OpenOverlayScreenSoundFX;
         public static AudioClip OpenPopUpSoundFX => Instance.m_OpenPopUpSoundFX;

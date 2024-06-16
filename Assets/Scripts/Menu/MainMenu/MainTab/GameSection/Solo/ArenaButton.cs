@@ -1,5 +1,4 @@
 using Assets;
-using Assets.Scripts.Managers.Sound;
 using Enums;
 using Menu.Common.Notifications;
 using Save;

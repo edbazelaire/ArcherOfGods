@@ -11,8 +11,6 @@ namespace Tools.Debugs
         private PerfMonitor m_FpsMonitor;
         private PerfMonitor m_MemoryMonitor;
 
-        private float deltaTime = 0.0f;
-
         #endregion
 
 

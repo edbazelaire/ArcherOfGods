@@ -47,14 +47,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AppStateMusics:
-  - AppState: 1
+  - State: 0
     AudioClip: {fileID: 8300000, guid: 0b3328d8e5e0af144b71f5f6c745e168, type: 3}
-  - AppState: 2
+  - State: 0
     AudioClip: {fileID: 8300000, guid: 477295e87249fb14db1d9013ecd75a1a, type: 3}
   m_GameStateMusics:
-  - AppState: 4
+  - State: 0
     AudioClip: {fileID: 8300000, guid: 4c07525ef65114146aaf319009bbd2bc, type: 3}
   m_ClickButtonSoundFX: {fileID: 8300000, guid: f297bb008d2eb084983c23b2bf7e9875, type: 3}
+  m_ErrorSoundFX: {fileID: 8300000, guid: 75b31f77dc7919d45918e5b5eeaf3782, type: 3}
   m_LevelUpSoundFX: {fileID: 8300000, guid: e86ddeb0f20073542ac357a8657789e0, type: 3}
   m_OpenOverlayScreenSoundFX: {fileID: 8300000, guid: c2819f4a8f4681f48af1344c680ae837, type: 3}
   m_ProgressBarSoundFX: {fileID: 8300000, guid: cdd78daaf3889774b963ba034069a2bc, type: 3}
@@ -62,7 +63,7 @@ MonoBehaviour:
   m_GoldsCollectedSoundFX: {fileID: 8300000, guid: 3aea792c8468bd9429f2c3c4bf94d5cf, type: 3}
   m_AchievementRewardCollectedSoundFX: {fileID: 8300000, guid: d32aa812842de304aa0d55afebfbbed9, type: 3}
   m_RewardCollectedSoundFX: {fileID: 8300000, guid: 2e49a928349f016449ad470f82ef91f0, type: 3}
-  m_ChestOpenSoundFX: {fileID: 8300000, guid: 2e49a928349f016449ad470f82ef91f0, type: 3}
+  m_DefaultChestOpenSoundFX: {fileID: 0}
   m_DefaultCastSoundFX: {fileID: 8300000, guid: 7f0479d183aff2341b91c4a9dce8c2aa, type: 3}
   m_DefaultOnHitSoundFX: {fileID: 8300000, guid: e86ddeb0f20073542ac357a8657789e0, type: 3}
   m_WinSoundFX: {fileID: 8300000, guid: d125ceb2e2df6374fae48f77298f63ab, type: 3}

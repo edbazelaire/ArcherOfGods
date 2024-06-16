@@ -280,6 +280,12 @@ namespace Menu.PopUps
             // clean content before next display
             UIHelper.CleanContent(m_RewardIconSection);
 
+            // if is character but has already been unlocked
+            if (collectable.GetType() == typeof(ECharacter) && InventoryCloudData.Instance.GetCollectable(collectable).Level > 0)
+            {
+                qty = 250;
+            }
+
             // setup ui of the new collectable
             SetUpTemplateItem(collectable, qty);
             SetUpRewardInfos(collectable, qty);
@@ -291,7 +297,7 @@ namespace Menu.PopUps
             yield return PlayRewardAnimation();
             // -- play collection fill bar animation
             yield return m_CollectionFillBar.CollectionAnimationCoroutine(qty);
-
+            
             // add reward to collection of rewards
             InventoryManager.AddCollectable(collectable, qty);
         }
@@ -358,7 +364,7 @@ namespace Menu.PopUps
             m_CollectionQty.text = "+ " + qty.ToString();
 
             // -- setup collection fill bar
-            m_CollectionFillBar.Initialize(cloudData.Qty, CollectablesManagementData.GetLevelData(collectable, cloudData.Level).RequiredQty);
+            m_CollectionFillBar.Initialize(cloudData.GetQty(), CollectablesManagementData.GetLevelData(collectable, cloudData.Level).RequiredQty);
         }
 
         #endregion

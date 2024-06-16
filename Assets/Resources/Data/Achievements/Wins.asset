@@ -25,12 +25,6 @@ MonoBehaviour:
       Chests: 
       Collectables: []
       AchievementRewards:
-      - AchievementReward: 4
-        Title: 2
-        Avatar: 0
-        Border: 0
-        Badge: 0
-        League: 0
       - AchievementReward: 2
         Title: 2
         Avatar: 1
@@ -40,27 +34,21 @@ MonoBehaviour:
   - MaxValue: 5
     Rewards:
       Currencies: []
-      Chests: 01000000
+      Chests: 00000000
       Collectables: []
       AchievementRewards: []
   - MaxValue: 10
     Rewards:
-      Currencies: []
+      Currencies:
+      - Currency: 3
+        Qty: 100
       Chests: 
       Collectables: []
-      AchievementRewards:
-      - AchievementReward: 1
-        Title: 0
-        Avatar: 0
-        Border: 0
-        Badge: 2
-        League: 1
+      AchievementRewards: []
   - MaxValue: 25
     Rewards:
-      Currencies:
-      - Currency: 0
-        Qty: 1500
-      Chests: 02000000
+      Currencies: []
+      Chests: 
       Collectables: []
       AchievementRewards:
       - AchievementReward: 1
@@ -71,16 +59,12 @@ MonoBehaviour:
         League: 2
   - MaxValue: 35
     Rewards:
-      Currencies: []
-      Chests: 
+      Currencies:
+      - Currency: 3
+        Qty: 250
+      Chests: 01000000
       Collectables: []
-      AchievementRewards:
-      - AchievementReward: 3
-        Title: 0
-        Avatar: 0
-        Border: 3
-        Badge: 2
-        League: 3
+      AchievementRewards: []
   - MaxValue: 50
     Rewards:
       Currencies: []
@@ -97,7 +81,7 @@ MonoBehaviour:
     Rewards:
       Currencies:
       - Currency: 0
-        Qty: 5000
+        Qty: 2500
       Chests: 02000000
       Collectables: []
       AchievementRewards:
@@ -113,15 +97,9 @@ MonoBehaviour:
       Chests: 
       Collectables: []
       AchievementRewards:
-      - AchievementReward: 3
+      - AchievementReward: 1
         Title: 0
         Avatar: 0
         Border: 11
         Badge: 2
-        League: 3
-      - AchievementReward: 4
-        Title: 3
-        Avatar: 0
-        Border: 11
-        Badge: 2
-        League: 3
+        League: 4

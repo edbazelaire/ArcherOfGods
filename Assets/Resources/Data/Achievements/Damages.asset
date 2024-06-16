@@ -30,7 +30,7 @@ MonoBehaviour:
         Avatar: 0
         Border: 0
         Badge: 3
-        League: 1
+        League: 2
   - MaxValue: 25000
     Rewards:
       Currencies: []
@@ -42,7 +42,7 @@ MonoBehaviour:
         Avatar: 0
         Border: 0
         Badge: 3
-        League: 2
+        League: 3
   - MaxValue: 100000
     Rewards:
       Currencies: []
@@ -54,4 +54,4 @@ MonoBehaviour:
         Avatar: 0
         Border: 0
         Badge: 3
-        League: 3
+        League: 4

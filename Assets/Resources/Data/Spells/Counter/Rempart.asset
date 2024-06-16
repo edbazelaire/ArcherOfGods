@@ -43,7 +43,7 @@ MonoBehaviour:
   IsCancellable: 0
   AnimationTimer: 0
   CastAt: 1
-  m_Cooldown: 20
+  m_Cooldown: 35
   CounterType: 3
   CounterActivation: 1
   IsBlockingMovement: 1

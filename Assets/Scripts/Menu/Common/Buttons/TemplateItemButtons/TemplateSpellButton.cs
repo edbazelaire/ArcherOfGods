@@ -31,6 +31,9 @@ namespace Menu.Common.Buttons
             m_IsAutoTarget = spellData.IsAutoTarget;
 
             base.SetUpUI(asIconOnly);
+
+            if (m_IsLinked && m_CollectionFillBar != null)
+                m_CollectionFillBar.gameObject.SetActive(false);
         }
 
         /// <summary>

@@ -345,7 +345,10 @@ namespace Game.Character
             ErrorHandler.Log("STATE ANIMATION CHANGED : animation = " + newValue.ToString().ToUpper(), ELogTag.Animation);
 
             if (newValue == EAnimation.None)
+            {
                 m_Animator.SetTrigger("StopStateAnimation");
+                return;
+            }
 
             m_Animator.SetTrigger(newValue.ToString());
         }

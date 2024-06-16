@@ -1,5 +1,7 @@
 ﻿using Data.GameManagement;
 using Enums;
+using Save;
+using System;
 using System.Collections.Generic;
 using Tools;
 using Tools.Animations;
@@ -15,12 +17,12 @@ namespace Menu.PopUps
         EArenaType m_ArenaType;
         ArenaData m_ArenaData;
 
-        Image               m_Background;
-        GameObject          m_ScrollContent;
-        GameObject          m_Viewport;
-        StageDisplayUI      m_StageDisplayUIPrefab;
+        Image                   m_Background;
+        GameObject              m_ScrollContent;
+        GameObject              m_Viewport;
+        ArenaStageDisplayUI     m_StageDisplayUIPrefab;
 
-        List<StageDisplayUI> m_Stages;
+        List<ArenaStageDisplayUI> m_Stages;
 
         #endregion
 
@@ -39,7 +41,7 @@ namespace Menu.PopUps
         {
             base.FindComponents();
 
-            m_StageDisplayUIPrefab = AssetLoader.Load<StageDisplayUI>("StageDisplay", AssetLoader.c_UIPath + "OverlayScreens/Components/ArenaPathContent/");
+            m_StageDisplayUIPrefab = AssetLoader.Load<ArenaStageDisplayUI>("ArenaStageDisplay", AssetLoader.c_UIPath + "OverlayScreens/Components/RewardsPath/ArenaPathContent/");
 
             m_Background = Finder.FindComponent<Image>(gameObject, "Background");
             m_ScrollContent = Finder.Find(gameObject, "ScrollContent");
@@ -74,7 +76,7 @@ namespace Menu.PopUps
         void SetupStagesDisplay()
         {
             UIHelper.CleanContent(m_ScrollContent);
-            m_Stages = new List<StageDisplayUI>();
+            m_Stages = new List<ArenaStageDisplayUI>();
             
             for (int i = 0; i < m_ArenaData.MaxLevel; i++)
             {
@@ -89,11 +91,13 @@ namespace Menu.PopUps
             if (m_ArenaData.CurrentLevel == 0)
                 return;
 
+            int level = Math.Clamp(m_ArenaData.CurrentLevel, 0, m_Stages.Count - 1) ;
+            
             // init position with current position
             float poseX = 0;
 
             // move stages until current stage level is left of viewport
-            for (int i = 0; i < m_ArenaData.CurrentLevel; i++)
+            for (int i = 0; i < level; i++)
             {
                 poseX -= Finder.FindComponent<RectTransform>(m_Stages[i].gameObject).rect.width;
             }
@@ -102,7 +106,7 @@ namespace Menu.PopUps
             poseX += (Finder.FindComponent<RectTransform>(m_Viewport).rect.width / 2);
 
             // remove half of current stage size
-            poseX -= Finder.FindComponent<RectTransform>(m_Stages[m_ArenaData.CurrentLevel].gameObject).rect.width / 3;
+            poseX -= Finder.FindComponent<RectTransform>(m_Stages[level].gameObject).rect.width / 3;
 
             // poseX sup 0 means that not enought stages are behind to be able to center current stage
             if (poseX > 0)

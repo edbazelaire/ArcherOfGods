@@ -425,7 +425,7 @@ namespace Game.Character
 
             foreach (var effect in m_StateEffects)
             {
-                if (!effect.HasProperty(property.ToString()))
+                if (! effect.HasProperty(property))
                     continue;
                 baseValue += effect.GetFloat(property);
             }

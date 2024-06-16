@@ -23,6 +23,7 @@ namespace Game
 
         public const int POUTCH_CLIENT_ID = 999;
         public const int N_LOADING_STEPS = 3;
+        public const int DEFAULT_PVP_LEVEL = 9;
 
         // ===================================================================================
         // ACTIONS
@@ -211,6 +212,8 @@ namespace Game
             // add player to list of player controllers
             Controller controller = Finder.FindComponent<Controller>(playerPrefab);
 
+            UpdatePlayerData(ref playerData);
+
             // initialize player data
             controller.Initialize(
                 playerData: playerData,
@@ -249,6 +252,27 @@ namespace Game
 
             // add event listener to the player's hp
             poutchController.Life.Hp.OnValueChanged += CheckPlayerDeath;
+        }
+
+        /// <summary>
+        /// Update player data depending on game mode.
+        /// [Arena]
+        ///     No changes
+        /// 
+        /// [Ranked]
+        ///     For test purpuses, all data (char and spells) are set to level 9
+        /// </summary>
+        /// <param name="playerData"></param>
+        void UpdatePlayerData(ref SPlayerData playerData)
+        {
+            if (LobbyHandler.Instance.GameMode != EGameMode.Ranked)
+                return;
+
+            playerData.CharacterLevel = DEFAULT_PVP_LEVEL;
+            for (int i = 0; i < playerData.SpellLevels.Length; i++)
+            {
+                playerData.SpellLevels[i] = DEFAULT_PVP_LEVEL;
+            }
         }
 
         /// <summary>
@@ -437,7 +461,7 @@ namespace Game
         /// </summary>
         /// <param name="team"></param>
         [ClientRpc]
-        void GameOverClientRPC(int team)
+        public void GameOverClientRPC(int team)
         {
             ErrorHandler.Log("GameOverClientRPC", ELogTag.GameSystem);
 
@@ -520,6 +544,7 @@ namespace Game
         }
 
         #endregion
+
 
         #region Public Manipulators
 
@@ -682,6 +707,7 @@ namespace Game
                     break;
 
                 case EGameState.GameOver:
+                    
                     break;
             }
         }

@@ -43,8 +43,7 @@ MonoBehaviour:
   Animation: 5
   IsCancellable: 1
   AnimationTimer: 0
-  CastAt: 1
   m_Cooldown: 20
   Trajectory: 1
-  m_Speed: 11
+  m_Speed: 14
   JumpType: 1

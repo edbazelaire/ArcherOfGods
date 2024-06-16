@@ -1,5 +1,6 @@
 ﻿
 
+using Save;
 using Tools;
 using Tools.Debugs.BetaTest;
 using UnityEngine;
@@ -12,6 +13,7 @@ namespace Menu.PopUps
 
         #region Members
 
+        GameObject m_TabButtonContainer;
         SettingsTabManager m_SettingsTabManager;
         GameObject m_WarningMessage;
 
@@ -24,6 +26,7 @@ namespace Menu.PopUps
         {
             base.FindComponents();
 
+            m_TabButtonContainer = Finder.Find(gameObject, "TabButtonsContainer");
             m_SettingsTabManager = Finder.FindComponent<SettingsTabManager>(gameObject);
             m_WarningMessage = Finder.Find(gameObject, "WarningMessage");
         }
@@ -33,8 +36,16 @@ namespace Menu.PopUps
         {
             base.OnPrefabLoaded();
 
+            if (! ProfileCloudData.IsAdmin) 
+            {
+                m_WarningMessage.SetActive(false);
+                m_TabButtonContainer.SetActive(false);
+            } else
+            {
+                SetUpWarningMessage();
+            }
+
             m_SettingsTabManager.Initialize();
-            SetUpWarningMessage();
         }
 
         #endregion

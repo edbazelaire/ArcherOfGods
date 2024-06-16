@@ -7,6 +7,7 @@ namespace Menu.MainMenu
         #region Members
 
         ProfileDisplayBE m_ProfileDisplayBE;
+
         #endregion
 
 

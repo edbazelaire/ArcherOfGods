@@ -49,6 +49,8 @@ namespace Game.Character
         Coroutine                           m_CastCoroutine;
         /// <summary> enum of the character's auto attack </summary>
         ESpell                              m_AutoAttack;
+        /// <summary> enum of the character's special ability </summary>
+        ESpell                              m_SpecialAbility;
         /// <summary> enum of the character's ultimate </summary>
         ESpell                              m_Ultimate;
         /// <summary> base spawn position of the spell </summary>
@@ -57,20 +59,23 @@ namespace Game.Character
         ESpell                              m_NextSelectedSpell;
         /// <summary> time before the animation ends </summary>
         float                               m_AnimationTimer;
+        /// <summary> is current spell casted can be cancelled ? </summary>
+        bool                                m_IsCurrentSpellCancellable    = true;
 
         // -- Client Side
         /// <summary> is currently selected spell an AutoTarget ? </summary>
-        bool m_IsSelectedAutoTarget = false;
+        bool                                m_IsSelectedAutoTarget = false;
 
         // ===================================================================================
         // PUBLIC ACCESSORS
         public NetworkVariable<int>         SelectedSpellNet        => m_SelectedSpellNet;
         public NetworkList<float>           CooldownsNet            => m_CooldownsNet;
         public NetworkVariable<bool>        IsCasting               => m_IsCasting;
-        public bool                         IsCastingUncancellable  => m_IsCasting.Value && ! SpellLoader.GetSpellData(m_SelectedSpell).IsCancellable;
+        public bool                         IsCastingUncancellable  => m_IsCasting.Value && ! m_IsCurrentSpellCancellable;
         public float                        AnimationTimer          => m_AnimationTimer;
         public ESpell                       SelectedSpell           => m_SelectedSpell;
         public ESpell                       AutoAttack              => m_AutoAttack;
+        public ESpell                       SpecialAbility         => m_SpecialAbility;
         public ESpell                       Ultimate                => m_Ultimate;
         public Transform                    SpellSpawn              => m_SpellSpawn;
         public Vector3                      TargetPos               => m_TargetPos.Value;   
@@ -121,19 +126,22 @@ namespace Game.Character
         /// Initialize the spell handler
         /// </summary>
         /// <param name="spells"></param>
-        public void Initialize(ESpell autoAttack, ESpell ultimate, List<ESpell> extraSpells, List<int> spellLevels)
+        public void Initialize(ESpell autoAttack, ESpell specialAbility, ESpell ultimate, List<ESpell> extraSpells, List<int> spellLevels)
         {
             if (!IsServer)
                 return;
           
             m_AutoAttack = autoAttack;
+            m_SpecialAbility = specialAbility;
             m_Ultimate = ultimate;
 
             // insert autoattack and ultimate at the start (not necessary but i prefer)
             extraSpells.Insert(0, autoAttack);
             spellLevels.Insert(0, m_Controller.CharacterLevel);
-            extraSpells.Insert(1, ultimate);
+            extraSpells.Insert(1, specialAbility);
             spellLevels.Insert(1, m_Controller.CharacterLevel);
+            extraSpells.Insert(2, ultimate);
+            spellLevels.Insert(2, m_Controller.CharacterLevel);
             
             // setup spells, spell levels and isAutoTarget 
             for (int i=0; i < extraSpells.Count; i++)
@@ -240,11 +248,14 @@ namespace Game.Character
             if (!CanSelect(spell))
                 return false;
 
-            ErrorHandler.Log("TrySelectSpell " + spell, ELogTag.SpellHandler);
-            ErrorHandler.Log("     -- CHECK : is already Casting (" + spell + ") : " + m_IsCasting.Value, ELogTag.SpellHandler);
+            if (spell != ESpell.Count && spell != AutoAttack)
+            {
+                ErrorHandler.Log("TrySelectSpell " + spell, ELogTag.SpellHandler);
+                ErrorHandler.Log("     -- CHECK : is already Casting (" + m_SelectedSpell + ") : " + m_IsCasting.Value, ELogTag.SpellHandler);
+            }
 
-            // set in queue if can 
-            if (m_IsCasting.Value || m_CastCoroutine != null)
+            // set in queue if possible 
+            if ((m_IsCasting.Value || m_CastCoroutine != null) && ! SpellLoader.GetSpellData(m_SelectedSpell).IsCancellable)
             {
                 ErrorHandler.Log("     -- Setting spell (" + spell + ") as m_NextSelectedSpell", ELogTag.SpellHandler);
                 m_NextSelectedSpell = spell;
@@ -253,7 +264,7 @@ namespace Game.Character
 
             // on spell selection, reset NextSelectedSpell to default auto attack
             m_SelectedSpell = spell;
-            m_NextSelectedSpell = IsAutoTarget(AutoAttack) ? ESpell.Count : AutoAttack;
+            m_NextSelectedSpell = ESpell.Count;
 
             if (spell == ESpell.Count)
                 return true;
@@ -266,7 +277,7 @@ namespace Game.Character
                     ErrorHandler.Log("TryStartCastSpell "+spell+" success : " + success, ELogTag.SpellHandler);
 
                 if (!success)
-                    ErrorHandler.Warning("Trying to cast spell " + spell + " on selection but was not able");
+                    ErrorHandler.Log("Trying to cast spell " + spell + " on selection but was not able", ELogTag.SpellHandler);
             }
 
             return true;
@@ -330,14 +341,14 @@ namespace Game.Character
             }
 
             // check : is casting an other spell
-            if (m_IsCasting.Value)
+            if (m_IsCasting.Value && ! m_IsCurrentSpellCancellable)
             {
                 if (m_Controller.IsPlayer || Main.LogTags.Contains(ELogTag.AI))
                     ErrorHandler.Log("Spell cast (" + spell + ") BLOCKED : is casting an other spell", ELogTag.SpellHandler);
                 return false;
             }
 
-            if (m_CastCoroutine != null)
+            if (m_CastCoroutine != null && ! m_IsCurrentSpellCancellable)
             {
                 if (m_Controller.IsPlayer || Main.LogTags.Contains(ELogTag.AI))
                     ErrorHandler.Log("Spell cast (" + spell + ") BLOCKED : Coroutine not over", ELogTag.SpellHandler);
@@ -366,6 +377,11 @@ namespace Game.Character
                 || m_Controller.CounterHandler.IsBlockingCast.Value;            // is using a counter
         }
 
+        /// <summary>
+        /// Check if enemy can be targetted by provided spell
+        /// </summary>
+        /// <param name="spell"></param>
+        /// <returns></returns>
         public bool CheckEnemyTargetable(ESpell spell)
         {
             SpellData spellData = SpellLoader.GetSpellData(spell);
@@ -384,16 +400,13 @@ namespace Game.Character
         /// <param name="spell"></param>
         public bool TryStartCastSpell(ESpell spell)
         {
-            if (m_Controller.IsPlayer || Main.LogTags.Contains(ELogTag.AI))
+            if ((m_Controller.IsPlayer || Main.LogTags.Contains(ELogTag.AI)) && spell != m_AutoAttack)
                 ErrorHandler.Log("TryStartCastSpell : " + spell, ELogTag.SpellHandler);
 
             if (!IsServer)
                 return false;
 
             if (!CanCast(spell))
-                return false;
-
-            if (!CheckEnemyTargetable(spell))
                 return false;
 
             m_SelectedSpell = spell;
@@ -422,10 +435,12 @@ namespace Game.Character
             if (!IsServer)
                 yield break;
 
-            m_IsCasting.Value = true;
-
             // SETUP : get spell data and set animation to motion
             SpellData spellData = SpellLoader.GetSpellData(spell);
+
+            // SETUP : casting data
+            m_IsCurrentSpellCancellable = spellData.IsCancellable;
+            m_IsCasting.Value = true;
 
             // cancel current movement
             m_Controller.Movement.CancelMovement(true);
@@ -434,17 +449,8 @@ namespace Game.Character
             m_AnimationTimer = spellData.AnimationTimer / CurrentCastSpeedFactor;
 
             // wait for animation to finish (if not already)
-            while (m_AnimationTimer > 0f || m_IsCasting.Value)
+            while (m_AnimationTimer > 0f)
             {
-                // if the spell is launched before the end of the cast : cast it
-                if (m_AnimationTimer <= spellData.AnimationTimer * (1 - spellData.CastAt) && m_IsCasting.Value)
-                {
-                    // ask server to cast the spell
-                    Cast(spell);
-                    m_Controller.Movement.CancelMovement(false);
-                    m_IsCasting.Value = false;
-                }
-
                 m_AnimationTimer -= Time.deltaTime;
 
                 // if player is moving, cancel the spell
@@ -461,7 +467,12 @@ namespace Game.Character
             if (m_Controller.IsPlayer)
                 ErrorHandler.Log("     -- CAST DONE : " + spell, ELogTag.SpellHandler);
 
+            // ask server to cast the spell
+            Cast(spell);
+            m_Controller.Movement.CancelMovement(false);
+
             m_IsCasting.Value = false;
+            m_IsCurrentSpellCancellable = true;
             m_CastCoroutine = null;
 
             // reset spell selection
@@ -521,6 +532,7 @@ namespace Game.Character
 
             // stop casting
             m_IsCasting.Value = false;
+            m_IsCurrentSpellCancellable = true;
 
             // check Coroutine
             if (m_CastCoroutine != null)
@@ -556,19 +568,27 @@ namespace Game.Character
         /// </summary>
         void CheckActionExectution()
         {
+            // ========================================================================
+            // TODO : For now all spells are by default AUTO TARGET, so there is no need to do that heavy check
+            return;
+            // ========================================================================
+
+            // get SelectedSpell from server
+            var selectedSpell = m_SelectedSpell;
+
             // if no spell is selected : return
-            if (m_SelectedSpell == ESpell.Count)
+            if (selectedSpell == ESpell.Count)
                 return;
 
             // AUTO TARGET : no previsu - leave
-            if (IsAutoTarget(m_SelectedSpell))
+            if (IsAutoTarget(selectedSpell))
                 return;
 
             // mouse button DOWN : display previsu
             if (Input.GetMouseButtonDown(0) && IsTargettable())
             {
                 // if unable to cast : return
-                if (!CanCast(m_SelectedSpell))
+                if (!CanCast(selectedSpell))
                     return;
 
                 DisplaySpellPreview();
@@ -582,7 +602,7 @@ namespace Game.Character
 
                 // get shoot position
                 SetTargetPosServerRPC(new Vector3(Camera.main.ScreenToWorldPoint(Input.mousePosition).x, 0, 0));
-                RequestStartCastServerRPC(m_SelectedSpell);
+                RequestStartCastServerRPC(selectedSpell);
             }
 
             return;
@@ -743,6 +763,7 @@ namespace Game.Character
 
         #endregion
 
+
         #region Getter / Setter / Dependent Properties
 
         ESpell m_SelectedSpell
@@ -798,7 +819,7 @@ namespace Game.Character
 
         public bool IsAutoAttack => m_SelectedSpell == AutoAttack;
 
-        public float CurrentCastSpeedFactor => 1f + (IsAutoAttack? m_Controller.StateHandler.GetFloat(EStateEffectProperty.AttackSpeed) : m_Controller.StateHandler.GetFloat(EStateEffectProperty.CastSpeed));
+        public float CurrentCastSpeedFactor => IsAutoAttack? m_Controller.StateHandler.GetFloat(EStateEffectProperty.AttackSpeed) : m_Controller.StateHandler.GetFloat(EStateEffectProperty.CastSpeed);
 
         #endregion
     }

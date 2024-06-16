@@ -53,6 +53,9 @@ TagManager:
   - name: Overlay
     uniqueID: 3766973127
     locked: 0
+  - name: ErrorDisplay
+    uniqueID: 809966689
+    locked: 0
   - name: TEST TOP
     uniqueID: 1987168635
     locked: 0

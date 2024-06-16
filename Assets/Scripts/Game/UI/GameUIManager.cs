@@ -1,13 +1,9 @@
 using Assets.Scripts.Managers.Sound;
 using Enums;
 using Game;
-using Game.Spells;
 using Game.UI;
 using Managers;
-using Menu.Common.Buttons;
 using Network;
-using Save;
-using System;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
@@ -19,8 +15,10 @@ public class GameUIManager : MonoBehaviour
 
     static GameUIManager s_Instance;
 
-    [SerializeField] private IntroGameUI    m_IntroGameUI;
-    [SerializeField] private EndGameUI      m_EndGameUI;
+    private IntroGameUI    m_IntroGameUI;
+    private EndGameUI      m_EndGameUI;
+    private ErrorGameUI    m_ErrorGameUI;
+
     [SerializeField] private Image          m_Background;
 
     const string        c_PlayerUIContainerPrefix   = "PlayerUIContainer_";
@@ -33,13 +31,9 @@ public class GameUIManager : MonoBehaviour
     public GameObject   m_PlayerUITemplate;
     /// <summary> Spell item template to instantiate on Character Instantiation </summary>
     public GameObject   SpellTemplate;
-    
+
     // ==============================================================================================================
     // Game Objects & Components
-    /// <summary> button that inputs a movement to the left </summary>
-    Button              m_LeftMovementButton;
-    /// <summary> button that inputs a movement to the right </summary>
-    Button              m_RightMovementButton;
     /// <summary> container for SpellItemUI(s) </summary>
     GameObject          m_SpellContainer;
     /// <summary> container for SpellItemUI(s) of linked spells </summary>
@@ -57,6 +51,7 @@ public class GameUIManager : MonoBehaviour
     // ==============================================================================================================
     // Public Accessors
     public static IntroGameUI IntroGameUI               => Instance.m_IntroGameUI;
+    public static ErrorGameUI ErrorGameUI               => Instance.m_ErrorGameUI;
     public static bool LeftMovementButtonPressed        => Instance.m_LeftMovementButtonPressed;
     public static bool RightMovementButtonPressed       => Instance.m_RightMovementButtonPressed;
    
@@ -65,11 +60,21 @@ public class GameUIManager : MonoBehaviour
 
     #region Initialization
 
+    void FindComponents()
+    {
+        m_IntroGameUI = Finder.FindComponent<IntroGameUI>(transform.parent.gameObject, "IntroGameUI");
+        m_EndGameUI = Finder.FindComponent<EndGameUI>(transform.parent.gameObject, "EndGameUI");
+        m_ErrorGameUI = Finder.FindComponent<ErrorGameUI>(transform.parent.gameObject, "ErrorGameUI");
+    }
+
     public void Initialize()
     {
+        FindComponents();
+
         m_SpellItems = new List<SpellItemUI>();
 
         m_EndGameUI.gameObject.SetActive(false);
+        m_ErrorGameUI.gameObject.SetActive(false);
 
         SetUpBackground();
         FindPlayerUIContainers();
@@ -102,8 +107,6 @@ public class GameUIManager : MonoBehaviour
     void FindMovementButtons()
     {
         var container           = Finder.Find(gameObject, "MovementButtonsContainer");
-        m_LeftMovementButton    = Finder.FindComponent<Button>(container.gameObject, "LeftMovementButton");
-        m_RightMovementButton   = Finder.FindComponent<Button>(container.gameObject, "RightMovementButton");
 
         // link pressed button bools to pressed envents
         Finder.FindComponent<MovementButtonsContainer>(container).MovementInputEvent += (int moveX) => { m_LeftMovementButtonPressed = moveX == -1; m_RightMovementButtonPressed = moveX == 1; };

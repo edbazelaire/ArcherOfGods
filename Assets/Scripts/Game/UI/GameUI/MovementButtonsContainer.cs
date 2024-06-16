@@ -45,7 +45,7 @@ public class MovementButtonsContainer : MonoBehaviour, IPointerDownHandler, IPoi
     private void HandleTouch(PointerEventData eventData)
     {
         // Check if the touch is over the left button
-        if (RectTransformUtility.RectangleContainsScreenPoint(m_LeftMovementButtonImage.GetComponent<RectTransform>(), eventData.position, eventData.pressEventCamera))
+        if (RectTransformUtility.RectangleContainsScreenPoint(m_LeftMovementButton.GetComponent<RectTransform>(), eventData.position, eventData.pressEventCamera))
         {
             MovementInputEvent?.Invoke(-1);
             m_LeftMovementButtonImage.color = m_ActivationColor;
@@ -53,7 +53,7 @@ public class MovementButtonsContainer : MonoBehaviour, IPointerDownHandler, IPoi
         }
 
         // Check if the touch is over the right button
-        else if (RectTransformUtility.RectangleContainsScreenPoint(m_RightMovementButtonImage.GetComponent<RectTransform>(), eventData.position, eventData.pressEventCamera))
+        else if (RectTransformUtility.RectangleContainsScreenPoint(m_RightMovementButton.GetComponent<RectTransform>(), eventData.position, eventData.pressEventCamera))
         {
             MovementInputEvent?.Invoke(1);
             m_LeftMovementButtonImage.color = Color.white;

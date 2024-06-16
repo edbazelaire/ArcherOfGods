@@ -293,10 +293,12 @@ namespace Save
         // CONSTANTS
         /// <summary> number of spells in one build </summary>
         public const int N_BADGES_DISPLAYED = 3;
-        public const int MIN_CHAR_GAMER_TAG = 5;
-        public const int MAX_CHAR_GAMER_TAG = 30;
+        public const int MIN_CHAR_GAMER_TAG = 4;
+        public const int MAX_CHAR_GAMER_TAG = 25;
 
         // KEYS ------------------------------------
+        public const string KEY_IS_ADMIN                = "IsAdmin";
+        public const string KEY_PSEUDO_CHANGED          = "PseudoChanged";
         public const string KEY_CURRENT_PROFILE_DATA    = "CurrentProfileData";
         public const string KEY_ACHIEVEMENTS            = "Achievements";
         public const string KEY_ACHIEVEMENT_REWARDS     = "AchievementRewards";
@@ -306,6 +308,7 @@ namespace Save
         /// <summary> action fired when the amount of gold changed </summary>
         public static Action<EAchievementReward, string>    AchievementRewardCollectedEvent;
         public static Action<string>                        AchievementCompletedEvent;
+        public static Action                                GamerTagChanged;
         public static Action<EAchievementReward>            CurrentDataChanged;
         public static Action<int>                           CurrentBadgeChangedEvent;
         public static Action<EBadge, ELeague>               BadgeUnlockedEvent;
@@ -314,6 +317,8 @@ namespace Save
         // DATA
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
+            { KEY_IS_ADMIN,                 false                                               },
+            { KEY_PSEUDO_CHANGED,           false                                                },
             { KEY_CURRENT_PROFILE_DATA,     new SProfileCurrentData()                           },
             { KEY_ACHIEVEMENTS,             new Dictionary<string, int>()                       },
             { KEY_ACHIEVEMENT_REWARDS,      new Dictionary<EAchievementReward, List<string>>()  },
@@ -325,6 +330,8 @@ namespace Save
         // ===============================================================================================
         // DEPENDENT STATIC ACCESSORS
         public static int LastSelectedBadgeIndex = 0;
+        public static bool IsAdmin => (bool)Instance.m_Data[KEY_IS_ADMIN];
+        public static bool PseudoChanged => (bool)Instance.m_Data[KEY_PSEUDO_CHANGED];
         public static SProfileCurrentData CurrentProfileData => (SProfileCurrentData)Instance.m_Data[KEY_CURRENT_PROFILE_DATA];
         public static string GamerTag => CurrentProfileData.GamerTag;
         public static string[] CurrentBadges => CurrentProfileData.Badges;
@@ -376,7 +383,11 @@ namespace Save
         {
             var data = CurrentProfileData;
             data.GamerTag = gamerTag;
+
             Instance.SetData(KEY_CURRENT_PROFILE_DATA, data);
+            Instance.SetData(KEY_PSEUDO_CHANGED, true);
+
+            GamerTagChanged?.Invoke();
         }
 
         /// <summary>
@@ -690,7 +701,7 @@ namespace Save
             reason = "";
             if (gamerTag.Length < MIN_CHAR_GAMER_TAG || gamerTag.Length > MAX_CHAR_GAMER_TAG)
             {
-                reason = TextLocalizer.LocalizeText("gamer tag must have between " + MIN_CHAR_GAMER_TAG + " and " + MIN_CHAR_GAMER_TAG + " characters");
+                reason = TextLocalizer.LocalizeText("gamer tag must have between " + MIN_CHAR_GAMER_TAG + " and " + MAX_CHAR_GAMER_TAG + " characters");
                 return false;
             }
 
@@ -708,6 +719,10 @@ namespace Save
 
             switch (key)
             {
+                case KEY_PSEUDO_CHANGED:
+                    Instance.m_Data[key] = false;
+                    break;
+
                 case KEY_CURRENT_PROFILE_DATA:
                     var data = new SProfileCurrentData();
                     data.Check();
@@ -914,6 +929,8 @@ namespace Save
             m_Badges = FilterHighestLeague(EAchievementReward.Badge);
             CheckAchievements();
             CheckCurrentData();
+
+            SaveValue(KEY_IS_ADMIN);
         }
 
         /// <summary>

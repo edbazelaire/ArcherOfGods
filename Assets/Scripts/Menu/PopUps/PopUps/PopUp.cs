@@ -111,7 +111,7 @@ namespace Menu.PopUps
             base.OnCancelButton();
         }
 
-        protected void OnValidateButton()
+        protected virtual void OnValidateButton()
         {
             m_OnValidate?.Invoke();
         }

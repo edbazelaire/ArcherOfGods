@@ -1,6 +1,8 @@
 ﻿using Assets;
 using Data.GameManagement;
 using Enums;
+using Game.AI;
+using Menu.MainMenu;
 using System;
 using System.Collections.Generic;
 using Tools;
@@ -20,6 +22,20 @@ namespace Save
             CurrentStage = stage;
         }
     }
+    [Serializable]
+    public struct SLeagueCloudData
+    {
+        public ELeague  CurrentLeague;
+        public int      CurrentLevel;
+        public int      CurrentStage;
+
+        public SLeagueCloudData(ELeague league, int level = 0, int stage = 0)
+        {
+            CurrentLeague   = league;
+            CurrentLevel    = level;
+            CurrentStage    = stage;
+        }
+    }
 
     public class ProgressionCloudData : CloudData
     {
@@ -29,24 +45,29 @@ namespace Save
 
         // ===============================================================================================
         // CONSTANTS
-        public const string KEY_PVP_ELO         = "PvpElo";
+        public const string KEY_LEAGUE         = "League";
         public const string KEY_SOLO_ARENAS     = "SoloArenas";
 
         // ===============================================================================================
         // ACTIONS
+        public static Action LeagueDataChangedEvent;
         public static Action ArenaDataChangedEvent;
 
         // ===============================================================================================
         // DATA
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
-            { KEY_PVP_ELO,              0 },
-            { KEY_SOLO_ARENAS,          new Dictionary<EArenaType, SArenaCloudData>() },
+            { KEY_LEAGUE,               new SLeagueCloudData(ELeague.Iron)              },
+            { KEY_SOLO_ARENAS,          new Dictionary<EArenaType, SArenaCloudData>()   },
         };
 
         // ===============================================================================================
         // DEPENDENT STATIC ACCESSORS
-        public static Dictionary<EArenaType, SArenaCloudData>   SoloArenas     => Instance.m_Data[KEY_SOLO_ARENAS] as Dictionary<EArenaType, SArenaCloudData>;
+        public static SLeagueCloudData                          LeagueCloudData         => (SLeagueCloudData)Instance.m_Data[KEY_LEAGUE];
+        public static ELeague                                   CurrentLeague           => LeagueCloudData.CurrentLeague;
+        public static int                                       CurrentLeagueLevel      => LeagueCloudData.CurrentLevel;
+        public static int                                       CurrentLeagueStage      => LeagueCloudData.CurrentStage;
+        public static Dictionary<EArenaType, SArenaCloudData>   SoloArenas              => Instance.m_Data[KEY_SOLO_ARENAS] as Dictionary<EArenaType, SArenaCloudData>;
 
         #endregion
 
@@ -56,12 +77,14 @@ namespace Save
         /// <summary>
         /// Convert SCharacterBuildsCloudData into a dictionnary (easier to manipulate type of data)
         /// </summary>
-        /// <param name="charsBuildsList"></param>
         /// <returns></returns>
         protected override object Convert(Item item)
         {
             if (m_Data[item.Key].GetType() == typeof(Dictionary<EArenaType, SArenaCloudData>))
                 return item.Value.GetAs<Dictionary<EArenaType, SArenaCloudData>>();
+
+            if (m_Data[item.Key].GetType() == typeof(SLeagueCloudData))
+                return item.Value.GetAs<SLeagueCloudData>();
 
             return base.Convert(item);
         }
@@ -69,7 +92,95 @@ namespace Save
         #endregion
 
 
+        #region League Data
+
+        public static bool IsLeagueCompleted()
+        {
+            return CurrentLeague >= Main.LeagueDataConfig.LeagueDataList[^1].League;
+        }
+
+        public static void UpdateLeagueValue(bool up)
+        {
+            var leagueCloudData = LeagueCloudData;
+
+            // Retrieve stage level
+            if (!up)
+            {
+                // stage level is 0 : do nothing
+                if (leagueCloudData.CurrentStage == 0)
+                    return;
+
+                leagueCloudData.CurrentStage--;
+            }
+
+            else
+            {
+                SLeagueData leagueData = Main.LeagueDataConfig.CurrentLeagueData;
+
+                // ADD stage level
+                if (leagueCloudData.CurrentStage == leagueData.LevelData[CurrentLeagueLevel].NStages)
+                {
+                    UpgradeLeagueLevel();
+                    return;
+                }
+
+                leagueCloudData.CurrentStage++;
+            }
+
+            SaveLeagueData(leagueCloudData);
+        }
+
+        public static void UpgradeLeagueLevel()
+        {
+            // reached max level of the league : go to next league 
+            if (CurrentLeagueLevel == Main.LeagueDataConfig.CurrentLeagueData.LevelData.Count - 1)
+            {
+                UpgradeLeague();
+                return;
+            }
+
+            // add rewards to notification data so they can be collected later
+            NotificationCloudData.AddLeagueLevelReward(CurrentLeague, CurrentLeagueLevel);
+
+            SLeagueCloudData leagueCloudData = LeagueCloudData;
+            leagueCloudData.CurrentStage = 0;
+            leagueCloudData.CurrentLevel++;
+            SaveLeagueData(leagueCloudData);
+        }
+
+        public static void UpgradeLeague()
+        {
+            SLeagueCloudData leagueCloudData = LeagueCloudData;
+
+            ELeague newLeague = ELeague.Champion;
+            if (Enum.IsDefined(typeof(ELeague), (int)CurrentLeague + 1))
+            {
+                newLeague = (ELeague)((int)CurrentLeague + 1);
+            }
+
+            leagueCloudData.CurrentStage = 0;
+            leagueCloudData.CurrentLevel = 0;
+            leagueCloudData.CurrentLeague = newLeague;
+            SaveLeagueData(leagueCloudData);
+        }
+
+        public static void SaveLeagueData(SLeagueCloudData leagueCloudData)
+        {
+            Instance.m_Data[KEY_LEAGUE] = leagueCloudData;
+            Instance.SaveValue(KEY_LEAGUE);
+
+            LeagueDataChangedEvent?.Invoke();
+        }
+
+        #endregion
+
+
         #region Arena Data
+
+        public static bool IsArenaCompleted(EArenaType arenaType)
+        {
+            return SoloArenas[arenaType].CurrentLevel >= AssetLoader.LoadArenaData(arenaType).MaxLevel;
+        }
 
         public static void UpdateStageValue(EArenaType arenaType, bool up)
         {
@@ -108,14 +219,11 @@ namespace Save
             SArenaCloudData arenaCloudData = SoloArenas[arenaType];
             ArenaData arenaData = AssetLoader.LoadArenaData(arenaType);
 
-            // wait until beeing on MainMenu to fire the arena level event
-            int level = arenaCloudData.CurrentLevel;
+            if (arenaCloudData.CurrentLevel >= arenaData.ArenaLevelData.Count)
+                return;
 
             // add rewards to notification data so they can be collected later
-            NotificationCloudData.AddArenaReward(arenaType, level);
-
-            if (arenaCloudData.CurrentLevel == arenaData.ArenaLevelData.Count - 1)
-                return;
+            NotificationCloudData.AddArenaReward(arenaType, arenaCloudData.CurrentLevel);
 
             SetArenaData(arenaType, arenaCloudData.CurrentLevel + 1, 0);
         }
@@ -141,8 +249,9 @@ namespace Save
 
             switch (key)
             {
-                case KEY_PVP_ELO:
-                    m_Data[key] = 0;
+                case KEY_LEAGUE:
+                    m_Data[key] = new SLeagueCloudData(ELeague.Iron);
+                    SaveValue(key);
                     break;
                 
                 case KEY_SOLO_ARENAS:
@@ -160,10 +269,10 @@ namespace Save
 
         #region Checkers
 
-        void CheckPvpElo()
+        void CheckLeague()
         {
-            if ((int)m_Data[KEY_PVP_ELO] < 0)
-                Reset(KEY_PVP_ELO);
+            if (ProgressionCloudData.CurrentLeague == ELeague.None)
+                Reset(KEY_LEAGUE);
         }
 
         void CheckArenaData()
@@ -199,8 +308,8 @@ namespace Save
 
             switch (key)
             {
-                case KEY_PVP_ELO:
-                    CheckPvpElo();
+                case KEY_LEAGUE:
+                    CheckLeague();
                     break;
 
                 case KEY_SOLO_ARENAS:

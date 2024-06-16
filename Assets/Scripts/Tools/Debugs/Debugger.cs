@@ -452,19 +452,6 @@ namespace Tools
         {
             InventoryManager.AddCollectable(ECurrency.Golds, 9999999);
             InventoryManager.AddCollectable(ECurrency.Gems, 9999999);
-
-            foreach (ESpell spell in Enum.GetValues(typeof(ESpell)))
-            {
-                if (spell == ESpell.Count)
-                    continue;
-
-                SCollectableCloudData data = InventoryManager.GetSpellData(spell);
-                if (data.Level == 0)
-                    InventoryManager.Unlock(ref data);
-
-                data.Qty = 1000000;
-                InventoryCloudData.Instance.SetCollectable(data);
-            }
         }
 
         #region Debug Achievements

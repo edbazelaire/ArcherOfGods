@@ -20,6 +20,8 @@ MonoBehaviour:
     Color: {r: 0.3647059, g: 0.7725491, b: 0.9921569, a: 1}
   - Currency: 2
     Color: {r: 1, g: 1, b: 1, a: 1}
+  - Currency: 3
+    Color: {r: 0.6223734, g: 0.27959237, b: 0.9716981, a: 1}
   m_DailyOffersRareties: 0000000001000000010000000200000003000000
   m_SpecialOffers:
   - Name: StarterPack
@@ -198,12 +200,12 @@ MonoBehaviour:
     Rewards:
       Currencies:
       - Currency: 0
-        Qty: 1000000
+        Qty: 250000
       Chests: 
       Collectables: []
       AchievementRewards: []
     Currency: 1
-    Cost: 5000
+    Cost: 10000
     MaxCollection: 0
     Reduction: 0
   m_GemsShopData:
@@ -283,6 +285,59 @@ MonoBehaviour:
       AchievementRewards: []
     Currency: 2
     Cost: 119.99
+    MaxCollection: 0
+    Reduction: 0
+  m_XpShopData:
+  - Name: 
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 3
+        Qty: 800
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+    Currency: 0
+    Cost: 1500
+    MaxCollection: 0
+    Reduction: 0
+  - Name: 
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 3
+        Qty: 10000
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+    Currency: 0
+    Cost: 15000
+    MaxCollection: 0
+    Reduction: 0
+  - Name: 
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 3
+        Qty: 100000
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+    Currency: 1
+    Cost: 4000
+    MaxCollection: 0
+    Reduction: 0
+  - Name: 
+    Icon: {fileID: 0}
+    Rewards:
+      Currencies:
+      - Currency: 3
+        Qty: 500000
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+    Currency: 1
+    Cost: 16000
     MaxCollection: 0
     Reduction: 0
   m_CharacterPrices:

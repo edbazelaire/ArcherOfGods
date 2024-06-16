@@ -5,7 +5,6 @@ using UnityEngine;
 using System.ComponentModel;
 using Tools;
 using Inventory;
-using Menu.Common.Buttons;
 using Save;
 
 namespace Data.GameManagement
@@ -280,6 +279,9 @@ namespace Data.GameManagement
         [Description("list of each gems offers in the shop")]
         [SerializeField] private List<SShopData> m_GemsShopData;
 
+        [Description("list of each XP offers in the shop")]
+        [SerializeField] private List<SShopData> m_XpShopData;
+
         [Description("list of price of each characters")]
         [SerializeField] private List<SRaretyPriceData> m_CharacterPrices;
 
@@ -293,6 +295,7 @@ namespace Data.GameManagement
         public static List<SShopData> SpecialOffers         => Instance.m_SpecialOffers;
         public static List<SShopData> BundleShopData        => Instance.m_BundleShopData;
         public static List<SShopData> GoldsShopData         => Instance.m_GoldsShopData;
+        public static List<SShopData> XpShopData            => Instance.m_XpShopData;
         public static List<SShopData> GemsShopData          => Instance.m_GemsShopData;
 
         #endregion

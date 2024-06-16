@@ -22,6 +22,8 @@ namespace Game.Character
 
         float m_InitialSpeed;
 
+        public NetworkVariable<int> MoveX => m_MoveX;
+
         #endregion
 
 

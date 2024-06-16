@@ -41,7 +41,7 @@ namespace Game.Spells
 
         float ApplyMissingLifeFactor(float baseValue, int hp, int maxHp)
         {
-            return (1f + m_MissingLifeFactor * (1 - (hp / maxHp))) * baseValue;
+            return m_MissingLifeFactor * (1 - (hp / maxHp)) * baseValue;
         }
 
         #endregion
