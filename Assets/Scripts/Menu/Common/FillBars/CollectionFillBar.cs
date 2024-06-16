@@ -38,6 +38,7 @@ namespace Menu.Common
         Coroutine               m_Animation;
 
         public bool IsAnimated => m_Animation != null;
+        public float CurrentCollection => m_CurrentCollection;
 
         #endregion
 

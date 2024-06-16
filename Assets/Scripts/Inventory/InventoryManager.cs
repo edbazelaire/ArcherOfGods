@@ -26,7 +26,7 @@ namespace Inventory
         /// <summary> event fired when a collectable has been upgraded (=level up) </summary>
         public static       Action<Enum, int>       CollectableUpgradedEvent;
         /// <summary> event fired when a character gains xp </summary>
-        public static       Action<ECharacter, int> CharacterGainedXpEvent;
+        public static       Action<int>             XpGainedEvent;
 
         // =================================================================================================
         // ACCESSORS
@@ -137,9 +137,6 @@ namespace Inventory
             // add xp to character and save
             collectableData.AddQty(qty);
             InventoryCloudData.Instance.SetCollectable(collectableData);
-
-            if (collectable.GetType() == typeof(ECharacter))
-                CharacterGainedXpEvent?.Invoke((ECharacter)collectable, qty);
         }
 
         /// <summary>

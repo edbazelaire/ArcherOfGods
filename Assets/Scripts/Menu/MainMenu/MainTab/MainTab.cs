@@ -117,6 +117,30 @@ namespace Menu.MainMenu.MainTab
         #endregion
 
 
+        #region Check Before Playing
+
+        bool CheckBeforePlaying()
+        {
+            if (!CharacterBuildsCloudData.IsCurrentBuildOk)
+            {
+                SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
+                Main.ErrorMessagePopUp("Current build is not valid");
+                return false;
+            }
+
+            if (PlayerPrefsHandler.GetGameMode() == EGameMode.Arena && ProgressionCloudData.IsArenaCompleted(PlayerPrefsHandler.GetArenaType()))
+            {
+                SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
+                Main.ErrorMessagePopUp("This arena has already beed completed");
+                return false;
+            }
+
+            return true;
+        }
+
+        #endregion
+
+
         #region Lobby
 
         async void JoinLobby()
@@ -162,10 +186,9 @@ namespace Menu.MainMenu.MainTab
         {
             SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
 
-            if (! CharacterBuildsCloudData.IsCurrentBuildOk){
-                Main.ErrorMessagePopUp("Current build is not valid");
+            // check that everyting is working properly
+            if (!CheckBeforePlaying())
                 return;
-            }
 
             if (Main.State == EAppState.Lobby)
             {
@@ -173,7 +196,7 @@ namespace Menu.MainMenu.MainTab
                 return;
             }
 
-            m_PlayButtonImage.color = new Color(0.65f, 0.65f, 0.65f);
+            m_PlayButtonImage.color = new Color(0.25f, 0.25f, 0.25f);
 
             JoinLobby();
         }
@@ -187,6 +210,7 @@ namespace Menu.MainMenu.MainTab
                 ErrorHandler.Error("Unable to convert " + m_GameTypeDropDown.options[index].text + " as game mode");
             }
 
+            PlayerPrefsHandler.SetGameMode(gameMode);
             GameSectionUI.SetGameMode(gameMode);
         }
 

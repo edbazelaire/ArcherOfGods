@@ -34,6 +34,11 @@ namespace Assets.Scripts.Menu
             InventoryCloudData.CurrencyChangedEvent += OnCurrencyChanged;
         }
 
+        protected void OnDestroy()
+        {
+            InventoryCloudData.CurrencyChangedEvent -= OnCurrencyChanged;
+        }
+
         #endregion
 
 

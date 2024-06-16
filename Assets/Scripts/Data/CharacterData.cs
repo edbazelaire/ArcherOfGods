@@ -44,6 +44,7 @@ namespace Data
         // PUBLIC / SERIALIZABLE FIELDS
         [Header("Spells")]
         public ESpell           AutoAttack;
+        public ESpell           SpecialAbility;
         public ESpell           Ultimate;
 
         [Header("Stats")]

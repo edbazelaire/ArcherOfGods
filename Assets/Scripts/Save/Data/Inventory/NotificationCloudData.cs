@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using Tools;
 using Unity.Services.CloudSave.Models;
+using UnityEngine;
 
 namespace Save
 {
@@ -16,22 +17,26 @@ namespace Save
 
         // ===============================================================================================
         // CONSTANTS
-        public const string KEY_ARENA_REWARDS = "ArenaRewards";
+        public const string KEY_ARENA_REWARDS   = "ArenaRewards";
+        public const string KEY_LEAGUE_REWARDS  = "LeagueRewards";
 
         // ===============================================================================================
         // ACTION
         public static Action ArenaRewardChangedEvent;
+        public static Action LeagueRewardChangedEvent;
 
         // ===============================================================================================
         // DATA
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
-            { KEY_ARENA_REWARDS,        new Dictionary<EArenaType, List<int>>() },
+            { KEY_ARENA_REWARDS,            new Dictionary<EArenaType,  List<int>>() },
+            { KEY_LEAGUE_REWARDS,           new Dictionary<ELeague,     List<int>>() },
         };
 
         // ===============================================================================================
         // DEPENDENT STATIC ACCESSORS
         public static Dictionary<EArenaType, List<int>> ArenaRewards => Instance.m_Data[KEY_ARENA_REWARDS] as Dictionary<EArenaType, List<int>>;
+        public static Dictionary<ELeague, List<int>> LeagueRewards => Instance.m_Data[KEY_LEAGUE_REWARDS] as Dictionary<ELeague, List<int>>;
 
         #endregion
 
@@ -47,6 +52,9 @@ namespace Save
         {
             if (m_Data[item.Key].GetType() == typeof(Dictionary<EArenaType, List<int>>))
                 return item.Value.GetAs<Dictionary<EArenaType, List<int>>>();
+
+            if (m_Data[item.Key].GetType() == typeof(Dictionary<ELeague, List<int>>))
+                return item.Value.GetAs<Dictionary<ELeague, List<int>>>();
 
             return base.Convert(item);
         }
@@ -112,6 +120,64 @@ namespace Save
         #endregion
 
 
+        #region League Data
+                
+        public static void AddLeagueLevelReward(ELeague league,  int level)
+        {
+            if (!LeagueRewards.ContainsKey(league))
+            {
+                LeagueRewards.Add(league, new List<int>() { level });
+            }
+            else
+            {
+                if (LeagueRewards[league].Contains(level))
+                {
+                    ErrorHandler.Error("Adding rewards for league " + league + " at level " + level + " but this value was already present in the cloud data");
+                    return;
+                }
+
+                LeagueRewards[league].Add(level);
+            }
+
+            Instance.SaveValue(KEY_LEAGUE_REWARDS);
+            LeagueRewardChangedEvent?.Invoke();
+        }
+
+        public static bool CollectLeagueReward(ELeague league, int level)
+        {
+            if (!LeagueRewards.ContainsKey(league))
+            {
+                ErrorHandler.Error("League not found in cloud data : " + league);
+                return false;
+            }
+
+            if (!LeagueRewards[league].Contains(level))
+            {
+                ErrorHandler.Error("Level " + level + " not found in league cloud data : " + league);
+                return false;
+            }
+
+            LeagueRewards[league].Remove(level);
+            Instance.SaveValue(KEY_LEAGUE_REWARDS);
+
+            LeagueRewardChangedEvent?.Invoke();
+
+            return true;
+        }
+
+        public static bool HasRewardsForLeague(ELeague league)
+        {
+            return LeagueRewards.ContainsKey(league) && LeagueRewards[league].Count > 0;
+        }
+
+        public static bool HasRewardsForLeagueAtLevel(ELeague league, int level)
+        {
+            return HasRewardsForLeague(league) && LeagueRewards[league].Contains(level);
+        }
+
+        #endregion
+
+
         #region Default Data
 
         public override void Reset(string key)
@@ -122,6 +188,10 @@ namespace Save
             {
                 case KEY_ARENA_REWARDS:
                     m_Data[key] = new Dictionary<EArenaType, List<int>>();
+                    break;
+
+                case KEY_LEAGUE_REWARDS:
+                    m_Data[key] = new Dictionary<ELeague, List<int>>();
                     break;
             }
         }

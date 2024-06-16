@@ -10,6 +10,7 @@
         AchievementRewardScreen,
         LevelUpScreen,
         ArenaPathScreen,
+        LeaguesPathScreen,
 
         // -- info PopUps
         CollectableInfoPopUp,
@@ -20,6 +21,7 @@
 
         // -- message PopUps
         MessagePopUp,
+        PseudoPopUp,
         ErrorMessagePopUp,
         ConfirmBuyPopUp,
         ConfirmBuyItemPopUp,
@@ -32,7 +34,7 @@
     public enum EGameMode
     {
         Arena,
-        Multi
+        Ranked
     }
 
     public enum EArenaType
@@ -91,6 +93,8 @@
         VenomousBite,
         ShadowShurikens,
         CursedTimes,
+        ThickSkin,
+        WinterProtection,
 
         Count
     }
@@ -391,7 +395,7 @@
 
         // Services
         Services            = 400,
-        Analytics           = 401,           
+        Analytics           = 401,
     }
 
     public enum ERewardType
@@ -477,6 +481,7 @@
         Shop,
         Achievements,
         ArenaReward,
+        LeagueReward,
     }
 
     public enum EAnalytics
@@ -522,6 +527,7 @@
     {
         None = 0,
 
+        Iron,
         Bronze,
         Silver,
         Gold,

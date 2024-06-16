@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Rarety: 2
   AutoAttack: 14
+  SpecialAbility: 6
   Ultimate: 13
   Size: 0.9
   BaseSpeed: 0.1

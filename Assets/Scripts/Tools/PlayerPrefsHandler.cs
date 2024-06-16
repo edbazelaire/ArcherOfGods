@@ -1,7 +1,5 @@
 ﻿using Enums;
 using System;
-using System.Linq;
-using UnityEditor;
 using UnityEngine;
 
 namespace Tools
@@ -68,7 +66,7 @@ namespace Tools
 
         public static void SetGameMode(EGameMode gameMode)
         {
-            PlayerPrefs.SetString(EPlayerPref.GameMode.ToString(), EGameMode.Arena.ToString());
+            PlayerPrefs.SetString(EPlayerPref.GameMode.ToString(), gameMode.ToString());
             PlayerPrefs.Save();
 
             GameModeChangedEvent?.Invoke(gameMode);

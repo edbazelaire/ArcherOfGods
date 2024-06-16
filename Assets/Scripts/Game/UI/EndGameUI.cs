@@ -152,7 +152,9 @@ public class EndGameUI : MonoBehaviour
                 arenaData.UpdateStageValue(win);
                 break;
 
-            case EGameMode.Multi:
+            case EGameMode.Ranked:
+                ErrorHandler.Log("HandleProgression() : Ranked game", ELogTag.GameSystem);
+                ProgressionCloudData.UpdateLeagueValue(win);
                 break;
 
             default:

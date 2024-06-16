@@ -18,7 +18,7 @@ namespace Game.Character
 
         #region Init & End
 
-        public void Initialize()
+        public override void OnNetworkSpawn()
         {
             m_Controller = Finder.FindComponent<Controller>(gameObject);
         }

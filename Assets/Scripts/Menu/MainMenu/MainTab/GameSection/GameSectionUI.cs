@@ -53,12 +53,18 @@ namespace Menu.MainMenu.MainTab
             switch (m_GameMode)
             {
                 case (EGameMode.Arena):
-                    SoloModeDisplayUI gameModeUI = GameObject.Instantiate(AssetLoader.Load<GameObject>("SoloModeDisplay", AssetLoader.c_SoloModeUIPath), m_Content.transform).GetComponent<SoloModeDisplayUI>();
-                    gameModeUI.Initialize();
+                    ArenaModeDisplayUI arenaModeUI = GameObject.Instantiate(AssetLoader.Load<ArenaModeDisplayUI>("ArenaModeDisplay", AssetLoader.c_ArenaModeUIPath), m_Content.transform);
+                    arenaModeUI.Initialize();
                     break;
 
-                case (EGameMode.Multi):
+                case (EGameMode.Ranked):
+                    RankedModeDisplayUI rankedModeUI = GameObject.Instantiate(AssetLoader.Load<RankedModeDisplayUI>("RankedModeDisplay", AssetLoader.c_RankedModeUIPath), m_Content.transform);
+                    rankedModeUI.Initialize();
                     break;
+
+                default:
+                    ErrorHandler.Error("Unhandled game mode : " + m_GameMode);
+                    return;
             }
            
         }

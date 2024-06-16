@@ -70,12 +70,6 @@ namespace Game.Loaders
                 if (spell.AnimationTimer < 0)
                     ErrorHandler.FatalError($"SpellLoader : AnimationTimer {spell.Spell} < 0");
 
-                if (spell.CastAt < 0)
-                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Spell} has a negative CastAt");
-
-                if (spell.CastAt > 1)
-                    ErrorHandler.FatalError($"SpellLoader : Spell {spell.Spell} has a CastAt > 1");
-
                 m_Spells.Add(spell.Spell, spell);
             }
         }

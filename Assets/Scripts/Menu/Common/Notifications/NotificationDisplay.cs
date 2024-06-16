@@ -55,7 +55,6 @@ namespace Menu.Common.Notifications
             }
 
             CoroutineManager.DelayMethod(AddNotificationParticles);
-
         }
 
         public void Deactivate()
@@ -74,6 +73,9 @@ namespace Menu.Common.Notifications
 
         void AddNotificationParticles()
         {
+            if (! gameObject.activeInHierarchy)
+                return;
+
             var currentCanvas = UIHelper.GetFirstCanvas(gameObject.transform);
 
             m_ParticleAnimations = gameObject.AddComponent<ParticlesAnimation>();

@@ -43,6 +43,7 @@ public class Controller : NetworkBehaviour
     SpellHandler            m_SpellHandler;
     StateHandler            m_StateHandler;
     CounterHandler          m_CounterHandler;
+    AutoAttackHandler       m_AutoAttackHandler;
     ClientAnalytics         m_ClientAnalytics;
     Collider2D              m_Collider;     
 
@@ -70,6 +71,7 @@ public class Controller : NetworkBehaviour
     public SpellHandler     SpellHandler        => m_SpellHandler;
     public StateHandler     StateHandler        => m_StateHandler;
     public CounterHandler   CounterHandler      => m_CounterHandler;
+    public AutoAttackHandler AutoAttackHandler => m_AutoAttackHandler;
     public ClientAnalytics  ClientAnalytics     => m_ClientAnalytics;
     public EnergyHandler    EnergyHandler       => m_EnergyHandler;
     public Collider2D       Collider            => m_Collider;
@@ -97,7 +99,8 @@ public class Controller : NetworkBehaviour
         m_AnimationHandler  = Finder.FindComponent<Game.Character.AnimationHandler>(gameObject);
         m_StateHandler      = Finder.FindComponent<StateHandler>(gameObject);
         m_CounterHandler    = Finder.FindComponent<CounterHandler>(gameObject);
-        m_ClientAnalytics   = Finder.FindComponent<ClientAnalytics>(gameObject);
+        m_AutoAttackHandler = Finder.FindComponent<AutoAttackHandler>(gameObject, throwError: false);
+        m_ClientAnalytics   = Finder.FindComponent<ClientAnalytics>(gameObject, throwError: false);
 
         // check behavior tree
         m_BehaviorTree = Finder.FindComponent<BehaviorTree>(gameObject, throwError: false);
@@ -208,7 +211,7 @@ public class Controller : NetworkBehaviour
         CharacterData characterData = CharacterLoader.GetCharacterData(playerData.Character, playerData.CharacterLevel);
 
         // initialize SpellHandler with character's spells
-        m_SpellHandler.Initialize(characterData.AutoAttack, characterData.Ultimate, playerData.Spells.ToList(), playerData.SpellLevels.ToList());
+        m_SpellHandler.Initialize(characterData.AutoAttack, characterData.SpecialAbility, characterData.Ultimate, playerData.Spells.ToList(), playerData.SpellLevels.ToList());
 
         // initialize MovementSpeed with character's speed
         m_Movement.Initialize(characterData.Speed);
@@ -219,9 +222,6 @@ public class Controller : NetworkBehaviour
         // init health and energy
         m_Life.Initialize(characterData.MaxHealth, characterData.GetInt(EStateEffectProperty.Shield));
         m_EnergyHandler.Initialize(10, characterData.MaxEnergy);
-
-        // init client data
-        m_ClientAnalytics.Initialize();
 
         // init BehaviorTree
         if (m_BehaviorTree != null)
@@ -242,7 +242,7 @@ public class Controller : NetworkBehaviour
         // add linked spells
         var characterData = CharacterLoader.GetCharacterData(m_Character.Value);
         GameUIManager.Instance.CreateLinkedSpellTemplate(characterData.Ultimate, m_CharacterLevel.Value);
-        GameUIManager.Instance.CreateLinkedSpellTemplate(characterData.AutoAttack, m_CharacterLevel.Value);
+        GameUIManager.Instance.CreateLinkedSpellTemplate(characterData.SpecialAbility, m_CharacterLevel.Value);
 
         // create a SpellItemUI for each spell of the character
         for (int i = 0; i < m_SpellHandler.Spells.Count; i++)
@@ -250,7 +250,7 @@ public class Controller : NetworkBehaviour
             ESpell spell = m_SpellHandler.Spells[i];
             
             // skip linked spells
-            if (spell == characterData.Ultimate || spell == characterData.AutoAttack)
+            if (spell == characterData.Ultimate || spell == characterData.AutoAttack || spell == characterData.SpecialAbility)
                 continue;
             
             GameUIManager.Instance.CreateSpellTemplate(m_SpellHandler.Spells[i], m_SpellHandler.SpellLevels[i]);
@@ -353,10 +353,13 @@ public class Controller : NetworkBehaviour
     /// <param name="active"></param>
     void ActivateActionComponent(bool active)
     {
-        m_Movement.enabled          = active;
-        m_SpellHandler.enabled      = active;
-        m_StateHandler.enabled      = active;
-        m_CounterHandler.enabled    = active;
+        m_Movement.enabled              = active;
+        m_SpellHandler.enabled          = active;
+        m_StateHandler.enabled          = active;
+        m_CounterHandler.enabled        = active;
+
+        if (m_AutoAttackHandler != null)
+            m_AutoAttackHandler.enabled     = active;
 
         if (m_BehaviorTree != null)
         {

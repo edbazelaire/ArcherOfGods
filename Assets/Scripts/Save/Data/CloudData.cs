@@ -235,6 +235,9 @@ namespace Save
                 case "Float":
                     return item.Value.GetAs<float>();
 
+                case "Boolean":
+                    return item.Value.GetAs<bool>();
+
                 case "ECharacter":
                     return item.Value.GetAs<ECharacter>();
                 case "ESpell":

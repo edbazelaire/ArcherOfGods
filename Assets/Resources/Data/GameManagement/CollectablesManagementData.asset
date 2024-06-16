@@ -46,6 +46,12 @@ MonoBehaviour:
     RequiredQty: 30000
   - RequiredGolds: 150000
     RequiredQty: 50000
+  - RequiredGolds: 200000
+    RequiredQty: 100000
+  - RequiredGolds: 250000
+    RequiredQty: 150000
+  - RequiredGolds: 300000
+    RequiredQty: 200000
   SpellLevelData:
   - RequiredGolds: 5
     RequiredQty: 2

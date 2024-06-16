@@ -36,6 +36,7 @@ namespace Assets
         // SERIALIZED MEMBERS
         [SerializeField] Canvas m_Canvas;
         [SerializeField] CloudSaveManager m_CloudSaveManager;
+        [SerializeField] LeagueDataConfig m_LeagueDataConfig;
         [SerializeField] bool m_ActivateSaveOnClose; 
         [SerializeField] List<ELogTag> m_LogTags;
 
@@ -56,6 +57,7 @@ namespace Assets
         // PUBLIC DEPENDENT STATIC MEMBERS
         public static Main Instance                             => s_Instance;
         public static CloudSaveManager CloudSaveManager         => Instance.m_CloudSaveManager;
+        public static LeagueDataConfig LeagueDataConfig         => Instance.m_LeagueDataConfig;
         public static EAppState State                           => Instance.m_State;
         public static Canvas Canvas                             => Instance.m_Canvas;
         public static bool ActivateSaveOnClose                  => Instance.m_ActivateSaveOnClose;
@@ -343,16 +345,24 @@ namespace Assets
 
         public static void ErrorMessagePopUp(string message)
         {
-            // TODO : error animation
 
-            // TODO : error message
             Debug.LogWarning(message);
-            //SetPopUp(EPopUpState.ErrorMessagePopUp, message);
+            SetPopUp(EPopUpState.MessagePopUp, message);
         }
 
         public static void StateEffectPopUp(SStateEffectData stateEffectData, int level)
         {
             SetPopUp(EPopUpState.StateEffectPopUp, stateEffectData, level);
+        }
+
+        public static void CheckPseudoPopUp()
+        {
+            // pseudo already changed : no need to proc the popup
+            if (ProfileCloudData.PseudoChanged)
+                return;
+
+            // store the change of the display PseudoPopUp for when the user will reach the MainMenu
+            Main.AddStoredEvent(EAppState.MainMenu, () => SetPopUp(EPopUpState.PseudoPopUp) );
         }
 
         #endregion
@@ -374,6 +384,10 @@ namespace Assets
             if (SceneLoader.Instance == null)
                 ErrorHandler.Log("SceneLoader is null", ELogTag.System);
 
+            // at the end of the initialization - check if PseudoPopUp should be displayed
+            CheckPseudoPopUp();
+
+            // loading MainMenu
             ErrorHandler.Log("Initialization of the data completed : loading MainMenu", ELogTag.System);
             SceneLoader.Instance.LoadScene("MainMenu");
         }

@@ -9,11 +9,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using Inventory;
 using System.Collections;
-using UnityEngine.TextCore.Text;
 using Assets;
 using Menu.Common.Buttons;
 using System;
-using Data.GameManagement;
 
 namespace Menu.MainMenu
 {
@@ -38,6 +36,7 @@ namespace Menu.MainMenu
         // -- spells container
         GameObject              m_CharacterSpellsContainer;
         TemplateSpellItemUI     m_UltimateButton;
+        TemplateSpellItemUI     m_SpecialAbilityButton;
         TemplateSpellItemUI     m_AutoAttackButton;
 
         public Button CharacterPreviewButton => m_CharacterPreviewButton;
@@ -68,7 +67,7 @@ namespace Menu.MainMenu
             CharacterBuildsCloudData.CurrentBuildIndexChangedEvent  += OnCurrentRuneChanged;
             CharacterBuildsCloudData.CurrentRuneChangedEvent        += OnCurrentRuneChanged;
             InventoryManager.CollectableUpgradedEvent               += OnCharacterLeveledUp;
-            InventoryManager.CharacterGainedXpEvent                 += OnCharacterGainedXp;
+            InventoryCloudData.CurrencyChangedEvent                 += OnCurrencyChanged;
 
             // setup ui of current selected character
             OnSelectedCharacterChanged();
@@ -86,7 +85,7 @@ namespace Menu.MainMenu
             CharacterBuildsCloudData.CurrentBuildIndexChangedEvent  -= OnCurrentRuneChanged;
             CharacterBuildsCloudData.CurrentRuneChangedEvent        -= OnCurrentRuneChanged;
             InventoryManager.CollectableUpgradedEvent               -= OnCharacterLeveledUp;
-            InventoryManager.CharacterGainedXpEvent                 -= OnCharacterGainedXp;
+            InventoryCloudData.CurrencyChangedEvent                 -= OnCurrencyChanged;
 
             if (m_UpgradeSubButton != null)
                 m_UpgradeSubButton.onClick.RemoveAllListeners();   
@@ -103,8 +102,9 @@ namespace Menu.MainMenu
             m_CharacterSpellsContainer = Finder.Find(gameObject, "CharacterSpellsContainer", false);       // can be null, if not set or inactive, it will not be used
             if (m_CharacterPreviewContainer != null)
             {
-                m_UltimateButton    = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "UltimateSpellItem");
-                m_AutoAttackButton  = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "AutoAttackSpellItem");
+                m_UltimateButton        = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "UltimateSpellItem");
+                m_SpecialAbilityButton  = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "SpecialAbilitySpellItem");
+                m_AutoAttackButton      = Finder.FindComponent<TemplateSpellItemUI>(m_CharacterSpellsContainer, "AutoAttackSpellItem");
             }
         }
 
@@ -164,6 +164,13 @@ namespace Menu.MainMenu
             {
                 m_UltimateButton.gameObject.SetActive(true);
                 m_UltimateButton.Initialize(charData.Ultimate);
+            }
+
+            // refresh auto attack
+            if (m_SpecialAbilityButton != null)
+            {
+                m_SpecialAbilityButton.gameObject.SetActive(true);
+                m_SpecialAbilityButton.Initialize(charData.SpecialAbility);
             }
 
             // refresh auto attack
@@ -260,15 +267,21 @@ namespace Menu.MainMenu
         /// </summary>
         /// <param name="character"></param>
         /// <param name="xp"></param>
-        void OnCharacterGainedXp(ECharacter character, int xp)
+        void OnCurrencyChanged(ECurrency currency, int xp)
         {
-            if (character != CharacterBuildsCloudData.SelectedCharacter)
+            if (currency != ECurrency.Xp)
                 return;
 
+            if (m_Activated && xp <= m_XpBar.CurrentCollection) 
+            {
+                RefreshXpBarUI();
+                return;
+            }
+
             if (m_Activated)
-                m_XpBar.AddCollectionAnimation(xp);
+                m_XpBar.AddCollectionAnimation(xp - m_XpBar.CurrentCollection);
             else
-                m_XpBar.Add(xp);
+                m_XpBar.Add(xp - m_XpBar.CurrentCollection);
         }
 
         /// <summary>

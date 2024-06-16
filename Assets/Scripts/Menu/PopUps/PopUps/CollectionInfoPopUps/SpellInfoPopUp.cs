@@ -2,7 +2,6 @@
 using Menu.Common.Infos;
 using System.Collections.Generic;
 using Tools;
-using static UnityEngine.Rendering.DebugUI;
 
 namespace Menu.PopUps
 {
@@ -36,6 +35,7 @@ namespace Menu.PopUps
             base.OnPrefabLoaded();
 
             SetUpStateEffects();
+            SetupCollectionFillbar();
         }
 
         #endregion
@@ -53,6 +53,12 @@ namespace Menu.PopUps
             }
 
             base.SetUpButtons();
+        }
+
+        void SetupCollectionFillbar()
+        {
+            if (m_IsLinked)
+                m_CollectableItemUI.CollectionFillBar.gameObject.SetActive(false);
         }
 
         /// <summary>

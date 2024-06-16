@@ -89,9 +89,6 @@ namespace Menu.MainMenu
         {
             base.RegisterListeners();
 
-            // -- GamerTag
-            m_ProfileDisplayUI.GamerTagInput.onDeselect.AddListener(OnGamerTagDeselected);
-
             // -- Achievement Reward Profile button
             m_ProfileDisplayUI.AvatarButtonUI.Button.onClick.AddListener(() => m_AchievementTabsManager.SelectTab(EAchievementTab.Avatars));
             m_ProfileDisplayUI.PlayerTitleButton.onClick.AddListener(() => m_AchievementTabsManager.SelectTab(EAchievementTab.Titles));
@@ -104,7 +101,8 @@ namespace Menu.MainMenu
             }
 
             // -- External listeners
-            ProfileCloudData.CurrentDataChanged += OnCurrentDataChanged;
+            ProfileCloudData.GamerTagChanged        += OnGamerTagChanged;
+            ProfileCloudData.CurrentDataChanged     += OnCurrentDataChanged;
         }
 
         protected override void UnRegisterListeners()
@@ -113,7 +111,6 @@ namespace Menu.MainMenu
 
             m_ProfileDisplayUI.AvatarButtonUI.Button.onClick.RemoveAllListeners();
             m_ProfileDisplayUI.PlayerTitleButton.onClick.RemoveAllListeners();
-            m_ProfileDisplayUI.GamerTagInput.onDeselect.RemoveAllListeners();
 
             // -- badges
             for (int i = 0; i < m_ProfileDisplayUI.BadgeButtons.Count; i++)
@@ -121,7 +118,8 @@ namespace Menu.MainMenu
                 m_ProfileDisplayUI.BadgeButtons[i].Button.onClick.RemoveAllListeners();
             }
 
-            ProfileCloudData.CurrentDataChanged -= OnCurrentDataChanged;
+            ProfileCloudData.GamerTagChanged        -= OnGamerTagChanged;
+            ProfileCloudData.CurrentDataChanged     -= OnCurrentDataChanged;
         }
 
         void OnCurrentBadgeButtonClicked(int index)
@@ -167,17 +165,8 @@ namespace Menu.MainMenu
             }
         }
 
-        void OnGamerTagDeselected(string newGamerTag)
+        void OnGamerTagChanged()
         {
-            if (ProfileCloudData.IsGamerTagValid(newGamerTag, out string reason))
-            {
-                ProfileCloudData.SetGamerTag(newGamerTag);
-                return;
-            }
-
-            // TODO : Display why is not valid
-
-            // reset value of gamer tag input
             m_ProfileDisplayUI.SetGamerTag(ProfileCloudData.GamerTag);
         }
 

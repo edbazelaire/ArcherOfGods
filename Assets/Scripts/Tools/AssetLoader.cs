@@ -56,9 +56,10 @@ namespace Tools
         public const string c_MainUIComponentsInfosPath     = c_MainUIComponentsPath + "Infos/";
         public const string c_MainMenuPath                  = c_MainUIPath + "MainMenu/";
         public const string c_MainTabPath                   = c_MainMenuPath + "MainTab/";
-        public const string c_ProfileTabPath                    = c_MainMenuPath + "ProfileTab/";
+        public const string c_ProfileTabPath                = c_MainMenuPath + "ProfileTab/";
         // ---- solo mode ui
-        public const string c_SoloModeUIPath                = c_MainTabPath + "GameSection/SoloMode/";
+        public const string c_ArenaModeUIPath               = c_MainTabPath + "GameSection/ArenaMode/";
+        public const string c_RankedModeUIPath              = c_MainTabPath + "GameSection/RankedMode/";
         // ---- settings data
         public const string c_SettingsPath                  = c_UIPath + "Settings/";
         // ---- PopUps & Overlays
@@ -68,19 +69,25 @@ namespace Tools
         // =============================================================================================================
         // SPRITES
         public const string c_SpritesPath                   = "Sprites/";
+        
         // -- UI
         public const string c_UISpritesPath                 = c_SpritesPath + "UI/";
         public const string c_RaysPath                      = c_UISpritesPath + "Rays/";
+        
         // -- Backgrounds
         public const string c_BackgroundsPath               = c_SpritesPath + "Backgrounds/";
         public const string c_ArenaBackgroundsPath          = c_BackgroundsPath + "Arenas/";
 
-        // -- profile
+        // -- Leagues
+        public const string c_LeagueBannersPath             = c_SpritesPath + "Leagues/";
+
+        // -- Profile
         public const string c_ProfilePath                   = "Sprites/Profile/";
         public const string c_AvatarsPath                   = c_ProfilePath + "Avatars/";
         public const string c_BordersPath                   = c_ProfilePath + "Borders/";
         public const string c_BadgesPath                    = c_ProfilePath + "Badges/";
-        // -- icons
+        
+        // -- Icons
         public const string c_IconPath                      = "Sprites/Icons/";
         public const string c_IconCharactersPath            = c_IconPath + "Characters/";
         public const string c_IconSpellsPath                = c_IconPath + "Spells/";
@@ -255,7 +262,12 @@ namespace Tools
 
         public static GameObject LoadArenaButton(EArenaType arenaType)
         {
-            return Load<GameObject>(arenaType.ToString() + "Button", c_SoloModeUIPath + "ArenaButtons/");
+            return Load<GameObject>(arenaType.ToString() + "Button", c_ArenaModeUIPath + "ArenaButtons/");
+        }
+
+        public static LeagueBannerButton LoadLeagueButton()
+        {
+            return Load<LeagueBannerButton>("LeagueBannerButton", c_RankedModeUIPath);
         }
 
         #endregion
@@ -331,14 +343,12 @@ namespace Tools
 
         public static Sprite LoadCurrencyIcon(ECurrency currency, int? qty = null)
         {
-            if (qty.HasValue)
-            {
-                float factor = currency == ECurrency.Gems ? 500f : 5000f;
-                int packNumber = Mathf.Clamp((int)Mathf.Round(qty.Value / factor), 1, currency == ECurrency.Golds ? 4 : 3);
-                return Load<Sprite>(c_ShopPath + currency.ToString() + "Pack_0" + packNumber.ToString());
-            }
-
-            return Load<Sprite>(c_CurrenciesPath + c_IconPrefix + currency.ToString());
+            if (!qty.HasValue || currency == ECurrency.Xp)
+                return Load<Sprite>(c_CurrenciesPath + c_IconPrefix + currency.ToString());
+           
+            float factor = currency == ECurrency.Gems ? 500f : 5000f;
+            int packNumber = Mathf.Clamp((int)Mathf.Round(qty.Value / factor), 1, currency == ECurrency.Golds ? 4 : 3);
+            return Load<Sprite>(c_ShopPath + currency.ToString() + "Pack_0" + packNumber.ToString());
         }
 
         public static Sprite LoadShopIcon(string shopOfferName)
@@ -354,6 +364,11 @@ namespace Tools
         public static Sprite LoadChestIcon(EChest chest)
         {
             return LoadChestIcon(chest.ToString());
+        }
+
+        public static Sprite LoadLeagueBanner(ELeague league)
+        {
+            return Load<Sprite>(c_LeagueBannersPath + league.ToString() + "LeagueBanner");
         }
 
         public static Sprite LoadAchievementRewardIcon(string name, EAchievementReward arType)

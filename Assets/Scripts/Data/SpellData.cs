@@ -67,7 +67,7 @@ namespace Data
         [Description("Duration of the spell")]
         [SerializeField] public float m_Duration = 0f;
         [Description("Delay of the spell to be instantiated after cast")]
-        public float                Delay           = 0f;
+        public float                    Delay           = 0f;
 
         [Header("Collision")]
         [Description("Size of the spell (and hitbox)")]
@@ -92,8 +92,6 @@ namespace Data
         public bool IsCancellable = true;
         [Description("Time for the animation to take from start to begin (in seconds)")]
         public float AnimationTimer;
-        [Description("Percentage of time during the animation when the spell will be casted")]
-        public float CastAt = 1f;
         [Description("Cooldown to be able to re-use that ability")]
         [SerializeField] protected float m_Cooldown;
 
@@ -107,7 +105,7 @@ namespace Data
         // ===========================================================================
         // Level Dependent Members
         public virtual float LevelScaleFactor   => (float)Math.Pow(Settings.SpellScaleFactor, m_Level - 1);
-        public virtual float Cooldown           => Mathf.Max(Mathf.Round(100f * m_Cooldown / LevelScaleFactor) / 100f, 0.5f);
+        public virtual float Cooldown           => Mathf.Max(Mathf.Round(100f * m_Cooldown / LevelScaleFactor) / 100f, 0f);
         public virtual int Damage               => (int)Math.Round(m_Damage * LevelScaleFactor);
         public virtual int Heal                 => (int)Math.Round(m_Heal * LevelScaleFactor);
         public virtual float Duration           => m_Duration;
@@ -475,7 +473,7 @@ namespace Data
                 infosDict.Add("Size", m_Size);
             
             infosDict.Add("Cooldown", Cooldown);
-            infosDict.Add("Cast", AnimationTimer * CastAt);
+            infosDict.Add("Cast", AnimationTimer);
 
             if (Distance > 0)
                 infosDict.Add("Distance", Distance);

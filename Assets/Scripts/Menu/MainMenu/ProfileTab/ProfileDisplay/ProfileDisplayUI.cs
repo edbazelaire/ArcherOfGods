@@ -20,8 +20,8 @@ namespace Menu.MainMenu
         // -- avatar section
         AvatarButtonUI      m_AvatarButtonUI;
         // -- player name & title
-        GameObject          m_GamerTagSection;
-        TMP_InputField      m_GamerTagInput;
+        GameObject          m_PseudoSection;
+        TMP_Text            m_Pseudo;
         // -- title
         Button              m_PlayerTitleButton;
         TMP_Text            m_PlayerTitle;
@@ -32,7 +32,6 @@ namespace Menu.MainMenu
         // ===============================================================================
         // Public Acessors
         public AvatarButtonUI           AvatarButtonUI      => m_AvatarButtonUI;
-        public TMP_InputField           GamerTagInput       => m_GamerTagInput;
         public Button                   PlayerTitleButton   => m_PlayerTitleButton;
         public List<BadgeButtonUI>      BadgeButtons        => m_BadgeButtons;
 
@@ -49,8 +48,8 @@ namespace Menu.MainMenu
             m_AvatarButtonUI    = Finder.FindComponent<AvatarButtonUI>(gameObject);
 
             // -- gamer tag
-            m_GamerTagSection   = Finder.Find(gameObject, "GamerTagSection");
-            m_GamerTagInput     = Finder.FindComponent<TMP_InputField>(m_GamerTagSection, "GamerTagInput");
+            m_PseudoSection   = Finder.Find(gameObject, "PseudoSection");
+            m_Pseudo            = Finder.FindComponent<TMP_Text>(m_PseudoSection, "Pseudo");
             // -- title
             m_PlayerTitleButton = Finder.FindComponent<Button>(gameObject, "PlayerTitleButton");
             m_PlayerTitle       = Finder.FindComponent<TMP_Text>(gameObject, "PlayerTitle");
@@ -67,7 +66,7 @@ namespace Menu.MainMenu
             m_AvatarButtonUI.Initialize(profileCurrentData.Avatar.ToString(), profileCurrentData.Border.ToString());
 
             // setup GamerTag 
-            m_GamerTagInput.text = profileCurrentData.GamerTag.ToString();
+            m_Pseudo.text = profileCurrentData.GamerTag.ToString();
 
             // setup Title 
             m_PlayerTitle.text = TextHandler.Split(profileCurrentData.Title.ToString());
@@ -89,7 +88,7 @@ namespace Menu.MainMenu
             m_AvatarButtonUI.Initialize(profileCurrentData.Avatar.ToString(), profileCurrentData.Border.ToString());
 
             // setup GamerTag 
-            m_GamerTagInput.text = profileCurrentData.GamerTag.ToString();
+            m_Pseudo.text = profileCurrentData.GamerTag.ToString();
 
             // setup Title 
             m_PlayerTitle.text = TextHandler.Split(profileCurrentData.Title.ToString());
@@ -115,7 +114,6 @@ namespace Menu.MainMenu
         public void SetButtonsActive(bool active)
         {
             m_AvatarButtonUI.Button.interactable = active;
-            m_GamerTagInput.interactable = active;
             m_PlayerTitleButton.interactable = active;
 
             foreach (var badgeButton in m_BadgeButtons)
@@ -124,7 +122,7 @@ namespace Menu.MainMenu
 
         public void SetGamerTag(string gamerTag)
         {
-            m_GamerTagInput.text = ProfileCloudData.GamerTag;
+            m_Pseudo.text = ProfileCloudData.GamerTag;
         }
 
         public void SetTitle(string title)
@@ -166,8 +164,6 @@ namespace Menu.MainMenu
         }
 
         #endregion
-
-
 
     }
 }

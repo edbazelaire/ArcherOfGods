@@ -91,7 +91,7 @@ namespace Game.Loaders
         {
             foreach (var item in Instance.m_Characters)
             {
-                if (item.Value.Ultimate == spell || item.Value.AutoAttack == spell)
+                if (item.Value.Ultimate == spell || item.Value.AutoAttack == spell || item.Value.SpecialAbility == spell)
                     return item.Key;
             }
 

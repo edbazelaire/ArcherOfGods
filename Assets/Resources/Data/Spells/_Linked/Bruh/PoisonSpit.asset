@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2413bf9bea7a81d44a0b645bca9d69f8, type: 3}
+  m_Name: PoisonSpit
+  m_EditorClassIdentifier: 
+  Rarety: 0
+  Linked: 1
+  Graphics: {fileID: 2910976597878939058, guid: fa4de1c518b25144c8cba92953a57f7c, type: 3}
+  Preview: {fileID: 7274605584167926077, guid: 0961e062c4a6d3b40b81e8e5e6da0eae, type: 3}
+  OnAnimation: []
+  OnCastPrefabs: []
+  OnHit: []
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 8300000, guid: 2f5fa469f5b8ed9489b48966de42b93f, type: 3}
+  PermanantSoundFX: {fileID: 0}
+  OnHitSoundFX: {fileID: 0}
+  OnEndSoundFX: {fileID: 0}
+  SpellTarget: 1
+  MaxHit: 1
+  EnergyGain: 10
+  EnergyCost: 0
+  m_Damage: 25
+  m_Heal: 0
+  Distance: -1
+  OverrideOnHitProperties: 
+  m_Duration: 0
+  Delay: 0
+  m_Size: 1
+  TriggerPlayer: 1
+  EnemyStateEffects:
+  - StateEffect: 9
+    Stacks: 0
+    Duration: 0
+    SpeedBonus: 0
+  AllyStateEffects: []
+  PersistanceAfterEnd: 0
+  Animation: 2
+  IsCancellable: 1
+  AnimationTimer: 0.6
+  m_Cooldown: 0
+  Trajectory: 1
+  m_Speed: 13

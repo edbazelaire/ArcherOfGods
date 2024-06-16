@@ -349,6 +349,11 @@ namespace Game.Spells
 
         #region Reflection Methods
 
+        public bool HasProperty(EStateEffectProperty property)
+        {
+            return TryGetPropertyInfo(property, out _, throwError: false);
+        }
+
         /// <summary>
         /// Get Reflection PropertyInfo of desire StateEffect property
         /// </summary>
@@ -432,10 +437,10 @@ namespace Game.Spells
             if (baseValue == 0)
                 return 0;
 
-            float levelFactor = stateEffectScalingLevel.StateEffectProperty == property ? Mathf.Pow(1f + stateEffectScalingLevel.ScalingFactor, m_Level) : 1f;
-            int valueLevelScaled = (int)Mathf.Round(baseValue * levelFactor);
-            int boostedValue = m_Controller.StateHandler.ApplyBonusInt(valueLevelScaled, property);        // Bonus values applied to the property
-            float stacksFactor = stateEffectScalingStacks.StateEffectProperty == property ? Stacks * stateEffectScalingStacks.ScalingFactor : 1f;          // apply Stack bonus 
+            float levelFactor       = stateEffectScalingLevel.StateEffectProperty == property ? Mathf.Pow(1f + stateEffectScalingLevel.ScalingFactor, m_Level) : 1f;
+            int valueLevelScaled    = (int)Mathf.Round(baseValue * levelFactor);
+            int boostedValue        = m_Controller.StateHandler.ApplyBonusInt(valueLevelScaled, property);                                                              // Bonus values applied to the property
+            float stacksFactor      = stateEffectScalingStacks.StateEffectProperty == property ? Stacks * stateEffectScalingStacks.ScalingFactor : 1f;                  // apply Stack bonus 
 
             ErrorHandler.Log("GetInt() : " + property, ELogTag.StateEffects);
             ErrorHandler.Log("      + Final Value : " + (int)Mathf.Round(boostedValue * stacksFactor), ELogTag.StateEffects);
@@ -458,16 +463,6 @@ namespace Game.Spells
                 return GetProperty<float>(property);
 
             return Mathf.Round(100 * GetProperty<float>(property) * Stacks * (1f + stateEffectScaling.ScalingFactor)) / 100;
-        }
-
-        public virtual float GetBoostedValue(EStateEffectProperty property)
-        {
-            return m_Controller.StateHandler.ApplyBonus(GetProperty<float>(property), property);
-        }
-
-        public virtual int GetBoostedValueInt(EStateEffectProperty property)
-        {
-            return m_Controller.StateHandler.ApplyBonusInt(GetProperty<int>(property), property);
         }
 
         #endregion
