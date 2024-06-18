@@ -70,3 +70,11 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+Assets/Resources/Fonts/andiamo SDF.asset
+Assets/Resources/Fonts/Eczar-Regular SDF.asset
+Assets/Resources/Fonts/GL-StellaMystica SDF.asset
+Assets/Resources/Fonts/Pingsan SDF.asset
+Assets/Resources/Sprites/Icons/Spells/Ic_WinterProtection 1.png.meta
+Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Anton SDF.asset
+Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Bangers SDF.asset
+Assets/TextMesh Pro/Examples & Extras/Resources/Fonts & Materials/Roboto-Bold SDF.asset
