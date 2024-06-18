@@ -17,7 +17,7 @@ using System.Collections.Generic;
 using Scripts.Menu.PopUps;
 using Unity.Services.Core.Environments;
 using Network;
-
+using Save.RSDs;
 
 
 #if UNITY_EDITOR
@@ -87,6 +87,7 @@ namespace Assets
                 PlayerPrefsHandler.Initialize();
                 AchievementLoader.Initialize();
                 ItemLoader.Initialize();
+                RSDManager.Intialize();
 
                 // init settings
                 InitializeSettings();
@@ -138,6 +139,7 @@ namespace Assets
                 || AchievementLoader.Achievements   == null
                 || RelayHandler.Instance            == null
                 || LobbyHandler.Instance            == null
+                || ! RSDManager.LoadingCompleted
                 || ! m_CloudSaveManager.LoadingCompleted
                 || ! m_SignedIn
             )
@@ -355,6 +357,11 @@ namespace Assets
             SetPopUp(EPopUpState.StateEffectPopUp, stateEffectData, level);
         }
 
+        #endregion
+
+
+        #region Checkers
+
         public static void CheckPseudoPopUp()
         {
             // pseudo already changed : no need to proc the popup
@@ -362,7 +369,16 @@ namespace Assets
                 return;
 
             // store the change of the display PseudoPopUp for when the user will reach the MainMenu
-            Main.AddStoredEvent(EAppState.MainMenu, () => SetPopUp(EPopUpState.PseudoPopUp) );
+            Main.AddStoredEvent(EAppState.MainMenu, () => SetPopUp(EPopUpState.PseudoPopUp));
+        }
+
+        bool AuthorizeAccess()
+        {
+            // pseudo not changed : authorize access to pseudo popup
+            if (! ProfileCloudData.PseudoChanged)
+                return true;
+
+            return TokensRSD.IsTokenAuthorized(ProfileCloudData.Token);
         }
 
         #endregion
@@ -372,7 +388,7 @@ namespace Assets
 
         void OnSignedIn()
         {
-            ErrorHandler.Log("SIGNED ID", ELogTag.System);
+            ErrorHandler.Log("SIGNED ID : " + AuthenticationService.Instance.PlayerId, ELogTag.System);
             m_SignedIn = true;
 
             // setup analytics
@@ -388,8 +404,16 @@ namespace Assets
             CheckPseudoPopUp();
 
             // loading MainMenu
-            ErrorHandler.Log("Initialization of the data completed : loading MainMenu", ELogTag.System);
-            SceneLoader.Instance.LoadScene("MainMenu");
+            if (AuthorizeAccess())
+            {
+                ErrorHandler.Log("Initialization of the data completed : loading MainMenu", ELogTag.System);
+                SceneLoader.Instance.LoadScene("MainMenu");
+            } 
+            else
+            {
+                Main.SetPopUp(EPopUpState.MessagePopUp, "Unauthorized Access");
+            }
+            
         }
 
         private void OnStateChanged(EAppState state)

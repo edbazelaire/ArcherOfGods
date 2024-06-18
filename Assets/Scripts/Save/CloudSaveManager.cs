@@ -10,7 +10,10 @@ namespace Save
     {
         #region Members
 
+        GameCloudData                       m_GameCloudData;
         List<CloudData>                     m_CloudData;
+
+        public GameCloudData GameCloudData => m_GameCloudData;
 
         public List<CloudData> CloudData => m_CloudData;
         
@@ -36,6 +39,8 @@ namespace Save
 
         public void LoadSave()
         {
+            //m_GameCloudData = new GameCloudData();
+
             m_CloudData = new()
             {
                 new CharacterBuildsCloudData(),

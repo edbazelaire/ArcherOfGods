@@ -163,6 +163,14 @@ namespace Game.Character
             m_NextSelectedSpell = IsAutoTarget(autoAttack) ? autoAttack : ESpell.Count;
         }
 
+        public void Activate(bool activate)
+        {
+            if (! activate)
+                StopAllCoroutines();
+
+            this.enabled = activate;
+        }
+
         #endregion
 
 

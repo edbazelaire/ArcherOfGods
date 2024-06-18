@@ -344,19 +344,21 @@ public class Controller : NetworkBehaviour
         ActivateActionComponent(false);
 
         // set game animation if still 
-        m_AnimationHandler.GameOverAnimation(win);
+        if (! IsServer)
+            m_AnimationHandler.GameOverAnimation(win);
     }
 
     /// <summary>
     /// activate / deactivate players "action" components (that allows player to take actions)
     /// </summary>
     /// <param name="active"></param>
-    void ActivateActionComponent(bool active)
+    public void ActivateActionComponent(bool active)
     {
         m_Movement.enabled              = active;
-        m_SpellHandler.enabled          = active;
         m_StateHandler.enabled          = active;
         m_CounterHandler.enabled        = active;
+
+        m_SpellHandler.Activate(active);
 
         if (m_AutoAttackHandler != null)
             m_AutoAttackHandler.enabled     = active;
