@@ -92,6 +92,38 @@ namespace Save
         #endregion
 
 
+        #region General Data
+
+        /// <summary>
+        /// When a game starts, apply a preventive game loss that allows to handle disconnections
+        /// </summary>
+        /// <param name="gameMode"></param>
+        /// <returns></returns>
+        public static bool ApplyPreventiveLoss(EGameMode gameMode)
+        {
+            switch (gameMode)
+            {
+                case EGameMode.Arena:
+                    if (SoloArenas[PlayerPrefsHandler.GetArenaType()].CurrentStage == 0)
+                        return false;
+
+                    UpdateStageValue(PlayerPrefsHandler.GetArenaType(), false);
+                    break;
+
+                case EGameMode.Ranked:
+                    if (CurrentLeagueStage == 0)
+                        return false;
+
+                    UpdateLeagueValue(false);
+                    break;
+            }
+
+            return true;
+        }
+
+        #endregion
+
+
         #region League Data
 
         public static bool IsLeagueCompleted()

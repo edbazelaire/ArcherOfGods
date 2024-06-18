@@ -6,19 +6,26 @@ using System.Linq;
 using System.Threading.Tasks;
 using Tools;
 using Unity.Services.CloudSave;
+using Unity.Services.CloudSave.Internal;
 using Unity.Services.CloudSave.Models;
+using Unity.Services.CloudSave.Models.Data.Player;
+using SaveOptions = Unity.Services.CloudSave.Models.Data.Player.SaveOptions;
 
 namespace Save
 {
     public class CloudData
     {
         #region Members
-        public static CloudData Instance => Main.CloudSaveManager.GetCloudData(typeof(CloudData)) as CloudData;
+
+        public static CloudData Instance => Main.CloudSaveManager.GetCloudData(typeof(CloudData));
 
         protected virtual Dictionary<string, object> m_Data { get; set; }
+        protected virtual Dictionary<string, object> m_PublicData { get; set; }
 
         /// <summary> list of remaining values to load</summary>
         List<string> m_KeysToLoad;
+
+        protected virtual IPlayerDataService CloudDatabase => CloudSaveService.Instance.Data.Player;
 
         public Dictionary<string, object> Data => m_Data;
         public bool LoadingCompleted = false;
@@ -50,13 +57,24 @@ namespace Save
             foreach (var key in m_Data.Keys)
             {
                 // if value exists in the cloud get it, other wise keep default
-                LoadValue(key);
+                LoadValueAsync(key);
+            }
+
+            if (m_PublicData != null)
+            {
+                foreach (var key in m_PublicData.Keys)
+                {
+                    // if value exists in the cloud get it, other wise keep default
+                    LoadValueAsync(key);
+                }
             }
         }
 
-        protected async virtual void LoadValue(string key)
+
+        protected async virtual void LoadValueAsync(string key)
         {
-            var cloudData = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { key });
+            var cloudData = await CloudDatabase.LoadAsync(new HashSet<string> { key });
+
             if (!cloudData.TryGetValue(key, out var item))
             {
                 OnCloudDataKeyLoaded(key);
@@ -80,6 +98,12 @@ namespace Save
             }
         }
 
+        public virtual async void SavePublicValue(string key, object value)
+        {
+            var data = new Dictionary<string, object> { { key, value } };
+            await CloudSaveService.Instance.Data.Player.SaveAsync(data, new SaveOptions(new PublicWriteAccessClassOptions()));
+        }
+
         public virtual async void SaveValue(string key)
         {
             if (!m_Data.ContainsKey(key))
@@ -101,7 +125,7 @@ namespace Save
 
             try
             {
-                await CloudSaveService.Instance.Data.Player.SaveAsync(playerData);
+                await CloudDatabase.SaveAsync(playerData);
             }
             catch (CloudSaveConflictException ex)
             {
@@ -126,7 +150,7 @@ namespace Save
             // Fetch existing value
             try
             {
-                var existingData = await CloudSaveService.Instance.Data.Player.LoadAsync(new HashSet<string> { key });
+                var existingData = await CloudDatabase.LoadAsync(new HashSet<string> { key });
 
                 if (existingData.TryGetValue(key, out var existingValue))
                 {
@@ -152,7 +176,7 @@ namespace Save
 
             try
             {
-                await CloudSaveService.Instance.Data.Player.SaveAsync(resolvedData);
+                await CloudDatabase.SaveAsync(resolvedData);
                 ErrorHandler.Log($"Successfully saved resolved value for {key}");
             }
             catch (Exception ex)
@@ -203,7 +227,7 @@ namespace Save
         #region Checkers
 
         protected virtual void CheckData() { }
-        
+
         #endregion
 
 
@@ -219,6 +243,19 @@ namespace Save
         protected virtual object Convert(Item item)
         {
             var expectedType = m_Data[item.Key].GetType().Name;
+
+            if (m_Data[item.Key].GetType() == typeof(List<string>))
+                return item.Value.GetAs<List<string>>();
+
+            if (m_Data[item.Key].GetType() == typeof(List<int>))
+                return item.Value.GetAs<List<string>>();
+
+            if (m_Data[item.Key].GetType() == typeof(List<float>))
+                return item.Value.GetAs<List<string>>();
+
+            if (m_Data[item.Key].GetType() == typeof(List<bool>))
+                return item.Value.GetAs<List<string>>();
+
             switch (expectedType)
             {
                 case "String":
@@ -255,7 +292,7 @@ namespace Save
 
         public async Task<bool> KeyExists(string key)
         {
-            var keys = await CloudSaveService.Instance.Data.Player.ListAllKeysAsync();
+            var keys = await CloudDatabase.ListAllKeysAsync();
             for (int i = 0; i < keys.Count; i++)
             {
                 if (key == keys[i].Key)

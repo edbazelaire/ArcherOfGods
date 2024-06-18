@@ -37,7 +37,7 @@ public class EndGameUI : MonoBehaviour
     #region Init & End
 
     // Use this for initialization
-    public void SetUpGameOver(bool win)
+    public void SetUpGameOver(bool win, bool preventiveLossApplied)
     {
         InitializeUI();
 
@@ -47,7 +47,7 @@ public class EndGameUI : MonoBehaviour
         m_TitleText.color = win ? Color.green : Color.red;
 
         HandleReward(win);
-        HandleProgression(win);
+        HandleProgression(win, preventiveLossApplied);
         HandleEndGameData(win);
 
         m_LeaveButton.onClick.AddListener(Leave);
@@ -55,14 +55,14 @@ public class EndGameUI : MonoBehaviour
 
     void InitializeUI()
     {
-        m_TitleText = Finder.FindComponent<TMP_Text>(gameObject, c_TitleText);
-        m_LeaveButton = Finder.FindComponent<Button>(gameObject, c_LeaveButton);
-        m_RewardsContent = Finder.Find(gameObject, "RewardsContent");
-        m_XpRewardDisplay = Finder.Find(m_RewardsContent, "XpRewardDisplay");
-        m_XpQty = Finder.FindComponent<TMP_Text>(m_XpRewardDisplay, "Qty");
-        m_GoldsRewardDisplay = Finder.Find(m_RewardsContent, "GoldsRewardDisplay");
-        m_GoldsQty = Finder.FindComponent<TMP_Text>(m_GoldsRewardDisplay, "Qty");
-        m_ChestRewardIcon = Finder.FindComponent<Image>(m_RewardsContent, "ChestRewardIcon");
+        m_TitleText             = Finder.FindComponent<TMP_Text>(gameObject, c_TitleText);
+        m_LeaveButton           = Finder.FindComponent<Button>(gameObject, c_LeaveButton);
+        m_RewardsContent        = Finder.Find(gameObject, "RewardsContent");
+        m_XpRewardDisplay       = Finder.Find(m_RewardsContent, "XpRewardDisplay");
+        m_XpQty                 = Finder.FindComponent<TMP_Text>(m_XpRewardDisplay, "Qty");
+        m_GoldsRewardDisplay    = Finder.Find(m_RewardsContent, "GoldsRewardDisplay");
+        m_GoldsQty              = Finder.FindComponent<TMP_Text>(m_GoldsRewardDisplay, "Qty");
+        m_ChestRewardIcon       = Finder.FindComponent<Image>(m_RewardsContent, "ChestRewardIcon");
     }
 
     void Leave()
@@ -142,18 +142,32 @@ public class EndGameUI : MonoBehaviour
         ErrorHandler.Log("HandleReward() : end", ELogTag.Rewards);
     }
 
-    void HandleProgression(bool win)
+    void HandleProgression(bool win, bool preventiveLossApplied)
     {
+        // if a preventive loss has already been applied and this is a loss - exit
+        if (!win && preventiveLossApplied)
+            return;
+       
         switch (LobbyHandler.Instance.GameMode)
         {
             case EGameMode.Arena:
                 ErrorHandler.Log("HandleProgression() : Loading Arena Data : " + PlayerPrefsHandler.GetArenaType().ToString(), ELogTag.GameSystem);
                 ArenaData arenaData = AssetLoader.LoadArenaData(PlayerPrefsHandler.GetArenaType());
+
+                // if preventive loss has been applied, apply double win
+                if (win & preventiveLossApplied)
+                    arenaData.UpdateStageValue(win);
+
                 arenaData.UpdateStageValue(win);
                 break;
 
             case EGameMode.Ranked:
                 ErrorHandler.Log("HandleProgression() : Ranked game", ELogTag.GameSystem);
+
+                // if preventive loss has been applied, apply double win
+                if (win & preventiveLossApplied)
+                    ProgressionCloudData.UpdateLeagueValue(win);
+
                 ProgressionCloudData.UpdateLeagueValue(win);
                 break;
 

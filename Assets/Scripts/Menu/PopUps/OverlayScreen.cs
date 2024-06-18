@@ -100,7 +100,11 @@ namespace Menu.PopUps
             EnterAnimation();
         }
 
-        protected virtual void EnterAnimation() { }
+        protected virtual void EnterAnimation() 
+        {
+            var fadeIn = gameObject.AddComponent<Fade>();
+            fadeIn.Initialize("", duration: 0.35f, startOpacity: 0);
+        }
 
         #endregion
 

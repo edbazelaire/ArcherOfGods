@@ -46,6 +46,5 @@ MonoBehaviour:
   PersistanceAfterEnd: 0
   Animation: 6
   IsCancellable: 0
-  AnimationTimer: 0.5
-  CastAt: 1
+  AnimationTimer: 0.25
   m_Cooldown: 25

@@ -55,6 +55,16 @@ namespace Game.UI
             }
         }
 
+        /// <summary>
+        /// Call for direct end of the Intro, ending all coroutines in the process
+        /// </summary>
+        public void Deactivate()
+        {
+            StopAllCoroutines();
+
+            gameObject.SetActive(false);
+        }
+
         #endregion
 
 

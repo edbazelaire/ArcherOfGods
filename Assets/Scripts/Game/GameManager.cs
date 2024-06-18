@@ -11,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Tools;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Game
@@ -70,13 +71,14 @@ namespace Game
 
 
         #region Inherited Manipulators
+
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
 
-            m_ClientsInitialized = new();
-            m_PlayersData = new();
-            m_Controllers = new Dictionary<ulong, Controller>();
+            m_ClientsInitialized    = new();
+            m_PlayersData           = new();
+            m_Controllers           = new Dictionary<ulong, Controller>();
 
             s_Instance = this;
         }
@@ -456,6 +458,12 @@ namespace Game
         
         #region [STATE] Game Over
 
+        public void GameOver(int team)
+        {
+            ShutDownControllersServerSide();
+            GameOverClientRPC(team);
+        }
+
         /// <summary>
         /// Call the game over on clients
         /// </summary>
@@ -465,16 +473,38 @@ namespace Game
         {
             ErrorHandler.Log("GameOverClientRPC", ELogTag.GameSystem);
 
-            if (!Instance.Owner.IsPlayer)
+            if (! Instance.Owner.IsPlayer)
+                return;
+
+            ShutDownControllers(team);
+            GameUIManager.Instance.SetUpGameOver(team == Instance.Owner.Team);
+        }
+
+        void ShutDownControllers(int team)
+        {
+            // set "Game Ended" mode for each player
+            foreach (Controller controller in m_Controllers.Values)
+            {
+                if (controller.IsDestroyed())
+                    continue;
+
+                controller.OnGameEnded(team == controller.Team);
+            }
+        }
+
+        void ShutDownControllersServerSide()
+        {
+            if (!IsServer)
                 return;
 
             // set "Game Ended" mode for each player
             foreach (Controller controller in m_Controllers.Values)
             {
-                controller.OnGameEnded(team == controller.Team);
-            }
+                if (controller.IsDestroyed())
+                    continue;
 
-            GameUIManager.Instance.SetUpGameOver(team == Instance.Owner.Team);
+                controller.ActivateActionComponent(false);
+            }
         }
 
         void CheckPlayerDeath(int oldValue, int newValue)
@@ -489,14 +519,14 @@ namespace Game
             foreach (var item in m_Controllers)
             {
                 Controller controller = item.Value;
-                if (controller.Life.IsAlive && !teamCtr.Contains(controller.Team))
+                if (controller.Life.IsAlive && NetworkManager.Singleton.ConnectedClients.ContainsKey(controller.PlayerId) && ! teamCtr.Contains(controller.Team))
                     teamCtr.Add(controller.Team);
             }
 
-
             if (teamCtr.Count == 1)
             {
-                GameOverClientRPC(teamCtr[0]);
+                SetState(EGameState.GameOver);
+                GameOver(teamCtr[0]);
             }
         }
 
@@ -707,7 +737,6 @@ namespace Game
                     break;
 
                 case EGameState.GameOver:
-                    
                     break;
             }
         }

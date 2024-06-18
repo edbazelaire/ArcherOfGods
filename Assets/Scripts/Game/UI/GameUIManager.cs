@@ -4,6 +4,7 @@ using Game;
 using Game.UI;
 using Managers;
 using Network;
+using Save;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
@@ -47,6 +48,7 @@ public class GameUIManager : MonoBehaviour
     // Data
     bool                m_LeftMovementButtonPressed;
     bool                m_RightMovementButtonPressed;
+    bool                m_PreventiveLossApplied;
 
     // ==============================================================================================================
     // Public Accessors
@@ -65,6 +67,19 @@ public class GameUIManager : MonoBehaviour
         m_IntroGameUI = Finder.FindComponent<IntroGameUI>(transform.parent.gameObject, "IntroGameUI");
         m_EndGameUI = Finder.FindComponent<EndGameUI>(transform.parent.gameObject, "EndGameUI");
         m_ErrorGameUI = Finder.FindComponent<ErrorGameUI>(transform.parent.gameObject, "ErrorGameUI");
+
+        FindMovementButtons();
+        FindPlayerUIContainers();
+        FindSpellsContainers();
+    }
+
+    private void Start()
+    {
+        if (m_PreventiveLossApplied)
+            return;
+
+        // apply a loss at start to handle potential disconnections
+        m_PreventiveLossApplied = ProgressionCloudData.ApplyPreventiveLoss(LobbyHandler.Instance.GameMode);
     }
 
     public void Initialize()
@@ -77,9 +92,6 @@ public class GameUIManager : MonoBehaviour
         m_ErrorGameUI.gameObject.SetActive(false);
 
         SetUpBackground();
-        FindPlayerUIContainers();
-        FindMovementButtons();
-        FindSpellsContainers();
     }
 
     /// <summary>
@@ -106,7 +118,7 @@ public class GameUIManager : MonoBehaviour
     /// </summary>
     void FindMovementButtons()
     {
-        var container           = Finder.Find(gameObject, "MovementButtonsContainer");
+        var container = Finder.Find(gameObject, "MovementButtonsContainer");
 
         // link pressed button bools to pressed envents
         Finder.FindComponent<MovementButtonsContainer>(container).MovementInputEvent += (int moveX) => { m_LeftMovementButtonPressed = moveX == -1; m_RightMovementButtonPressed = moveX == 1; };
@@ -254,7 +266,7 @@ public class GameUIManager : MonoBehaviour
         SoundFXManager.PlayOnce(win ? SoundFXManager.WinSoundFX : SoundFXManager.LossSoundFX);
 
         m_EndGameUI.gameObject.SetActive(true);
-        m_EndGameUI.SetUpGameOver(win);
+        m_EndGameUI.SetUpGameOver(win, m_PreventiveLossApplied);
 
         // destroy self
         DeleteGameUI();

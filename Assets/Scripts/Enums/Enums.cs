@@ -9,6 +9,7 @@
         RewardsScreen,
         AchievementRewardScreen,
         LevelUpScreen,
+        LobbyScreen,
         ArenaPathScreen,
         LeaguesPathScreen,
 

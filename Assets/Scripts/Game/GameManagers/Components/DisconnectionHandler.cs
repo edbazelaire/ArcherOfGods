@@ -15,7 +15,8 @@ namespace Game.GameManagers.Components
 
         List<ulong> m_DisconnectedClients;
         float       m_DisconnectionTimestamp;
-        bool m_WaitingForReconnection => m_DisconnectedClients.Count > 0;
+        bool m_IsWaitingForReconnection => m_DisconnectedClients.Count > 0;
+        bool m_IsHostDisconnected => m_DisconnectedClients.Contains(NetworkManager.ServerClientId);
 
 
         #region Init & End
@@ -48,8 +49,14 @@ namespace Game.GameManagers.Components
 
         private void PauseGame()
         {
-            // Implement game pausing logic here
+            // stop time scale
             Time.timeScale = 0f;
+
+            // notify player of the error
+            NotifyPlayers(m_ReconnectionMessage);
+
+            // start coroutine waiting for reconnection
+            StartCoroutine(WaitForClientReconnection());
         }
 
         private void ResumeGame()
@@ -68,14 +75,15 @@ namespace Game.GameManagers.Components
             ErrorGameUI.Display(message);
         }
 
-        private IEnumerator WaitForHostReconnection()
+        private IEnumerator WaitForClientReconnection()
         {
             Debug.Log("WaitForHostReconnection()");
 
             float timePassed = Time.unscaledTime - m_DisconnectionTimestamp;
             while (timePassed < m_ReconnectionTimeout)
             {
-                if (! m_WaitingForReconnection)
+                timePassed = Time.unscaledTime - m_DisconnectionTimestamp;
+                if (! m_IsWaitingForReconnection)
                 {
                     // Host has reconnected
                     ResumeGame();
@@ -87,15 +95,31 @@ namespace Game.GameManagers.Components
             }
 
             ErrorGameUI.Hide();
-            Time.timeScale = 1f;
 
-            // Timeout exceeded, handle accordingly
-            GameUIManager.Instance.SetUpGameOver(true);
+            // end the game
+            EndGame();
+
+            // resume to the game
+            Time.timeScale = 1f;
         }
 
         private void EndGame()
         {
-            int team;
+            // force deactivation of the Intro 
+            if (GameUIManager.IntroGameUI != null && GameUIManager.IntroGameUI.isActiveAndEnabled) 
+            {
+                GameUIManager.IntroGameUI.Deactivate();
+            }
+
+            // no host - insta display end of game
+            if (m_IsHostDisconnected)
+            {
+                GameUIManager.Instance.SetUpGameOver(true);
+                return;
+            }
+
+            // host still alive - shutdown game then display end of game
+            int winningTeam;
 
             // both players are disconnected : no winner
             if (m_DisconnectedClients.Count == 0)
@@ -104,11 +128,11 @@ namespace Game.GameManagers.Components
                 return;
             }
             else if (m_DisconnectedClients.Count >= 2)
-                team = -1;
+                winningTeam = -1;
             else
-                team = (GameManager.Instance.Controllers[m_DisconnectedClients[0]].Team + 1) % 2;
+                winningTeam = m_DisconnectedClients[0] != GameManager.Instance.Owner.PlayerId ? GameManager.Instance.Owner.Team : (GameManager.Instance.Owner.Team + 1) % 2;
 
-            GameManager.Instance.GameOverClientRPC(team);
+            GameManager.Instance.GameOverClientRPC(winningTeam);
         }
 
         #endregion
@@ -133,7 +157,7 @@ namespace Game.GameManagers.Components
                     break;
             }
 
-            bool wasWaiting = m_WaitingForReconnection;
+            bool wasWaiting = m_IsWaitingForReconnection;
 
             // add client to list of disconnected client
             if (m_DisconnectedClients.Contains(clientId))
@@ -141,13 +165,17 @@ namespace Game.GameManagers.Components
             else
                 m_DisconnectedClients.Add(clientId);
 
-            m_DisconnectionTimestamp = Time.time;
+            m_DisconnectionTimestamp = Time.unscaledTime;
+            
+            if (NetworkManager.ServerClientId == clientId)
+            {
+                // HOST DISCONNECTED
+                Debug.Log("HOST HAS BEEN DISCONNECTED");
+            }
 
             if (! wasWaiting)
             {
-                NotifyPlayers(m_ReconnectionMessage);
                 PauseGame();
-                StartCoroutine(WaitForHostReconnection());
             }
         }
 

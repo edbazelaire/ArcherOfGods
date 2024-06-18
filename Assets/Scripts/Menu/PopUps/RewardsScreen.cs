@@ -99,12 +99,6 @@ namespace Menu.PopUps
             SoundFXManager.MusicAudioSource.volume /= 2;
         }
 
-        protected override void EnterAnimation()
-        {
-            var fadeIn = gameObject.AddComponent<Fade>();
-            fadeIn.Initialize("", duration: 0.2f, startOpacity: 0);
-        }
-
         protected override void OnExit()
         {
             base.OnExit();

@@ -145,8 +145,6 @@ namespace Menu.MainMenu.MainTab
 
         async void JoinLobby()
         {
-            Main.SetState(EAppState.Lobby);
-
             // set the button as selected
             await LobbyHandler.Instance.QuickJoinLobby();
         }
@@ -155,7 +153,6 @@ namespace Menu.MainMenu.MainTab
         {
             LobbyHandler.Instance.LeaveLobby();
             Main.SetState(EAppState.MainMenu);
-            m_PlayButtonImage.color = Color.white;
         }
 
         #endregion
@@ -196,7 +193,8 @@ namespace Menu.MainMenu.MainTab
                 return;
             }
 
-            m_PlayButtonImage.color = new Color(0.25f, 0.25f, 0.25f);
+            if (LobbyHandler.Instance.GameMode == EGameMode.Ranked)
+                Main.SetPopUp(EPopUpState.LobbyScreen);
 
             JoinLobby();
         }

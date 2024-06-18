@@ -1,11 +1,8 @@
 ﻿using Assets.Scripts.Managers.Sound;
-using Menu.MainMenu;
 using Save;
-using System.Collections;
+using Save.RSDs;
 using TMPro;
 using Tools;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace Menu.PopUps.PopUps.MessagePopUps
 {
@@ -14,6 +11,7 @@ namespace Menu.PopUps.PopUps.MessagePopUps
         #region Members
 
         TMP_InputField  m_InputField;
+        TMP_InputField  m_TokenInputField;
         TMP_Text        m_ErrorMessage;
 
         #endregion
@@ -26,6 +24,7 @@ namespace Menu.PopUps.PopUps.MessagePopUps
             base.FindComponents();
 
             m_InputField        = Finder.FindComponent<TMP_InputField>(m_WindowContent, "InputField");
+            m_TokenInputField   = Finder.FindComponent<TMP_InputField>(m_WindowContent, "TokenInputField");
             m_ErrorMessage      = Finder.FindComponent<TMP_Text>( m_WindowContent, "ErrorMessage");
         }
 
@@ -65,22 +64,33 @@ namespace Menu.PopUps.PopUps.MessagePopUps
 
         protected override void OnValidateButton()
         {
-            if (ProfileCloudData.IsGamerTagValid(m_InputField.text, out string reason))
+            // CHECK : Gamer tag
+            if (! ProfileCloudData.IsGamerTagValid(m_InputField.text, out string reason))
             {
-                ProfileCloudData.SetGamerTag(m_InputField.text);
-                base.OnValidateButton();
-                Exit();
+                // play error sound
+                SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
+
+                // display why is not valid
+                m_ErrorMessage.text = reason;
                 return;
             }
 
-            // play error sound
-            SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
-            
-            // TODO : Add animation Vibration and set to red
-            // ...
+            // CHECK : Token
+            if (!TokensRSD.IsTokenValid(m_TokenInputField.text, out reason))
+            {
+                // play error sound
+                SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
 
-            // display why is not valid
-            m_ErrorMessage.text = reason;
+                // display why is not valid
+                m_ErrorMessage.text = reason;
+                return;
+            }
+
+            ProfileCloudData.SetGamerTag(m_InputField.text);
+            ProfileCloudData.SetToken(m_TokenInputField.text);
+
+            base.OnValidateButton();
+            Exit();
         }
 
         #endregion

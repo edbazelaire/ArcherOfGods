@@ -69,11 +69,12 @@ namespace Network
 
         bool IsHost => m_HostLobby != null && m_JoinedLobby != null && m_HostLobby.Id == m_JoinedLobby.Id;
         int m_MaxPlayers => m_GameMode == EGameMode.Arena ? 1 : 2;
-        public int MaxPlayers => m_MaxPlayers;
-        public ELobbyState State => m_State;
 
-        public EGameMode GameMode { get => m_GameMode; set => m_GameMode = value; }
-        public EArenaType ArenaType { get => m_ArenaType; set => m_ArenaType = value; }
+        public EGameMode        GameMode    { get => m_GameMode; set => m_GameMode = value; }
+        public EArenaType       ArenaType   { get => m_ArenaType; set => m_ArenaType = value; }
+        public int              NPlayers    => m_JoinedLobby != null ? m_JoinedLobby.Players.Count : 0;
+        public int              MaxPlayers  => m_MaxPlayers;
+        public ELobbyState      State       => m_State;
 
         #endregion
 
@@ -273,6 +274,8 @@ namespace Network
 
         public async Task<bool> QuickJoinLobby()
         {
+            Main.SetState(EAppState.Lobby);
+
             bool success = await JoinLobby();
 
             if (!success)

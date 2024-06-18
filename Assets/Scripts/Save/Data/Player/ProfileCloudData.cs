@@ -1,15 +1,14 @@
 ﻿using Assets;
 using Enums;
-using Menu.Common.Buttons;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Tools;
 using Unity.Collections;
 using Unity.Netcode;
+using Unity.Services.CloudSave;
 using Unity.Services.CloudSave.Models;
 using Unity.VisualScripting;
-using UnityEngine;
 
 namespace Save
 {
@@ -299,6 +298,7 @@ namespace Save
         // KEYS ------------------------------------
         public const string KEY_IS_ADMIN                = "IsAdmin";
         public const string KEY_PSEUDO_CHANGED          = "PseudoChanged";
+        public const string KEY_TOKEN                   = "Token";
         public const string KEY_CURRENT_PROFILE_DATA    = "CurrentProfileData";
         public const string KEY_ACHIEVEMENTS            = "Achievements";
         public const string KEY_ACHIEVEMENT_REWARDS     = "AchievementRewards";
@@ -318,7 +318,8 @@ namespace Save
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
             { KEY_IS_ADMIN,                 false                                               },
-            { KEY_PSEUDO_CHANGED,           false                                                },
+            { KEY_PSEUDO_CHANGED,           false                                               },
+            { KEY_TOKEN,                    ""                                                  },
             { KEY_CURRENT_PROFILE_DATA,     new SProfileCurrentData()                           },
             { KEY_ACHIEVEMENTS,             new Dictionary<string, int>()                       },
             { KEY_ACHIEVEMENT_REWARDS,      new Dictionary<EAchievementReward, List<string>>()  },
@@ -332,6 +333,7 @@ namespace Save
         public static int LastSelectedBadgeIndex = 0;
         public static bool IsAdmin => (bool)Instance.m_Data[KEY_IS_ADMIN];
         public static bool PseudoChanged => (bool)Instance.m_Data[KEY_PSEUDO_CHANGED];
+        public static string Token => (string)Instance.m_Data[KEY_TOKEN];
         public static SProfileCurrentData CurrentProfileData => (SProfileCurrentData)Instance.m_Data[KEY_CURRENT_PROFILE_DATA];
         public static string GamerTag => CurrentProfileData.GamerTag;
         public static string[] CurrentBadges => CurrentProfileData.Badges;
@@ -387,7 +389,19 @@ namespace Save
             Instance.SetData(KEY_CURRENT_PROFILE_DATA, data);
             Instance.SetData(KEY_PSEUDO_CHANGED, true);
 
+            Instance.SavePublicValue("GamerTag", gamerTag);
+          
             GamerTagChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Set Rune of the current build
+        /// </summary>
+        /// <param name="rune"></param>
+        public static void SetToken(string token)
+        {
+            Instance.m_Data[KEY_TOKEN] = token;
+            Instance.SavePublicValue(KEY_TOKEN, token);
         }
 
         /// <summary>
@@ -902,6 +916,29 @@ namespace Save
             Instance.SetData(KEY_CURRENT_PROFILE_DATA, data, false);
         }
 
+        async void CheckToken()
+        {
+            if ((string)m_Data[KEY_TOKEN] == "")
+            {
+                var testNormal = await CloudDatabase.LoadAsync(new HashSet<string> { KEY_TOKEN });
+
+            }
+
+            return;
+        }
+
+        public async void FindPlayerWithToken(string token)
+        {
+            var query = new Query(
+                new List<FieldFilter>() {
+                    new FieldFilter(KEY_TOKEN, token, FieldFilter.OpOptions.EQ, true)
+                }, 
+                new HashSet<string> { KEY_TOKEN, "GamerTag" } 
+            );
+
+            var results = await CloudSaveService.Instance.Data.Player.QueryAsync(query, null);
+        }
+
         #endregion
 
 
@@ -929,6 +966,7 @@ namespace Save
             m_Badges = FilterHighestLeague(EAchievementReward.Badge);
             CheckAchievements();
             CheckCurrentData();
+            CheckToken();
 
             SaveValue(KEY_IS_ADMIN);
         }
