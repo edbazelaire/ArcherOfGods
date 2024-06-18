@@ -75,11 +75,12 @@ public class GameUIManager : MonoBehaviour
 
     private void Start()
     {
-        if (m_PreventiveLossApplied)
-            return;
+        GameManager.Instance.State.OnValueChanged += OnGameStateChanged;
+    }
 
-        // apply a loss at start to handle potential disconnections
-        m_PreventiveLossApplied = ProgressionCloudData.ApplyPreventiveLoss(LobbyHandler.Instance.GameMode);
+    private void OnDestroy()
+    {
+        GameManager.Instance.State.OnValueChanged -= OnGameStateChanged;
     }
 
     public void Initialize()
@@ -270,6 +271,28 @@ public class GameUIManager : MonoBehaviour
 
         // destroy self
         DeleteGameUI();
+    }
+
+    #endregion
+
+
+    #region Listeners
+
+    void OnGameStateChanged(EGameState oldState, EGameState newState)
+    {
+        // security
+        if (newState <= oldState)
+            return;
+
+        // on game starts : apply preventive loss
+        if (newState == EGameState.GameRunning)
+        {
+            if (m_PreventiveLossApplied)
+                return;
+
+            // apply a loss at start to handle potential disconnections
+            m_PreventiveLossApplied = ProgressionCloudData.ApplyPreventiveLoss(LobbyHandler.Instance.GameMode);
+        }
     }
 
     #endregion

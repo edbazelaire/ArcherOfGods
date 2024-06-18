@@ -21,11 +21,16 @@ MonoBehaviour:
   - {fileID: 610942752557020422, guid: 4c012a077fc8a714fb23670e129fb0eb, type: 3}
   OnHit:
   - {fileID: 11400000, guid: 3e51126bd555af3469c4e988f343ec15, type: 2}
+  AnimationSoundFX: {fileID: 0}
+  CastSoundFX: {fileID: 0}
+  PermanantSoundFX: {fileID: 0}
+  OnHitSoundFX: {fileID: 0}
+  OnEndSoundFX: {fileID: 0}
   SpellTarget: 1
   MaxHit: 0
   EnergyGain: 0
   EnergyCost: 100
-  m_Damage: 200
+  m_Damage: 150
   m_Heal: 0
   Distance: -1
   OverrideOnHitProperties: 02000000
@@ -39,7 +44,6 @@ MonoBehaviour:
   Animation: 5
   IsCancellable: 0
   AnimationTimer: 0
-  CastAt: 1
   m_Cooldown: 0.5
   Trajectory: 1
   m_Speed: 20

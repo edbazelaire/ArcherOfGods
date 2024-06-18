@@ -21,16 +21,20 @@ MonoBehaviour:
   AchievementSubData:
   - MaxValue: 5000
     Rewards:
-      Currencies: []
+      Currencies:
+      - Currency: 0
+        Qty: 1000
       Chests: 
       Collectables: []
-      AchievementRewards:
-      - AchievementReward: 1
-        Title: 0
-        Avatar: 0
-        Border: 0
-        Badge: 4
-        League: 2
+      AchievementRewards: []
+  - MaxValue: 15000
+    Rewards:
+      Currencies:
+      - Currency: 3
+        Qty: 150
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
   - MaxValue: 25000
     Rewards:
       Currencies: []
@@ -42,8 +46,26 @@ MonoBehaviour:
         Avatar: 0
         Border: 0
         Badge: 4
+        League: 2
+  - MaxValue: 50000
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 0
+        Avatar: 0
+        Border: 0
+        Badge: 4
         League: 3
-  - MaxValue: 100000
+  - MaxValue: 75000
+    Rewards:
+      Currencies: []
+      Chests: 01000000
+      Collectables: []
+      AchievementRewards: []
+  - MaxValue: 150000
     Rewards:
       Currencies: []
       Chests: 

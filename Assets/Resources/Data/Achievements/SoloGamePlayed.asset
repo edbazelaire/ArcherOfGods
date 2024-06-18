@@ -12,29 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9bf96ab3cd590dd4eb64ef847e4c7983, type: 3}
   m_Name: SoloGamePlayed
   m_EditorClassIdentifier: 
-  Description: Number of game won
+  Description: Number of solo game played
   Analytics: 0
   AnalyticsFilters:
   - AnalyticParam: 1
     Value: Arena
     Comparator: 3
   AchievementSubData:
-  - MaxValue: 1
+  - MaxValue: 5
     Rewards:
-      Currencies: []
+      Currencies:
+      - Currency: 0
+        Qty: 500
       Chests: 
       Collectables: []
-      AchievementRewards:
-      - AchievementReward: 4
-        Title: 4
-        Avatar: 0
-        Border: 0
-        Badge: 202
-        League: 0
+      AchievementRewards: []
   - MaxValue: 10
     Rewards:
       Currencies: []
-      Chests: 
+      Chests: 00000000
       Collectables: []
       AchievementRewards:
       - AchievementReward: 1
@@ -45,10 +41,8 @@ MonoBehaviour:
         League: 2
   - MaxValue: 25
     Rewards:
-      Currencies:
-      - Currency: 3
-        Qty: 250
-      Chests: 
+      Currencies: []
+      Chests: 01000000
       Collectables: []
       AchievementRewards: []
   - MaxValue: 50
@@ -62,8 +56,14 @@ MonoBehaviour:
         Avatar: 0
         Border: 0
         Badge: 201
-        League: 3
+        League: 2
   - MaxValue: 75
+    Rewards:
+      Currencies: []
+      Chests: 02000000
+      Collectables: []
+      AchievementRewards: []
+  - MaxValue: 100
     Rewards:
       Currencies: []
       Chests: 
@@ -74,8 +74,28 @@ MonoBehaviour:
         Avatar: 0
         Border: 0
         Badge: 201
+        League: 3
+  - MaxValue: 175
+    Rewards:
+      Currencies:
+      - Currency: 1
+        Qty: 150
+      Chests: 
+      Collectables: []
+      AchievementRewards: []
+  - MaxValue: 250
+    Rewards:
+      Currencies: []
+      Chests: 
+      Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 0
+        Avatar: 0
+        Border: 0
+        Badge: 1
         League: 4
-  - MaxValue: 100
+  - MaxValue: 500
     Rewards:
       Currencies: []
       Chests: 
