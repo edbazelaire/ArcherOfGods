@@ -519,7 +519,7 @@ namespace Game
             foreach (var item in m_Controllers)
             {
                 Controller controller = item.Value;
-                if (controller.Life.IsAlive && NetworkManager.Singleton.ConnectedClients.ContainsKey(controller.PlayerId) && ! teamCtr.Contains(controller.Team))
+                if (controller.Life.IsAlive && ! teamCtr.Contains(controller.Team))
                     teamCtr.Add(controller.Team);
             }
 

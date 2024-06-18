@@ -1,14 +1,20 @@
 ﻿using Assets;
 using Enums;
+using Newtonsoft.Json.Linq;
+using Save.RSDs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Tools;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Services.CloudSave;
 using Unity.Services.CloudSave.Models;
+using Unity.Services.CloudSave.Models.Data.Player;
+using Unity.Services.Relay.Models;
 using Unity.VisualScripting;
+using Unity.VisualScripting.Antlr3.Runtime;
 
 namespace Save
 {
@@ -188,13 +194,6 @@ namespace Save
                 GamerTag = DEFAULT_GAMER_TAG;
                 return;
             }
-
-            if (! ProfileCloudData.IsGamerTagValid(GamerTag, out string _))
-            {
-                ErrorHandler.Error("GamerTag not valid : reseting with default");
-                GamerTag = DEFAULT_GAMER_TAG;
-                return;
-            }
         }
 
         void CheckAchievementRewards()
@@ -296,8 +295,8 @@ namespace Save
         public const int MAX_CHAR_GAMER_TAG = 25;
 
         // KEYS ------------------------------------
-        public const string KEY_IS_ADMIN                = "IsAdmin";
         public const string KEY_PSEUDO_CHANGED          = "PseudoChanged";
+        public const string KEY_GAMER_TAG               = "GamerTag";
         public const string KEY_TOKEN                   = "Token";
         public const string KEY_CURRENT_PROFILE_DATA    = "CurrentProfileData";
         public const string KEY_ACHIEVEMENTS            = "Achievements";
@@ -315,10 +314,12 @@ namespace Save
 
         // ===============================================================================================
         // DATA
+        protected override List<string> m_PublicKeys => new() { KEY_TOKEN, KEY_GAMER_TAG };
+
         /// <summary> default data for the Inventory </summary>
         protected override Dictionary<string, object> m_Data { get; set; } = new Dictionary<string, object>() {
-            { KEY_IS_ADMIN,                 false                                               },
             { KEY_PSEUDO_CHANGED,           false                                               },
+            { KEY_GAMER_TAG,                ""                                                  },
             { KEY_TOKEN,                    ""                                                  },
             { KEY_CURRENT_PROFILE_DATA,     new SProfileCurrentData()                           },
             { KEY_ACHIEVEMENTS,             new Dictionary<string, int>()                       },
@@ -331,7 +332,7 @@ namespace Save
         // ===============================================================================================
         // DEPENDENT STATIC ACCESSORS
         public static int LastSelectedBadgeIndex = 0;
-        public static bool IsAdmin => (bool)Instance.m_Data[KEY_IS_ADMIN];
+        public static bool IsAdmin => TokensRSD.IsTokenAdmin(Token);
         public static bool PseudoChanged => (bool)Instance.m_Data[KEY_PSEUDO_CHANGED];
         public static string Token => (string)Instance.m_Data[KEY_TOKEN];
         public static SProfileCurrentData CurrentProfileData => (SProfileCurrentData)Instance.m_Data[KEY_CURRENT_PROFILE_DATA];
@@ -387,10 +388,10 @@ namespace Save
             data.GamerTag = gamerTag;
 
             Instance.SetData(KEY_CURRENT_PROFILE_DATA, data);
+
+            Instance.SetData(KEY_GAMER_TAG, gamerTag);
             Instance.SetData(KEY_PSEUDO_CHANGED, true);
 
-            Instance.SavePublicValue("GamerTag", gamerTag);
-          
             GamerTagChanged?.Invoke();
         }
 
@@ -400,8 +401,7 @@ namespace Save
         /// <param name="rune"></param>
         public static void SetToken(string token)
         {
-            Instance.m_Data[KEY_TOKEN] = token;
-            Instance.SavePublicValue(KEY_TOKEN, token);
+            Instance.SetData(KEY_TOKEN, token);
         }
 
         /// <summary>
@@ -433,6 +433,51 @@ namespace Save
             // Save & Fire event of the change
             Instance.SetData(KEY_CURRENT_PROFILE_DATA, CurrentProfileData);
             CurrentDataChanged?.Invoke(EAchievementReward.Badge);
+        }
+
+        #endregion
+
+
+        #region Check Public Data
+
+        /// <summary>
+        /// Check if provided token can be used as new token
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="reason"></param>
+        /// <returns></returns>
+        public async static Task<(bool Success, string Reason)> IsTokenValid(string token)
+        {
+            if (! TokensRSD.IsTokenAuthorized(token))
+            {
+                return (false, "Invalid token");
+            }
+
+            if (await Instance.FindPlayerWithValue(KEY_TOKEN, token) != null)
+            {
+                return (false, "Token already used");
+            }
+
+            return (true, "");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static async Task<(bool Success, string Reason)> IsGamerTagValid(string gamerTag)
+        {
+            if (gamerTag.Length < MIN_CHAR_GAMER_TAG || gamerTag.Length > MAX_CHAR_GAMER_TAG)
+            {
+                return (false, TextLocalizer.LocalizeText("gamer tag must have between " + MIN_CHAR_GAMER_TAG + " and " + MAX_CHAR_GAMER_TAG + " characters"));
+            }
+
+            if (await Instance.FindPlayerWithValue(KEY_GAMER_TAG, gamerTag) != null)
+            {
+                return (false, "Pseudo already used");
+            }
+
+
+            return (true, "");
         }
 
         #endregion
@@ -707,21 +752,6 @@ namespace Save
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public static bool IsGamerTagValid(string gamerTag, out string reason)
-        {
-            reason = "";
-            if (gamerTag.Length < MIN_CHAR_GAMER_TAG || gamerTag.Length > MAX_CHAR_GAMER_TAG)
-            {
-                reason = TextLocalizer.LocalizeText("gamer tag must have between " + MIN_CHAR_GAMER_TAG + " and " + MAX_CHAR_GAMER_TAG + " characters");
-                return false;
-            }
-
-            return true;
-        }
-
         #endregion
 
 
@@ -916,27 +946,26 @@ namespace Save
             Instance.SetData(KEY_CURRENT_PROFILE_DATA, data, false);
         }
 
-        async void CheckToken()
-        {
-            if ((string)m_Data[KEY_TOKEN] == "")
-            {
-                var testNormal = await CloudDatabase.LoadAsync(new HashSet<string> { KEY_TOKEN });
-
-            }
-
-            return;
-        }
-
-        public async void FindPlayerWithToken(string token)
+        public async Task<EntityData> FindPlayerWithValue(string key, string value)
         {
             var query = new Query(
                 new List<FieldFilter>() {
-                    new FieldFilter(KEY_TOKEN, token, FieldFilter.OpOptions.EQ, true)
-                }, 
-                new HashSet<string> { KEY_TOKEN, "GamerTag" } 
+                    new FieldFilter(key, value, FieldFilter.OpOptions.EQ, true)
+                },
+                new HashSet<string> { KEY_TOKEN, KEY_GAMER_TAG }
             );
 
-            var results = await CloudSaveService.Instance.Data.Player.QueryAsync(query, null);
+            var results = await CloudSaveService.Instance.Data.Player.QueryAsync(query, new QueryOptions());
+
+            if (results.Count == 0)
+                return null;
+
+            if (results.Count > 1)
+            {
+                ErrorHandler.Error("Found multiple players (" + results.Count + ") using same key "+ key + " (" + value + ")");
+            }
+
+            return results[0];
         }
 
         #endregion
@@ -966,9 +995,6 @@ namespace Save
             m_Badges = FilterHighestLeague(EAchievementReward.Badge);
             CheckAchievements();
             CheckCurrentData();
-            CheckToken();
-
-            SaveValue(KEY_IS_ADMIN);
         }
 
         /// <summary>

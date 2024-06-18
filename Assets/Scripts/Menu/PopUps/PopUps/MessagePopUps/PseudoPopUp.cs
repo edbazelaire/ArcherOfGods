@@ -25,7 +25,7 @@ namespace Menu.PopUps.PopUps.MessagePopUps
 
             m_InputField        = Finder.FindComponent<TMP_InputField>(m_WindowContent, "InputField");
             m_TokenInputField   = Finder.FindComponent<TMP_InputField>(m_WindowContent, "TokenInputField");
-            m_ErrorMessage      = Finder.FindComponent<TMP_Text>( m_WindowContent, "ErrorMessage");
+            m_ErrorMessage      = Finder.FindComponent<TMP_Text>( m_WindowContent,      "ErrorMessage");
         }
 
         protected override void OnPrefabLoaded()
@@ -62,10 +62,11 @@ namespace Menu.PopUps.PopUps.MessagePopUps
 
         #region Listeners
 
-        protected override void OnValidateButton()
+        protected async override void OnValidateButton()
         {
             // CHECK : Gamer tag
-            if (! ProfileCloudData.IsGamerTagValid(m_InputField.text, out string reason))
+            (bool success, string reason) = await ProfileCloudData.IsGamerTagValid(m_InputField.text);
+            if (! success)
             {
                 // play error sound
                 SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
@@ -76,7 +77,8 @@ namespace Menu.PopUps.PopUps.MessagePopUps
             }
 
             // CHECK : Token
-            if (!TokensRSD.IsTokenValid(m_TokenInputField.text, out reason))
+            (success, reason) = await ProfileCloudData.IsTokenValid(m_TokenInputField.text);
+            if (!success)
             {
                 // play error sound
                 SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);

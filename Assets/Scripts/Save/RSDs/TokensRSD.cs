@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Tools;
 using Unity.Services.Relay.Models;
 
 namespace Save.RSDs
@@ -7,8 +8,7 @@ namespace Save.RSDs
     {
         public string Token;
         public string Name;
-        public string GamerTag;
-        public string UnityId;
+        public bool IsAdmin;
     }
 
     public class TokensRSD : RSD
@@ -26,12 +26,13 @@ namespace Save.RSDs
 
         #region Loading & Saving
 
-        #endregion
         /// <summary>
         /// Read and store data received from the sheets
         /// </summary>
         /// <param name="data"></param>
         protected override void ReadSheetsData(SSheetsData data) { Data = FormatSheetData<TokenData>(data); }
+
+        #endregion
 
 
         #region Tokens
@@ -52,30 +53,15 @@ namespace Save.RSDs
             return false;
         }
 
-        /// <summary>
-        /// Check if provided token can be used as new token
-        /// </summary>
-        /// <param name="token"></param>
-        /// <param name="reason"></param>
-        /// <returns></returns>
-        public static bool IsTokenValid(string token, out string reason) 
+        public static bool IsTokenAdmin(string token)
         {
-            reason = "";
             foreach (TokenData data in Instance.Data)
             {
                 if (token == data.Token)
-                {
-                    if (data.UnityId != "")
-                    {
-                        reason = "Token has already been used";
-                        return false;
-                    }
-
-                    return true;
-                }
+                    return data.IsAdmin;
             }
 
-            reason = "Invalid token";
+            ErrorHandler.Error("Unable to find token " + token);
             return false;
         }
 

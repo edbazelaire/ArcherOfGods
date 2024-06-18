@@ -20,7 +20,7 @@ namespace Save
         public static CloudData Instance => Main.CloudSaveManager.GetCloudData(typeof(CloudData));
 
         protected virtual Dictionary<string, object> m_Data { get; set; }
-        protected virtual Dictionary<string, object> m_PublicData { get; set; }
+        protected virtual List<string> m_PublicKeys => new() { };
 
         /// <summary> list of remaining values to load</summary>
         List<string> m_KeysToLoad;
@@ -59,21 +59,11 @@ namespace Save
                 // if value exists in the cloud get it, other wise keep default
                 LoadValueAsync(key);
             }
-
-            if (m_PublicData != null)
-            {
-                foreach (var key in m_PublicData.Keys)
-                {
-                    // if value exists in the cloud get it, other wise keep default
-                    LoadValueAsync(key);
-                }
-            }
         }
-
 
         protected async virtual void LoadValueAsync(string key)
         {
-            var cloudData = await CloudDatabase.LoadAsync(new HashSet<string> { key });
+            var cloudData = await CloudDatabase.LoadAsync(new HashSet<string> { key }, m_PublicKeys.Contains(key) ? new LoadOptions(new PublicReadAccessClassOptions()) : new LoadOptions(new DefaultReadAccessClassOptions()));
 
             if (!cloudData.TryGetValue(key, out var item))
             {
@@ -98,12 +88,6 @@ namespace Save
             }
         }
 
-        public virtual async void SavePublicValue(string key, object value)
-        {
-            var data = new Dictionary<string, object> { { key, value } };
-            await CloudSaveService.Instance.Data.Player.SaveAsync(data, new SaveOptions(new PublicWriteAccessClassOptions()));
-        }
-
         public virtual async void SaveValue(string key)
         {
             if (!m_Data.ContainsKey(key))
@@ -125,7 +109,7 @@ namespace Save
 
             try
             {
-                await CloudDatabase.SaveAsync(playerData);
+                await CloudDatabase.SaveAsync(playerData, m_PublicKeys.Contains(key) ? new SaveOptions(new PublicWriteAccessClassOptions()) : new SaveOptions(new DefaultWriteAccessClassOptions()));
             }
             catch (CloudSaveConflictException ex)
             {

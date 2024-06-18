@@ -409,7 +409,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8dd8f58d3ebc4e54588af3b1a6850ba8, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ddae2c9a8d8a0094b902df56894f4f6a, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -622,7 +622,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02458737f4cd3c446981c41a3730a0f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_SubMessageText: {fileID: 0}
+  m_NumPlayersMessage: Players found {0} / {1}
 --- !u!1 &6237246190610531672 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4461177002684898373, guid: 5b8c98d96bf653f4bb74712c8ec3f494, type: 3}

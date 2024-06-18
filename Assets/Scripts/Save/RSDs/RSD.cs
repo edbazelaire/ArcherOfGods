@@ -77,7 +77,7 @@ namespace Save.RSDs
         /// </summary>
         /// <param name="property"></param>
         /// <param name="value"></param>
-        protected virtual void SetProperty(string property, object value, bool throwError = true)
+        protected virtual void SetProperty(string property, string value, bool throwError = true)
         {
             if (!TryGetPropertyInfo(property, out FieldInfo propertyInfo, throwError))
             {
@@ -86,7 +86,53 @@ namespace Save.RSDs
                 return;
             }
 
-            propertyInfo.SetValue(this, value);
+            if (propertyInfo.FieldType == typeof(int))
+            {
+                if (!int.TryParse(value, out int result))
+                {
+                    ErrorHandler.Error("Unable to parse " + value + " as int");
+                    m_IsAborted = true;
+                    return;
+                }
+
+                propertyInfo.SetValue(this, result);
+            }
+
+            else if(propertyInfo.FieldType == typeof(float))
+            {
+                if (!float.TryParse(value, out float result))
+                {
+                    ErrorHandler.Error("Unable to parse " + value + " as float");
+                    m_IsAborted = true;
+                    return;
+                }
+
+                propertyInfo.SetValue(this, result);
+            }
+
+            else if(propertyInfo.FieldType == typeof(bool))
+            {
+                if (!bool.TryParse(value, out bool result))
+                {
+                    ErrorHandler.Error("Unable to parse " + value + " as bool");
+                    m_IsAborted = true;
+                    return;
+                }
+
+                propertyInfo.SetValue(this, result);
+            }
+
+            else if (propertyInfo.FieldType == typeof(string))
+            {
+                propertyInfo.SetValue(this, value);
+            }
+
+            else
+            {
+                ErrorHandler.Error("Unhandled case : " + propertyInfo.FieldType);
+                m_IsAborted = true;
+                return;
+            }
         }
 
         #endregion
