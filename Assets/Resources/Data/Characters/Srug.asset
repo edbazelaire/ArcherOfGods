@@ -24,7 +24,7 @@ MonoBehaviour:
   CharacterStatScaling:
   - StateEffectProperty: 3
     BaseValue: 1
-    ScalingFactor: 0.05
+    ScalingFactor: 0.02
   - StateEffectProperty: 7
     BaseValue: 10
     ScalingFactor: 0.1
