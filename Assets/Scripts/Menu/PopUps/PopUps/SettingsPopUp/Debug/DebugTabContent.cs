@@ -1,5 +1,8 @@
 ﻿using Menu.MainMenu;
+using NUnit.Framework;
+using Save;
 using System;
+using System.Collections.Generic;
 using Tools;
 using UnityEngine;
 
@@ -9,6 +12,8 @@ namespace Assets.Scripts.UI
     public class DebugTabContent : TabContent
     {
         #region Members
+
+        List<EDebugOption> adminOptions = new List<EDebugOption>() { EDebugOption.ErrorHandler, EDebugOption.Console };
 
         DebugOptionUI m_TemplateDebugOptionUI;
         GameObject m_Content;
@@ -34,6 +39,9 @@ namespace Assets.Scripts.UI
             UIHelper.CleanContent(m_Content);
             foreach (EDebugOption option in Enum.GetValues(typeof(EDebugOption)))
             {
+                if (adminOptions.Contains(option) && !ProfileCloudData.IsAdmin)
+                    continue;
+
                 (Action onActivate, Action onDestroy) = GetCallbacks(option);
                 var template = Instantiate(m_TemplateDebugOptionUI, m_Content.transform);
                 template.Initialize(option, onActivate, onDestroy);

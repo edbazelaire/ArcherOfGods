@@ -9,7 +9,7 @@ namespace Game.Spells
     {
         #region Constructor
 
-     
+
         #endregion
 
 

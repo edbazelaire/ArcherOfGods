@@ -2,26 +2,20 @@ using AI;
 using Enums;
 using Game.AI;
 using Game.Spells;
+using System.Collections.Generic;
 using Tools;
 using UnityEngine;
 
-public class CheckInZone : Node
+public class CheckInZone : BaseChecker
 {
     #region Members
 
-    // =============================================================================
-    // Component & GameObjects
-    private Controller m_Controller;
-   
     #endregion
 
 
     #region Init & End
     
-    public CheckInZone(Controller controller)
-    {
-        m_Controller = controller;
-    }
+    public CheckInZone(Controller controller) : base(controller) { }
 
     #endregion
 
@@ -30,10 +24,16 @@ public class CheckInZone : Node
 
     public override NodeState Evaluate()
     {
-        m_State = CheckIsInZone() ? NodeState.SUCCESS : NodeState.FAILURE;
+        base.Evaluate();
+        if (m_State != NodeState.FAILURE)
+            return m_State;
 
-        if (m_State == NodeState.SUCCESS)
+        if (CheckIsInZone())
+        {
             ErrorHandler.Log("CheckIsInZone() : SUCCESS", ELogTag.AICheckers);
+            m_State = NodeState.SUCCESS;
+            return m_State;
+        }
 
         return m_State;
     }
@@ -45,7 +45,7 @@ public class CheckInZone : Node
     bool CheckIsInZone()
     {
         // Check for overlapped colliders with the capsule collider
-        Collider2D[] colliders = CollisionChecker.GetControllerCollisions(m_Controller, ELayer.Spell);
+        Collider2D[] colliders = CollisionChecker.GetColliderCollisions(m_ImmediatThreatTrigger.Collider, new List<ELayer>() { ELayer.Spell });
 
         // Now you can iterate through overlappedColliders to handle each collider
         foreach (Collider2D collider in colliders)

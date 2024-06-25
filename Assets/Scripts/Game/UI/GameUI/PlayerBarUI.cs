@@ -9,15 +9,20 @@ public class PlayerBarUI : MonoBehaviour
     const string c_Fill = "Fill";
     const string c_Text = "Text";
 
-    Image       m_Fill;
-    TMP_Text    m_Text;
-    int         m_MaxValue;
-    int         m_CurrentValue;
+    protected Image         m_Fill;
+    protected TMP_Text      m_Text;
+    protected int           m_MaxValue;
+    protected int           m_CurrentValue;
 
-    public void Initialize(int currentValue, int maxValue)
+    protected virtual void FindComponents()
     {
         m_Fill = Finder.FindComponent<Image>(gameObject, c_Fill);
         m_Text = Finder.FindComponent<TMP_Text>(gameObject, c_Text, throwError: false);
+    }
+
+    public virtual void Initialize(int currentValue, int maxValue)
+    {
+        FindComponents();
 
         SetMaxValue(maxValue);
         SetValue(currentValue);
@@ -56,7 +61,12 @@ public class PlayerBarUI : MonoBehaviour
 
         m_Fill.fillAmount = (float)m_CurrentValue / m_MaxValue;
         if (m_Text != null)
-            m_Text.text = $"{m_CurrentValue} / {m_MaxValue}";
+            m_Text.text = GetText();
+    }
+
+    protected virtual string GetText()
+    {
+        return $"{m_CurrentValue} / {m_MaxValue}";
     }
 
 }

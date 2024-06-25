@@ -4,6 +4,7 @@ using Game.Spells;
 using Menu.Common.Infos;
 using TMPro;
 using Tools;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -31,7 +32,7 @@ namespace Menu.PopUps
         public void Initialize(SStateEffectData stateEffectData, int level)
         {
             m_StateEffect = SpellLoader.GetStateEffect(stateEffectData.StateEffect.ToString(), level);
-            m_StateEffect.ApplyStateEffectData(stateEffectData);
+            m_StateEffect.OverrideStateEffectData(stateEffectData);
 
             base.Initialize();
         }
@@ -62,10 +63,13 @@ namespace Menu.PopUps
             var templateInfoRow = AssetLoader.Load<GameObject>("InfoRow", AssetLoader.c_MainUIComponentsInfosPath); 
 
             UIHelper.CleanContent(m_PropertiesContainer);
-            foreach (var item in m_StateEffect.GetInfos())
+
+            var infos = m_StateEffect.GetInfos();
+            var nextLevelInfos = m_StateEffect.Clone(m_StateEffect.Level + 1).GetInfos();
+            foreach (var item in infos)
             {
                 var infoRow = Instantiate(templateInfoRow, m_PropertiesContainer.transform).GetComponent<SpellInfoRowUI>();
-                infoRow.Initialize(item.Key, item.Value);
+                infoRow.Initialize(item.Key, item.Value, nextLevelInfos[item.Key], CollectableInfoPopUp.CheckIsPercentageValue(item.Key));
             }
         }
 

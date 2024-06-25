@@ -16,6 +16,8 @@ public class Controller : NetworkBehaviour
 {
     #region Members      
 
+    [SerializeField] Collider2D m_Collider;
+
     // ===================================================================================
     // PRIVATE VARIABLES 
     // -- Network Variables
@@ -45,7 +47,6 @@ public class Controller : NetworkBehaviour
     CounterHandler          m_CounterHandler;
     AutoAttackHandler       m_AutoAttackHandler;
     ClientAnalytics         m_ClientAnalytics;
-    Collider2D              m_Collider;     
 
     // ===================================================================================
     // PUBLIC ACCESSORS
@@ -58,7 +59,7 @@ public class Controller : NetworkBehaviour
     public RuneData         RuneData            => m_RuneData;
     public int              Team                => m_Team.Value;
     public bool             IsPlayer            => m_IsPlayer.Value;
-    public ulong            PlayerId            => IsPlayer ? OwnerClientId : GameManager.POUTCH_CLIENT_ID;
+    public ulong            PlayerId            => IsPlayer ? OwnerClientId : GameManager.BOT_CLIENT_ID;
     public bool             GameRunning         => m_GameRunning;
 
 
@@ -89,8 +90,6 @@ public class Controller : NetworkBehaviour
     {
         ErrorHandler.Log("Controller.OnNetworkSpawn()", ELogTag.GameSystem);   
 
-        m_Collider = Finder.FindComponent<Collider2D>(gameObject);
-
         // setup components
         m_Life              = Finder.FindComponent<Life>(gameObject);
         m_EnergyHandler     = Finder.FindComponent<EnergyHandler>(gameObject);
@@ -109,6 +108,7 @@ public class Controller : NetworkBehaviour
         m_IsInitialized.OnValueChanged += OnInitializedChanged;
 
         GameManager.GameStartedEvent    += OnGameStarted;
+        m_Life.DiedEvent                += OnDied;
     }
 
     /// <summary>
@@ -139,8 +139,6 @@ public class Controller : NetworkBehaviour
 
         m_Team.Value            = team;
         m_IsPlayer.Value        = isPlayer;
-
-        Life.Hp.OnValueChanged += OnHpChanged;
 
         transform.position = ArenaManager.Instance.Spawns[team][0].position;
         transform.rotation = Quaternion.Euler(0f, team == 0 ? 0f : -180f, 0f);
@@ -225,7 +223,7 @@ public class Controller : NetworkBehaviour
 
         // init BehaviorTree
         if (m_BehaviorTree != null)
-            m_BehaviorTree.Initialize();
+            m_BehaviorTree.Initialize(playerData.BotData);
     }
 
     /// <summary>
@@ -293,6 +291,8 @@ public class Controller : NetworkBehaviour
         }
     }
 
+
+
     #endregion
 
 
@@ -323,29 +323,23 @@ public class Controller : NetworkBehaviour
 
     #region Death & Game Over Manipulators
 
-    void OnHpChanged(int oldValue, int newValue)
-    {
-        if (newValue <= 0)
-            Die();
-    }
 
     /// <summary>
-    /// Kill the character
+    /// Remove Character display and 
     /// </summary>
-    void Die()
+    void OnDied()
     {
-        m_CharacterPreview.SetActive(false);
+        //m_CharacterPreview.SetActive(false);
         ActivateActionComponent(false);
     }
-
+  
     public void OnGameEnded(bool win)
     {
         // deactivate all "action" components
         ActivateActionComponent(false);
 
         // set game animation if still 
-        if (! IsServer)
-            m_AnimationHandler.GameOverAnimation(win);
+        m_AnimationHandler.GameOverAnimation(win);
     }
 
     /// <summary>

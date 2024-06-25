@@ -1,5 +1,6 @@
 ﻿using Data;
 using Menu.Common.Infos;
+using System;
 using System.Collections.Generic;
 using Tools;
 
@@ -85,6 +86,15 @@ namespace Menu.PopUps
 
             m_StateEffectsInfoRow.gameObject.SetActive(true);
             m_StateEffectsInfoRow.Initialize(effectsData, m_Level);
+        }
+
+        protected override void OnLevelUp(Enum collectable, int level)
+        {
+            base.OnLevelUp(collectable, level);
+
+            // refresh state effects
+            SetUpStateEffects();
+
         }
 
         protected override void RefreshUpgradeButtonUI()

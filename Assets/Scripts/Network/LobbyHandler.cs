@@ -1,9 +1,10 @@
 ﻿using Assets;
 using Assets.Scripts.Network;
+using Assets.Scripts.Tools;
+using Data.GameManagement;
 using Enums;
 using Game;
 using Managers;
-using Menu.MainMenu.MainTab;
 using Save;
 using System;
 using System.Collections.Generic;
@@ -49,15 +50,21 @@ namespace Network
             } 
         }
 
-        const string KEY_RELAY_CODE = "RelayCode";
-        const float HEARTBEAT_TIMER = 15f;
-        const float UPDATE_LOBBY_TIMER = 1.5f;
+        // Error management
+        const string LOBBY_TIME_WRAPPER_ID  = "Lobby";
+        const float LOBBY_ERROR_TIMER       = 10f;
+
+        // Update & Heartbeat management
+        const string KEY_RELAY_CODE         = "RelayCode";
+        const float HEARTBEAT_TIMER         = 15f;
+        const float UPDATE_LOBBY_TIMER      = 1.5f;
 
         public Action<ulong, ECharacter> OnRelayJoined;
 
         private ELobbyState m_State;
         private Lobby       m_HostLobby;
         private Lobby       m_JoinedLobby;
+        private string      m_RelayCode;
 
         private EGameMode m_GameMode = EGameMode.Arena;
         private EArenaType m_ArenaType = EArenaType.FireArena;
@@ -68,7 +75,7 @@ namespace Network
         bool m_RequestInProgress = false;
 
         bool IsHost => m_HostLobby != null && m_JoinedLobby != null && m_HostLobby.Id == m_JoinedLobby.Id;
-        int m_MaxPlayers => m_GameMode == EGameMode.Arena ? 1 : 2;
+        int m_MaxPlayers => m_GameMode == EGameMode.Ranked ? 2 : 1;
 
         public EGameMode        GameMode    { get => m_GameMode; set => m_GameMode = value; }
         public EArenaType       ArenaType   { get => m_ArenaType; set => m_ArenaType = value; }
@@ -86,20 +93,21 @@ namespace Network
             PlayerPrefsHandler.GameModeChangedEvent     += OnGameModeChanged;
             PlayerPrefsHandler.ArenaTypeChangedEvent    += OnArenaTypeChanged;
 
-            m_GameMode = PlayerPrefsHandler.GetGameMode();
-            m_ArenaType = PlayerPrefsHandler.GetArenaType();
+            m_GameMode      = PlayerPrefsHandler.GetGameMode();
+            m_ArenaType     = PlayerPrefsHandler.GetArenaType();
 
             DontDestroyOnLoad(gameObject);
         }
 
         
         /// <summary>
-        /// Leave current lobby and reset parameterss
+        /// Leave current lobby and reset parameters
         /// </summary>
         void ResetLobby()
         {
             m_HostLobby = null;
             m_JoinedLobby = null;
+            m_RelayCode = "";
 
             SetState(ELobbyState.Inactive);
         }
@@ -111,14 +119,8 @@ namespace Network
 
         void Update()
         {
-            HandleLobbyState();
-        }
+            //HandleLobbyState();
 
-        /// <summary>
-        /// Check lobby data updates
-        /// </summary>
-        async void HandleLobbyState()
-        {
             if (m_State == ELobbyState.Inactive)
                 return;
 
@@ -127,94 +129,115 @@ namespace Network
 
             // send heartbeat to maintain the lobby alive
             HandleLobbyHeartbeat();
+        }
 
-            switch (m_State)
+        /// <summary>
+        /// Check lobby data updates
+        /// </summary>
+        async void HandleLobbyState()
+        {
+            try
             {
-                case ELobbyState.Joining:
-                    if (m_JoinedLobby == null)
+                switch (m_State)
+                {
+                    case ELobbyState.Inactive:
                         return;
 
-                    SetRequestInProgress();
+                    case ELobbyState.Joining:
+                        if (m_JoinedLobby == null)
+                            return;
 
-                    m_JoinedLobby = await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id);
-                    NextState();
-                    return;
+                        SetRequestInProgress();
 
-                case ELobbyState.WaitingLobbyFull:
-                    UpdateLobbyData();
+                        m_JoinedLobby = await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id);
 
-                    if (m_JoinedLobby.Players.Count != m_JoinedLobby.MaxPlayers)
-                        return;
-                    SceneLoader.Instance.LoadScene("Arena");
-                    NextState();
-                    return;
-
-                case ELobbyState.SceneLoading:
-                    if (SceneLoader.Instance.IsLoading)
-                        return;
-
-                    if (!IsHost)
-                    {
                         NextState();
                         return;
-                    }
 
-                    // Host creates the relay and instantly go to state "SendingPlayerData"
-                    SetRequestInProgress();
+                    case ELobbyState.WaitingLobbyFull:
+                        UpdateLobbyData();
 
-                    string relayCode = await RelayHandler.Instance.CreateRelay();
+                        if (m_JoinedLobby.Players.Count != m_JoinedLobby.MaxPlayers)
+                            return;
 
-                    UpdateLobbyRelayCode(relayCode);
-
-                    // spawn the GameManager on Server
-                    while (!GameManager.FindInstance())
+                        SceneLoader.Instance.LoadScene("Arena");
+                        NextState();
                         return;
 
-                    SetState(ELobbyState.SendingPlayerData);
-                    return;
+                    case ELobbyState.SceneLoading:
+                        await SceneLoader.Instance.SceneLoadingAsync();
 
-                case ELobbyState.WaitingRelayCode:
-                    UpdateLobbyData();
+                        if (!IsHost)
+                        {
+                            NextState();
+                            return;
+                        }
 
-                    // if relay code not provided yet : return
-                    if (m_JoinedLobby.Data[KEY_RELAY_CODE].Value == "")
+                        // Host creates the relay and instantly go to state "SendingPlayerData"
+                        SetRequestInProgress();
+
+                        await Retry(CreateRelay);
+
+                        UpdateLobbyRelayCode(m_RelayCode);
+
+                        // spawn the GameManager on Server
+                        while (!GameManager.FindInstance())
+                            return;
+
+                        SetState(ELobbyState.SendingPlayerData);
                         return;
 
-                    NextState();
-                    return;
+                    case ELobbyState.WaitingRelayCode:
+                        UpdateLobbyData();
 
-                case ELobbyState.JoiningRelay:
-                    SetRequestInProgress();
+                        // if relay code not provided yet : return
+                        if (m_JoinedLobby.Data[KEY_RELAY_CODE].Value == "")
+                            return;
 
-                    await RelayHandler.Instance.JoinRelay(m_JoinedLobby.Data[KEY_RELAY_CODE].Value);
-                    NextState();
-                    return;
-
-                case ELobbyState.WaitingGameManager:
-                    while (!GameManager.FindInstance(true))
+                        NextState();
                         return;
 
-                    NextState();
-                    return;
+                    case ELobbyState.JoiningRelay:
+                        SetRequestInProgress();
 
-                case ELobbyState.SendingPlayerData:
-                    var playerData = m_PlayerData;                          // TODO : remove if no longer necessary
-                    
-                    GameManager.Instance.AddPlayerDataServerRPC(
-                        NetworkManager.Singleton.LocalClientId,
-                        StaticPlayerData.ToStruct()
-                    );
-                    NextState();
-                    return;
+                        await Retry(JoinRelay);
 
-                case ELobbyState.Ready:
-                    return;
+                        NextState();
+                        return;
+
+                    case ELobbyState.WaitingGameManager:
+                        while (!GameManager.FindInstance(true))
+                            return;
+
+                        NextState();
+                        return;
+
+                    case ELobbyState.SendingPlayerData:
+                        GameManager.Instance.AddPlayerDataServerRPC(
+                            NetworkManager.Singleton.LocalClientId,
+                            StaticPlayerData.ToStruct()
+                        );
+
+                        SendBotsData();
+
+                        NextState();
+                        return;
+
+                    case ELobbyState.Ready:
+                        TimeErrorWrapper.Instance.Cancel(LOBBY_TIME_WRAPPER_ID);
+                        return;
 
 
-                default:
-                    ErrorHandler.Error("Unhandled LobbyState : " + m_State);
-                    return;
+                    default:
+                        OnErrorCallback("Unhandled LobbyState : " + m_State).Invoke();
+                        return;
+                }
+            } 
+            catch (Exception e)
+            {
+                OnErrorCallback("Unhandled LobbyState : " + m_State).Invoke();
             }
+
         }
 
         /// <summary>
@@ -262,7 +285,8 @@ namespace Network
 
             SetRequestInProgress();
 
-            m_JoinedLobby = await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id);
+            var task = new Func<Task>(async () => m_JoinedLobby =  await LobbyService.Instance.GetLobbyAsync(m_JoinedLobby.Id));
+            await Retry(task);
 
             SetRequestInProgress(false);
         }
@@ -282,7 +306,10 @@ namespace Network
                 success = await CreateLobby();
 
             if (!success)
-                Debug.Log("Failed to join or create lobby");
+            {
+                OnErrorCallback("Failed to join or create lobby").Invoke();
+                return false;
+            }
 
             SetState(ELobbyState.Joining);
 
@@ -388,6 +415,94 @@ namespace Network
         #endregion
 
 
+        #region Relay
+
+        async Task CreateRelay()
+        {
+            m_RelayCode = await RelayHandler.Instance.CreateRelay();
+        }
+
+        async Task JoinRelay()
+        {
+            await RelayHandler.Instance.JoinRelay(m_JoinedLobby.Data[KEY_RELAY_CODE].Value);
+        }
+
+        #endregion
+
+
+        #region Send Data
+
+        void SendBotsData()
+        {
+            // no AI in game mode (for now)
+            if (GameMode == EGameMode.Ranked)
+                return;
+
+            GameManager.Instance.AddPlayerDataServerRPC(
+                GameManager.BOT_CLIENT_ID,
+                GetAIPlayerData()
+            );
+        }
+
+        /// <summary>
+        /// Convert AI data into player data
+        /// </summary>
+        /// <returns></returns>
+        SPlayerData GetAIPlayerData()
+        {
+            switch (GameMode)
+            {
+                // ================================================================================================
+                // ARENA MODE : based on current stage values
+                case EGameMode.Arena:
+                    ArenaData arenaData = AssetLoader.LoadArenaData(LobbyHandler.Instance.ArenaType);
+                    return arenaData.CreatePlayerData();
+
+                // ================================================================================================
+                // TRAINING MODE : based on provided one in the Training tab
+                case EGameMode.Training:
+                    ECharacter trainingCharacter = PlayerPrefsHandler.GetString<ECharacter>(EPlayerPref.TrainingCharacter);
+
+                    return new SPlayerData(
+                        trainingCharacter.ToString(),
+                        9,
+                        trainingCharacter,
+                        PlayerPrefsHandler.GetString<ERune>(EPlayerPref.TrainingRune),
+                        PlayerPrefsHandler.GetTrainingSpells(),
+                        new int[] { 9, 9, 9, 9 },
+                        new SProfileCurrentData(gamerTag: trainingCharacter.ToString()).AsNetworkSerializable(),
+                        isPlayer: false,
+                        botData: new SBotData(PlayerPrefs.GetFloat(EPlayerPref.TrainingDecisionRefresh.ToString(), 0.05f), PlayerPrefs.GetFloat(EPlayerPref.TrainingRandomness.ToString(), 0f))
+                    );
+
+                // ================================================================================================
+                // RANKED MODE : random
+                case EGameMode.Ranked:
+                    ECharacter character = ECharacter.Alexander;
+                  
+                    return new SPlayerData(
+                        character.ToString(),
+                        1,
+                        character,
+                        ERune.None,
+                        new ESpell[] { ESpell.Heal, ESpell.RockShower },
+                        new int[] { 1, 1 },
+                        new SProfileCurrentData(
+                            gamerTag: character.ToString()
+                        ).AsNetworkSerializable(),
+                        isPlayer: false
+                    );
+
+                // ================================================================================================
+                default:
+                    ErrorHandler.Error("Unhandled mode : " + GameMode);
+                    return default;
+            }
+        }
+
+        #endregion
+
+
         #region State Methods
 
         void SetState(ELobbyState state)
@@ -399,6 +514,13 @@ namespace Network
 
             // set new state
             m_State = state;
+
+            if (m_State == ELobbyState.Ready || m_State == ELobbyState.Inactive)
+                TimeErrorWrapper.Instance.Cancel(LOBBY_TIME_WRAPPER_ID);
+            else
+                TimeErrorWrapper.Instance.New(LOBBY_TIME_WRAPPER_ID, LOBBY_ERROR_TIMER, OnErrorCallback());
+
+            HandleLobbyState();
         }
 
         void NextState()
@@ -480,6 +602,35 @@ namespace Network
             {
                 ErrorHandler.Error("Failed to update player name: " + e.Message);
             }
+        }
+
+        #endregion
+
+
+        #region Helpers
+
+        async Task<bool> Retry(Func<Task> method, int nTimes = 3)
+        {
+            try
+            {
+                await method();
+            }
+            catch (Exception e)
+            {
+                nTimes--;
+
+                if (nTimes > 0)
+                {
+                    ErrorHandler.Error(m_State + " (try left " + nTimes + ") : " + e.Message);
+                    return await Retry(method, nTimes);
+                } 
+                
+                ErrorHandler.Error(m_State + " : unable to get throught this stage - returning on the MainMenu");
+                OnErrorCallback("too many retries", e.Message)?.Invoke();
+                return false;
+            }
+
+            return true;
         }
 
         #endregion
@@ -582,6 +733,22 @@ namespace Network
         void OnArenaTypeChanged(EArenaType arenaType)
         {
             Instance.ArenaType = arenaType;
+        }
+
+        Action OnErrorCallback(string reason = "", string exceptionMessage = "")
+        {
+            return () =>
+            {
+                string message =
+                "An error has occured while creating " + m_GameMode + " game mode : "
+                    + "\n   + Lobby State : " + m_State
+                    + (reason.Length > 0 ? "\n   + Reason : " + reason : "")
+                    + (exceptionMessage.Length > 0 ? "\n   + Exception : " + exceptionMessage : "");
+
+                Main.AddStoredEvent(EAppState.MainMenu, () => Main.SetPopUp(EPopUpState.MessagePopUp, message));
+                LeaveLobby();
+                SceneLoader.Instance.LoadScene("MainMenu");
+            };
         }
 
         #endregion

@@ -1,13 +1,9 @@
 ﻿using Data.GameManagement;
 using Enums;
+using Game.Spells;
 using Menu.Common.Buttons;
-using NUnit.Framework;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Xml.Linq;
+using System.Linq;
 using UnityEngine;
-using static UnityEngine.Rendering.DebugUI;
 
 namespace Tools
 {
@@ -33,6 +29,8 @@ namespace Tools
         // =============================================================================================================
         // PREFABS
         public const string c_PrefabsPath                   = "Prefabs/";
+        // ---- Managers 
+        public const string c_ManagersPath                  = c_PrefabsPath + "Managers/";
         // ---- Characters 
         public const string c_CharactersPreviewPath         = c_PrefabsPath + "Characters/";
         // ---- Spells 
@@ -58,8 +56,9 @@ namespace Tools
         public const string c_MainTabPath                   = c_MainMenuPath + "MainTab/";
         public const string c_ProfileTabPath                = c_MainMenuPath + "ProfileTab/";
         // ---- solo mode ui
-        public const string c_ArenaModeUIPath               = c_MainTabPath + "GameSection/ArenaMode/";
-        public const string c_RankedModeUIPath              = c_MainTabPath + "GameSection/RankedMode/";
+        public const string c_GameSectionPath               = c_MainTabPath + "GameSection/";
+        public const string c_ArenaModeUIPath               = c_GameSectionPath + "ArenaMode/";
+        public const string c_RankedModeUIPath              = c_GameSectionPath + "RankedMode/";
         // ---- settings data
         public const string c_SettingsPath                  = c_UIPath + "Settings/";
         // ---- PopUps & Overlays
@@ -111,20 +110,38 @@ namespace Tools
 
         #region Default Methods
 
-        public static T Load<T>(string path) where T : Object
+        public static T Load<T>(string path, bool warning = true) where T : Object
         {
-            var ressource = Resources.Load<T>(path);
-            if (ressource == null)
-                ErrorHandler.Warning($"AssetLoader : Ressource {path} not found");
-            return ressource;
+            if (! path.EndsWith("/"))
+            {
+                var ressource = Resources.Load<T>(path);
+                if (ressource == null && warning)
+                    ErrorHandler.Warning($"AssetLoader : Ressource {path} not found");
+                return ressource;
+            }
+
+            var allRessources = LoadAll<T>(path);
+            if (allRessources.Length == 0)
+            {
+                if (warning)
+                    ErrorHandler.Warning($"AssetLoader : Unable to find any ressource with Component {typeof(T)} in {path}");
+                return null;
+            }
+
+            if (allRessources.Length > 1 && warning)
+                ErrorHandler.Warning($"AssetLoader : Found multiple ressources with Component {typeof(T)} in {path} - please affine your research with a name");
+
+            return allRessources[0];
         }
 
         public static T Load<T>(string assetName, string dirpath) where T : Object
         {
-            var ressource = Load<T>(dirpath + assetName);
+            // try to find the ressource directly
+            var ressource = Load<T>(dirpath + assetName, false);
             if (ressource != null)
                 return ressource;
 
+            // get all ressources in path and find one with similar name
             var allRessources = LoadAll<T>(dirpath);
             foreach(var temp in allRessources)
             {
@@ -151,6 +168,28 @@ namespace Tools
         public static ArenaData LoadArenaData(EArenaType arena)
         {
             return Load<ArenaData>(arena.ToString(), c_ArenaDataPath);
+        }
+
+        #endregion
+
+
+        #region Manager Loading
+
+        public static T LoadManager<T>() where T : Object
+        {
+            T[] managers = LoadAll<T>(c_ManagersPath);
+            if (managers.Length == 0)
+            {
+                ErrorHandler.Error("Unable to find any Manager of type " + typeof(T) + " in " + c_ManagersPath);
+                return null;
+            }
+
+            if (managers.Length > 1)
+            {
+                ErrorHandler.Error("Found multiple Managers of type " + typeof(T) + " in " + c_ManagersPath);
+            }
+
+            return managers[0];
         }
 
         #endregion
@@ -333,7 +372,15 @@ namespace Tools
 
         public static Sprite LoadStateEffectIcon(string stateEffect)
         {
-            return Load<Sprite>(c_IconStateEffectsPath + c_IconPrefix + stateEffect);
+            var icon = Load<Sprite>(c_IconStateEffectsPath + c_IconPrefix + stateEffect, false);
+            if (icon != null)
+                return icon;
+
+            icon = Load<Sprite>(c_IconSpellsPath + c_IconPrefix + stateEffect, false);
+            if (icon == null)
+                ErrorHandler.Warning("Unable to find icon of state effect : " + stateEffect);
+
+            return icon;
         }
 
         public static Sprite LoadRuneIcon(ERune rune)

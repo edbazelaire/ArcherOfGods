@@ -1,4 +1,5 @@
 ﻿using Data;
+using Enums;
 using System.Collections;
 using Tools;
 using Unity.Netcode;
@@ -39,9 +40,6 @@ namespace Game.Spells
         /// <param name="duration"></param>
         public override void Initialize(ulong clientId, Vector3 target, string spellName, int level)
         {
-            // handle size and position (before graphic initialization)
-            transform.position = new Vector3(target.x, 0f, 1f);
-
             base.Initialize(clientId, target, spellName, level);
 
             transform.localScale = new Vector3(m_SpellData.Size, m_SpellData.Size, 1f);
@@ -135,6 +133,20 @@ namespace Game.Spells
             {
                 OnCollision(collider);
             }
+        }
+
+        #endregion
+
+
+        #region Target & Position
+
+        protected override void SetTarget(Vector3 target)
+        {
+            if (m_SpellData.SpellSpawn == ESpellSpawn.Ground)
+                target.y = 0f;
+
+            transform.position = target;
+            base.SetTarget(target);
         }
 
         #endregion

@@ -18,8 +18,6 @@ MonoBehaviour:
       Currencies:
       - Currency: 0
         Qty: 1000
-      - Currency: 1
-        Qty: 15
       Chests: 
       Collectables:
       - CollectableType: 2
@@ -38,9 +36,7 @@ MonoBehaviour:
       Currencies:
       - Currency: 0
         Qty: 1500
-      - Currency: 1
-        Qty: 15
-      Chests: 04000000
+      Chests: 
       Collectables:
       - CollectableType: 2
         CollectableName: FireBomb
@@ -59,14 +55,36 @@ MonoBehaviour:
       CharacterLevel: 2
     - Character: 0
       CharacterLevel: 3
+  - Spells: 030000001c000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 1000
+      - Currency: 1
+        Qty: 15
+      - Currency: 3
+        Qty: 250
+      Chests: 
+      Collectables:
+      - CollectableType: 2
+        CollectableName: FireBarrage
+        Qty: 50
+      AchievementRewards: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 3
+    - Character: 4
+      CharacterLevel: 3
+    - Character: 0
+      CharacterLevel: 4
   - Spells: 03000000110000001c000000
     rewardsData:
       Currencies:
       - Currency: 0
         Qty: 2500
-      - Currency: 1
-        Qty: 15
-      Chests: 04000000
+      - Currency: 3
+        Qty: 250
+      Chests: 
       Collectables:
       - CollectableType: 2
         CollectableName: ScorchedEarth
@@ -80,32 +98,26 @@ MonoBehaviour:
         League: 0
     StageData:
     - Character: 1
-      CharacterLevel: 3
-    - Character: 4
-      CharacterLevel: 3
-    - Character: 0
-      CharacterLevel: 4
-  - Spells: 03000000110000001c00000004000000
-    rewardsData:
-      Currencies:
-      - Currency: 0
-        Qty: 5000
-      - Currency: 1
-        Qty: 25
-      Chests: 04000000
-      Collectables: []
-      AchievementRewards:
-      - AchievementReward: 2
-        Title: 0
-        Avatar: 2
-        Border: 0
-        Badge: 0
-        League: 0
-    StageData:
-    - Character: 1
       CharacterLevel: 4
     - Character: 2
       CharacterLevel: 4
+    - Character: 4
+      CharacterLevel: 4
+    - Character: 3
+      CharacterLevel: 4
+    - Character: 0
+      CharacterLevel: 5
+  - Spells: 03000000110000001c00000004000000
+    rewardsData:
+      Currencies: []
+      Chests: 04000000
+      Collectables: []
+      AchievementRewards: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 5
+    - Character: 2
+      CharacterLevel: 5
     - Character: 4
       CharacterLevel: 5
     - Character: 3
@@ -116,26 +128,45 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 7500
-      - Currency: 1
-        Qty: 25
-      Chests: 05000000
-      Collectables:
-      - CollectableType: 3
-        CollectableName: FireRune
-        Qty: 1
-      AchievementRewards:
-      - AchievementReward: 4
-        Title: 10
-        Avatar: 0
-        Border: 0
-        Badge: 0
-        League: 0
+        Qty: 2500
+      Chests: 04000000
+      Collectables: []
+      AchievementRewards: []
     StageData:
     - Character: 1
       CharacterLevel: 6
     - Character: 2
       CharacterLevel: 6
+    - Character: 4
+      CharacterLevel: 6
+    - Character: 3
+      CharacterLevel: 6
+    - Character: 0
+      CharacterLevel: 7
+  - Spells: 03000000110000001c0000001b000000
+    rewardsData:
+      Currencies:
+      - Currency: 3
+        Qty: 500
+      - Currency: 1
+        Qty: 25
+      Chests: 
+      Collectables:
+      - CollectableType: 2
+        CollectableName: PyrotoxinMist
+        Qty: 5
+      AchievementRewards:
+      - AchievementReward: 2
+        Title: 0
+        Avatar: 2
+        Border: 0
+        Badge: 0
+        League: 0
+    StageData:
+    - Character: 1
+      CharacterLevel: 7
+    - Character: 2
+      CharacterLevel: 7
     - Character: 4
       CharacterLevel: 7
     - Character: 3
@@ -146,50 +177,82 @@ MonoBehaviour:
     rewardsData:
       Currencies:
       - Currency: 0
-        Qty: 10000
-      - Currency: 1
-        Qty: 25
-      Chests: 05000000
-      Collectables:
-      - CollectableType: 2
-        CollectableName: Meteor
-        Qty: 1
-      AchievementRewards:
-      - AchievementReward: 3
-        Title: 0
-        Avatar: 0
-        Border: 201
-        Badge: 0
-        League: 0
+        Qty: 5000
+      Chests: 04000000
+      Collectables: []
+      AchievementRewards: []
     StageData:
     - Character: 1
       CharacterLevel: 8
     - Character: 2
       CharacterLevel: 8
     - Character: 4
+      CharacterLevel: 8
+    - Character: 3
+      CharacterLevel: 8
+    - Character: 0
+      CharacterLevel: 9
+  - Spells: 03000000110000001b00000021000000
+    rewardsData:
+      Currencies:
+      - Currency: 0
+        Qty: 10000
+      - Currency: 1
+        Qty: 35
+      Chests: 
+      Collectables:
+      - CollectableType: 2
+        CollectableName: Meteor
+        Qty: 10
+      AchievementRewards:
+      - AchievementReward: 4
+        Title: 10
+        Avatar: 0
+        Border: 0
+        Badge: 0
+        League: 0
+    StageData:
+    - Character: 1
+      CharacterLevel: 9
+    - Character: 2
+      CharacterLevel: 9
+    - Character: 4
       CharacterLevel: 9
     - Character: 3
       CharacterLevel: 9
     - Character: 0
       CharacterLevel: 10
-  - Spells: 20000000030000001100000001000000
+  - Spells: 20000000030000001100000021000000
     rewardsData:
-      Currencies:
-      - Currency: 0
-        Qty: 15000
-      - Currency: 1
-        Qty: 25
-      Chests: 06000000
+      Currencies: []
+      Chests: 
       Collectables:
       - CollectableType: 1
         CollectableName: Kahnan
         Qty: 1
+      AchievementRewards: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 10
+    - Character: 2
+      CharacterLevel: 10
+    - Character: 4
+      CharacterLevel: 10
+    - Character: 3
+      CharacterLevel: 10
+    - Character: 0
+      CharacterLevel: 11
+  - Spells: 20000000030000001100000001000000
+    rewardsData:
+      Currencies: []
+      Chests: 05000000
+      Collectables: []
       AchievementRewards:
-      - AchievementReward: 1
-        Title: 10
+      - AchievementReward: 3
+        Title: 0
         Avatar: 0
-        Border: 0
-        Badge: 1001
+        Border: 201
+        Badge: 0
         League: 0
     StageData:
     - Character: 1
@@ -202,3 +265,63 @@ MonoBehaviour:
       CharacterLevel: 11
     - Character: 0
       CharacterLevel: 12
+  - Spells: 200000001b0000001100000001000000
+    rewardsData:
+      Currencies: []
+      Chests: 
+      Collectables:
+      - CollectableType: 3
+        CollectableName: FireRune
+        Qty: 1
+      AchievementRewards: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 12
+    - Character: 2
+      CharacterLevel: 12
+    - Character: 4
+      CharacterLevel: 12
+    - Character: 3
+      CharacterLevel: 12
+    - Character: 0
+      CharacterLevel: 13
+  - Spells: 20000000030000001100000001000000
+    rewardsData:
+      Currencies: []
+      Chests: 05000000
+      Collectables: []
+      AchievementRewards: []
+    StageData:
+    - Character: 1
+      CharacterLevel: 13
+    - Character: 2
+      CharacterLevel: 13
+    - Character: 4
+      CharacterLevel: 13
+    - Character: 3
+      CharacterLevel: 13
+    - Character: 0
+      CharacterLevel: 14
+  - Spells: 200000001b0000001100000001000000
+    rewardsData:
+      Currencies: []
+      Chests: 06000000
+      Collectables: []
+      AchievementRewards:
+      - AchievementReward: 1
+        Title: 10
+        Avatar: 0
+        Border: 0
+        Badge: 1001
+        League: 0
+    StageData:
+    - Character: 1
+      CharacterLevel: 14
+    - Character: 2
+      CharacterLevel: 14
+    - Character: 4
+      CharacterLevel: 14
+    - Character: 3
+      CharacterLevel: 14
+    - Character: 0
+      CharacterLevel: 15

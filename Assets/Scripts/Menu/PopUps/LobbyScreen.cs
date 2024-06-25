@@ -1,4 +1,5 @@
 ﻿using Assets;
+using Data.GameManagement;
 using Enums;
 using Network;
 using System.Collections;
@@ -16,6 +17,7 @@ namespace Menu.PopUps
 
         [SerializeField] string m_NumPlayersMessage = "Players found {0} / {1}";
 
+        TMP_Text m_MessageText;
         TMP_Text m_SubMessageText;
         Image m_Logo;
 
@@ -28,6 +30,7 @@ namespace Menu.PopUps
         {
             base.FindComponents();
 
+            m_MessageText = Finder.FindComponent<TMP_Text>(gameObject, "MessageText");
             m_SubMessageText = Finder.FindComponent<TMP_Text>(gameObject, "SubMessageText");
             m_Logo = Finder.FindComponent<Image>(gameObject, "Logo");
         }
@@ -36,7 +39,39 @@ namespace Menu.PopUps
         {
             base.OnInitializationCompleted();
 
+            SetupMessage();
+
+            if (LobbyHandler.Instance.GameMode != EGameMode.Ranked)
+                m_SubMessageText.gameObject.SetActive(false);
+            else
+                Settings.Reload();
+            
+
             ApplyLogoAnimation();
+        }
+
+        #endregion
+
+
+        #region GUI Manipulators
+
+        void SetupMessage()
+        {
+            switch (LobbyHandler.Instance.GameMode)
+            {
+                case EGameMode.Ranked:
+                    m_MessageText.text = "Looking for Players";
+                    return;
+
+                case EGameMode.Arena:
+                    m_MessageText.text = "Preparing Game...";
+                    return;
+
+                default:
+                    ErrorHandler.Warning("Unhandled case " + LobbyHandler.Instance.GameMode);
+                    m_MessageText.text = "";
+                    return;
+            }
         }
 
         #endregion
@@ -51,7 +86,7 @@ namespace Menu.PopUps
             if (! m_Initialized)
                 return;
 
-            RefreshPlayerCount();
+            RefreshSubMessage();
         }
 
         #endregion
@@ -59,9 +94,17 @@ namespace Menu.PopUps
 
         #region GUI Manipulators
 
-        void RefreshPlayerCount()
+        void RefreshSubMessage()
         {
-            m_SubMessageText.text = string.Format(m_NumPlayersMessage, LobbyHandler.Instance.NPlayers, LobbyHandler.Instance.MaxPlayers);
+            switch (LobbyHandler.Instance.GameMode)
+            {
+                case EGameMode.Ranked:
+                    m_SubMessageText.text = string.Format(m_NumPlayersMessage, LobbyHandler.Instance.NPlayers, LobbyHandler.Instance.MaxPlayers);
+                    break;
+
+                default:
+                    return;
+            }
         }
 
         void ApplyLogoAnimation()

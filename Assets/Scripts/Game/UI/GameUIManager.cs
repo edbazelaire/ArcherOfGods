@@ -73,23 +73,21 @@ public class GameUIManager : MonoBehaviour
         FindSpellsContainers();
     }
 
-    private void Start()
-    {
-        GameManager.Instance.State.OnValueChanged += OnGameStateChanged;
-    }
-
     private void OnDestroy()
     {
-        GameManager.Instance.State.OnValueChanged -= OnGameStateChanged;
+        if (GameManager.Exists)
+            GameManager.Instance.State.OnValueChanged -= OnGameStateChanged;
     }
 
     public void Initialize()
     {
         FindComponents();
 
+        GameManager.Instance.State.OnValueChanged += OnGameStateChanged;
+
         m_SpellItems = new List<SpellItemUI>();
 
-        m_EndGameUI.gameObject.SetActive(false);
+        m_EndGameUI.Initialize();
         m_ErrorGameUI.gameObject.SetActive(false);
 
         SetUpBackground();
@@ -266,8 +264,7 @@ public class GameUIManager : MonoBehaviour
     {
         SoundFXManager.PlayOnce(win ? SoundFXManager.WinSoundFX : SoundFXManager.LossSoundFX);
 
-        m_EndGameUI.gameObject.SetActive(true);
-        m_EndGameUI.SetUpGameOver(win, m_PreventiveLossApplied);
+        m_EndGameUI.Activate(win, m_PreventiveLossApplied);
 
         // destroy self
         DeleteGameUI();

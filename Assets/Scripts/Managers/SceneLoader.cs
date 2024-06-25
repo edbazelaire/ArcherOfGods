@@ -6,7 +6,9 @@ using Game;
 using Network;
 using System;
 using System.Collections;
+using System.Threading.Tasks;
 using Tools;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -109,6 +111,14 @@ public class SceneLoader : MonoBehaviour
 
         SoundFXManager.PlayStateMusic(Main.State);
         m_LoadingScreen.Display(false);
+    }
+
+    public async Task SceneLoadingAsync()
+    {
+        while (IsLoading)
+            await Task.Delay(1000);
+
+        return;
     }
 
     /// <summary>

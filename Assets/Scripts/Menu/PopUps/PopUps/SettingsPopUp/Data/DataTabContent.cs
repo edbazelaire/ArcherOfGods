@@ -37,6 +37,9 @@ namespace Assets.Scripts.UI
             CloudDataInterfaceUI template = Instantiate(m_TemplateCloudDataInterfaceUI, m_Content.transform);
             template.Initialize(null);
 
+            if (! ProfileCloudData.IsAdmin)
+                return;
+
             foreach (CloudData manager in Main.CloudSaveManager.CloudData)
             {
                 template = Instantiate(m_TemplateCloudDataInterfaceUI, m_Content.transform);

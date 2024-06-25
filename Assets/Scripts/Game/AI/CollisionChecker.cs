@@ -31,12 +31,17 @@ namespace Game.AI
 
         public static float GetCharacterWidth(Controller controller)
         {
-            return controller.gameObject.GetComponent<CapsuleCollider2D>().size.x;
+            return GetColliderWidth(controller.gameObject.GetComponent<CapsuleCollider2D>());
+        }
+
+        public static float GetColliderWidth(CapsuleCollider2D capsuleCollider)
+        {
+            return capsuleCollider.size.x;
         }
 
         public static Collider2D[] GetControllerCollisions(Controller controller, ELayer layer)
         {
-            return GetControllerCollisions(controller, new List<ELayer>() { layer });
+            return GetColliderCollisions(controller.gameObject.GetComponent<CapsuleCollider2D>(), new List<ELayer>() { layer });
         }
 
         /// <summary>
@@ -45,9 +50,8 @@ namespace Game.AI
         /// <param name="controller"></param>
         /// <param name="layers"></param>
         /// <returns></returns>
-        public static Collider2D[] GetControllerCollisions(Controller controller, List<ELayer> layers)
+        public static Collider2D[] GetColliderCollisions(CapsuleCollider2D capsuleCollider2D, List<ELayer> layers)
         {
-            CapsuleCollider2D capsuleCollider2D = controller.gameObject.GetComponent<CapsuleCollider2D>();
             int layerMask = layers.Count > 0 ? LayerMask.GetMask(layers.Select(layer => layer.ToString()).ToArray()) : Physics2D.AllLayers;
 
             // Check for overlapped colliders with the capsule collider

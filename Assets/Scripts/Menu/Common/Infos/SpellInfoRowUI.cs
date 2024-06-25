@@ -50,8 +50,14 @@ namespace Menu.Common.Infos
             switch (name)
             {
                 case "Type":
-                    m_Icon.sprite = AssetLoader.LoadUIElementIcon(value as string);
-                    m_Value.text = TextLocalizer.SplitCamelCase(TextLocalizer.LocalizeText(value as string));
+                    m_Icon.sprite   = AssetLoader.LoadUIElementIcon(value as string);
+                    m_Value.text    = TextLocalizer.SplitCamelCase(TextLocalizer.LocalizeText(value as string));
+                    return; 
+
+                case "CounterActivation":
+                    m_Icon.sprite   = AssetLoader.LoadUIElementIcon("Counter");
+                    m_Value.text    = TextLocalizer.LocalizeText(value as string);
+                    m_BonusValue.gameObject.SetActive(false);
                     return; 
             }
 
@@ -86,10 +92,7 @@ namespace Menu.Common.Infos
 
         public void RefreshValue(float value, float? newValue = null)
         {
-            if (m_IsPerc)
-                m_Value.text = Mathf.Round(value * 100).ToString("0") + "%";
-            else 
-                m_Value.text = value.ToString(Mathf.Round(value) == value ? "0" : "F2");
+            m_Value.text = FormatValue(value);
 
             if (newValue == null || newValue.Value - value == 0)
             {
@@ -99,8 +102,26 @@ namespace Menu.Common.Infos
 
             float bonus = newValue.Value - value;
             m_BonusValue.gameObject.SetActive(true);
-            m_BonusValue.text = (bonus > 0 ? "+ " : "- ") + Mathf.Abs(bonus).ToString(Mathf.Round(bonus) == bonus ? "0" : "F2");
+            m_BonusValue.text = (value > 0 ? "+" : "") + FormatValue(bonus);
             m_BonusValue.color = bonus > 0 ? Color.green : Color.red;
+        }
+
+        #endregion
+
+
+        #region Format
+
+        string FormatValue(float value)
+        {
+            if (m_IsPerc)
+                return FormatPercValue(value);
+
+            return value.ToString(Mathf.Round(value) == value ? "0" : "F2");
+        }
+
+        string FormatPercValue(float value)
+        {
+            return (value >= 0.01 ? Mathf.Round(value * 100).ToString("0") : (Mathf.Round(value * 1000) / 10).ToString("F1")) + "%";
         }
 
         #endregion

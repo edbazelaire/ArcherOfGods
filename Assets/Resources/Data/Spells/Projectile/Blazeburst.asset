@@ -28,7 +28,7 @@ MonoBehaviour:
   OnHitSoundFX: {fileID: 8300000, guid: 76f93a0ccb5bb7e4a8cbb37577895623, type: 3}
   OnEndSoundFX: {fileID: 0}
   SpellTarget: 6
-  MaxHit: 0
+  MaxHit: -1
   EnergyGain: 10
   EnergyCost: 0
   m_Damage: 100
@@ -37,6 +37,13 @@ MonoBehaviour:
   OverrideOnHitProperties: 
   m_Duration: 0
   Delay: 0
+  m_SpellsScalingLevel:
+  - Property: 2
+    Value: 0.1
+  - Property: 1
+    Value: 0.1
+  - Property: 3
+    Value: 0.05
   m_Size: 2
   TriggerPlayer: 1
   EnemyStateEffects:
@@ -47,9 +54,8 @@ MonoBehaviour:
   AllyStateEffects: []
   PersistanceAfterEnd: 0
   Animation: 1
-  IsCancellable: 0
-  AnimationTimer: 1.5
-  CastAt: 1
+  IsCancellable: 1
+  AnimationTimer: 1.25
   m_Cooldown: 30
   Trajectory: 2
-  m_Speed: 15
+  m_Speed: 40

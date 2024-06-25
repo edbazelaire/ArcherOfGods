@@ -4,6 +4,7 @@ using Data.GameManagement;
 using Enums;
 using Menu.Common.Displayers;
 using Save;
+using System;
 using TMPro;
 using Tools;
 using UnityEngine;
@@ -23,9 +24,11 @@ namespace Menu.Common.Buttons
         protected Image             m_CurrencyIcon;
         protected RewardsDisplayer  m_RewardsDisplayer;
         protected TMP_Text          m_PriceText;
+        protected TMP_Text          m_TimeCounterText;
         protected Button            m_Button;
 
         // Data
+        protected EButtonState      m_State;
         protected SShopData         m_ShopData;
         protected STimeData?        m_TimeData;
         protected string            m_Title;
@@ -48,6 +51,7 @@ namespace Menu.Common.Buttons
             m_TitleText         = Finder.FindComponent<TMP_Text>(gameObject, "TitleText", false);
             m_Button            = Finder.FindComponent<Button>(gameObject);
             m_Icon              = Finder.FindComponent<Image>(gameObject, "Icon");
+            m_TimeCounterText   = Finder.FindComponent<TMP_Text>(gameObject, "TimeCounter", false);
             m_PriceText         = Finder.FindComponent<TMP_Text>(gameObject, "Price", false);
             m_CurrencyIcon      = Finder.FindComponent<Image>(gameObject, "CurrencyIcon");
             m_RewardsDisplayer  = Finder.FindComponent<RewardsDisplayer>(gameObject, "RewardsDisplayer", false);
@@ -80,6 +84,41 @@ namespace Menu.Common.Buttons
             SetCurrencyIcon();
 
             SetUpTimeDataUI();
+        }
+
+        #endregion
+
+
+        #region Update
+
+        private void Update()
+        {
+            switch ( m_State)
+            {
+                case EButtonState.Locked:
+                    UpdateLockedState();
+                    break;
+            }
+        }
+
+        void UpdateLockedState()
+        {
+            if (m_TimeData == null)
+                return;
+
+            if (m_TimeData.Value.IsCollectable())
+            { 
+                SetState(EButtonState.Normal);
+                return;
+            }
+            
+            if (m_TimeCounterText != null)
+            {
+                if (!m_TimeData.Value.IsExpired())
+                    m_TimeCounterText.text = "Reseting in " + TextHandler.FormatTimestamp(m_TimeData.Value.ResetIn());
+                else
+                    m_TimeCounterText.gameObject.SetActive(false);
+            }
         }
 
         #endregion
@@ -175,6 +214,8 @@ namespace Menu.Common.Buttons
                     ErrorHandler.Warning("Unhandled case : " + state);
                     break;
             }
+
+            m_State = state;
         }
 
         protected virtual void NormalStateUI() {}

@@ -13,6 +13,28 @@ namespace Managers
     /// Structural data that can be provided to create a new character 
     /// </summary>
     [Serializable]
+    public struct SBotData : INetworkSerializable
+    {
+        public float DecisionRefresh;
+        public float Randomness;
+
+        public SBotData(float decisionRefresh, float randomness)
+        {
+            DecisionRefresh = decisionRefresh;
+            Randomness = randomness;
+        }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref DecisionRefresh);
+            serializer.SerializeValue(ref Randomness);
+        }
+    }
+
+    /// <summary>
+    /// Structural data that can be provided to create a new character 
+    /// </summary>
+    [Serializable]
     public struct SPlayerData : INetworkSerializable
     {
         public FixedString32Bytes   PlayerName;
@@ -22,8 +44,10 @@ namespace Managers
         public ESpell[]             Spells;
         public int[]                SpellLevels;
         public SProfileDataNetwork  ProfileData;
+        public bool                 IsPlayer;
+        public SBotData             BotData; 
 
-        public SPlayerData(FixedString32Bytes playerName, int characterLevel, ECharacter character, ERune rune, ESpell[] spells, int[] spellLevels, SProfileDataNetwork profileData)
+        public SPlayerData(FixedString32Bytes playerName, int characterLevel, ECharacter character, ERune rune, ESpell[] spells, int[] spellLevels, SProfileDataNetwork profileData, bool isPlayer, SBotData botData = default)
         {
             PlayerName      = playerName;
             CharacterLevel  = characterLevel;
@@ -32,6 +56,8 @@ namespace Managers
             Spells          = spells;
             SpellLevels     = spellLevels;
             ProfileData     = profileData;
+            IsPlayer        = isPlayer;
+            BotData         = botData;
         }
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -40,6 +66,7 @@ namespace Managers
             serializer.SerializeValue(ref CharacterLevel);
             serializer.SerializeValue(ref Character);
             serializer.SerializeValue(ref Rune);
+            serializer.SerializeValue(ref IsPlayer);
 
             // Serialize Spells array
             int spellsLength = Spells != null ? Spells.Length : 0;
@@ -66,6 +93,7 @@ namespace Managers
             }
 
             ProfileData.NetworkSerialize(serializer);
+            BotData.NetworkSerialize(serializer);
         }
     }
 
@@ -111,7 +139,7 @@ namespace Managers
         /// <returns></returns>
         public static SPlayerData ToStruct()
         {
-            return new SPlayerData(PlayerName, CharacterLevel, Character, Rune, Spells, SpellLevels, ProfileCloudData.CurrentProfileData.AsNetworkSerializable());
+            return new SPlayerData(PlayerName, CharacterLevel, Character, Rune, Spells, SpellLevels, ProfileCloudData.CurrentProfileData.AsNetworkSerializable(), true);
         }
 
         /// <summary>

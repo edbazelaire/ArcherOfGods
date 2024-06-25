@@ -42,10 +42,10 @@ MonoBehaviour:
   Animation: 0
   IsCancellable: 1
   AnimationTimer: 0
-  m_Cooldown: 0
+  m_Cooldown: 30
   CounterType: 1
   CounterActivation: 0
   IsBlockingMovement: 1
   IsBlockingCast: 1
   OnCounterProc: 21
-  ColorSwap: {r: 0.16509432, g: 0.59085697, b: 1, a: 1}
+  ColorSwap: {r: 0.051886797, g: 0.5370715, b: 1, a: 1}

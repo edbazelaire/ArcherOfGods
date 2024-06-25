@@ -120,28 +120,12 @@ namespace Menu.MainMenu
                 // set spell active only if not in current build
                 item.Value.gameObject.SetActive( ! CharacterBuildsCloudData.CurrentBuild.Contains(item.Key) );
             }
+
+            // Force layout rebuild for both containers
+            LayoutRebuilder.ForceRebuildLayoutImmediate(m_LockedSpellItemContainer.GetComponent<RectTransform>());
+            LayoutRebuilder.ForceRebuildLayoutImmediate(m_SpellItemContainer.GetComponent<RectTransform>());
         }
         
-        /// <summary>
-        /// Show or hide a spell item
-        /// </summary>
-        /// <param name="spell"></param>
-        /// <param name="show"></param>
-        public static void ShowSpellItem(ESpell spell, bool show)
-        {
-            var spellItems = Resources.FindObjectsOfTypeAll(typeof(TemplateSpellItemUI));
-            foreach (var spellItem in spellItems)
-            {
-                if (spellItem.name == string.Format(SPELL_ITEM_NAME_FORMAT, spell.ToString()))
-                {
-                    spellItem.GameObject().SetActive(show);
-                    return;
-                }
-            }
-
-            ErrorHandler.Error("Unable to find spell item : " + string.Format(SPELL_ITEM_NAME_FORMAT, spell.ToString()));
-        }
-
         #endregion
 
 

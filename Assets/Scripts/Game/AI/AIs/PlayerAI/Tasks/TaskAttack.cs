@@ -138,9 +138,6 @@ public class TaskAttack : Node
         // check : Damages
         CheckDamageSpells(ref spell);
 
-        // check : AutoAttack
-        CheckAutoAttack(ref spell);
-
         return spell;
     }
 
@@ -256,22 +253,6 @@ public class TaskAttack : Node
         CheckSpells(ref spell, m_SpellCategories[ESpellCategory.Damage]);
     }
 
-    /// <summary>
-    /// Check if should use AutoAttack
-    /// </summary>
-    /// <param name="spell"></param>
-    void CheckAutoAttack(ref ESpell spell)
-    {
-        // skip if a spell was already selected
-        if (spell != ESpell.Count)
-            return;
-
-        ErrorHandler.Log("CheckAutoAttack()", ELogTag.AI);
-
-        if (m_SpellHandler.CanCast(m_SpellHandler.AutoAttack))
-            spell = m_SpellHandler.AutoAttack;
-    }
-
     #endregion
 
 
@@ -282,8 +263,12 @@ public class TaskAttack : Node
     /// </summary>
     /// <param name="property"></param>
     /// <returns></returns>
-    List<ESpell> FilterSpellsByProperty(ESpellProperty property)
+    List<ESpell> FilterSpellsByProperty(ESpellProperty property, List<ESpellType> excludedTypes = null)
     {
+        // by default exculte counters and jumps
+        if (excludedTypes == null)
+            excludedTypes = new List<ESpellType>() { ESpellType.Jump, ESpellType.Counter };
+
         List<(ESpell Spell, float Value)> spells = new();
 
         for (int i = 0; i < m_SpellHandler.Spells.Count; i++)
@@ -297,6 +282,10 @@ public class TaskAttack : Node
                 continue;
 
             SpellData spellData = SpellLoader.GetSpellData(spell, m_SpellHandler.SpellLevels[i]);
+
+            // check if is not allowed types
+            if (excludedTypes.Contains(spellData.SpellType))
+                continue;
 
             // TODO : BETTER
             var spellInfos = spellData.GetInfos();

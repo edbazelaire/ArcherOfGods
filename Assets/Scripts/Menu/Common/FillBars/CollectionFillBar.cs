@@ -36,8 +36,10 @@ namespace Menu.Common
         bool                    m_IsPerc;
 
         Coroutine               m_Animation;
+        AudioSource             m_AnimationAudio;
 
         public bool IsAnimated => m_Animation != null;
+        public AudioSource AudioSource => m_AnimationAudio;
         public float CurrentCollection => m_CurrentCollection;
 
         #endregion
@@ -200,7 +202,7 @@ namespace Menu.Common
 
         public IEnumerator CollectionAnimationCoroutine(float amount)
         {
-            var audioSource = SoundFXManager.PlaySoundFXClip(SoundFXManager.ProgressBarSoundFX, null);
+            m_AnimationAudio = SoundFXManager.PlaySoundFXClip(SoundFXManager.ProgressBarSoundFX, gameObject.transform);
 
             float goal = m_CurrentCollection + amount;
             float newValue = m_CurrentCollection;
@@ -215,7 +217,7 @@ namespace Menu.Common
                 }
             }
 
-            Destroy(audioSource.gameObject);
+            Destroy(m_AnimationAudio.gameObject);
 
             UpdateCollection(goal);
             m_Animation = null;

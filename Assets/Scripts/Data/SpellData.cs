@@ -13,11 +13,22 @@ using System.Collections;
 using System.Linq;
 using Data.GameManagement;
 using System.Reflection;
-using UnityEngine.UIElements;
-using static UnityEngine.GraphicsBuffer;
 
 namespace Data
 {
+    [Serializable]
+    public struct SSpellPropertyScaling
+    {
+        public ESpellProperty Property;
+        public float Value;
+
+        public SSpellPropertyScaling(ESpellProperty prop, float value = 0f)
+        {
+            Property = prop;
+            Value = value;
+        }
+    }
+
     [CreateAssetMenu(fileName = "Spell", menuName = "Game/Spells/Default")]
     public class SpellData : CollectableData
     {
@@ -38,6 +49,9 @@ namespace Data
         [Description("Prefab of the spell when it hits a target")]
         public List<SpellData>      OnHit;
 
+        [Description("Where does the OnHit spawns")]
+        public ESpellSpawn OnHitSpellSpawn = ESpellSpawn.Ground;
+
         [Header("Sound Effects")]
         public AudioClip AnimationSoundFX;
         public AudioClip CastSoundFX;
@@ -47,33 +61,40 @@ namespace Data
 
         [Header("Stats")]
         [Description("Type of targetting for the spell")]
-        public ESpellTarget         SpellTarget = ESpellTarget.EnemyZone;
+        public ESpellTarget                 SpellTarget         = ESpellTarget.EnemyZone;
         [Description("Maximum number of target that this spell can hit")]
-        public int                  MaxHit          = 1;
+        public int                          MaxHit              = 1;
         [Description("Energy gained when this spell hits his target")]
-        public int                  EnergyGain      = 10;
+        public int                          EnergyGain          = 10;
         [Description("Request amount on energy to be able to cast this spell")]
-        public int                  EnergyCost      = 0;
+        public int                          EnergyCost          = 0;
         [Description("Damage of the spell")]
-        [SerializeField] public int m_Damage        = 0;
+        [SerializeField] public int         m_Damage            = 0;
         [Description("Heals provided to the target")]
-        [SerializeField] public int     m_Heal      = 0;
+        [SerializeField] public int         m_Heal              = 0;
+        [Description("Percentage of damages healed on hit")]
+        [SerializeField] protected float    m_LifeSteal         = 0f;
         [Description("Max distance of the spell")]
-        public float                Distance        = -1f;
-
+        public float                        Distance            = -1f;
         [Description("List of properties that are overriten on the <OnHit> spells")]
-        public List<ESpellProperty> OverrideOnHitProperties;
-
+        public List<ESpellProperty>         OverrideOnHitProperties;
         [Description("Duration of the spell")]
-        [SerializeField] public float m_Duration = 0f;
+        [SerializeField] public float       m_Duration          = 0f;
         [Description("Delay of the spell to be instantiated after cast")]
-        public float                    Delay           = 0f;
+        public float                        Delay               = 0f;
+
+        [Header("Scaling")]
+        [SerializeField] protected List<SSpellPropertyScaling> m_SpellsScalingLevel = new() { 
+            new SSpellPropertyScaling(ESpellProperty.Damages, 0.1f), 
+            new SSpellPropertyScaling(ESpellProperty.Heal, 0.1f), 
+            new SSpellPropertyScaling(ESpellProperty.Cooldowns, 0.05f), 
+        };
 
         [Header("Collision")]
         [Description("Size of the spell (and hitbox)")]
-        [SerializeField] public float  m_Size = 1f;
+        [SerializeField] public float   m_Size = 1f;
         [Description("Does the spell get trigger on touching a player")]
-        public bool                 TriggerPlayer = true;
+        public bool                     TriggerPlayer = true;
 
         [Header("State Effects")]
         [Description("List of effects that proc on hitting an enemy")]
@@ -89,7 +110,7 @@ namespace Data
         [Description("Name of the animation to use")]
         public EAnimation Animation;
         [Description("Can the animation be cancelled ?")]
-        public bool IsCancellable = true;
+        public bool IsCancellable = false;
         [Description("Time for the animation to take from start to begin (in seconds)")]
         public float AnimationTimer;
         [Description("Cooldown to be able to re-use that ability")]
@@ -104,10 +125,10 @@ namespace Data
 
         // ===========================================================================
         // Level Dependent Members
-        public virtual float LevelScaleFactor   => (float)Math.Pow(Settings.SpellScaleFactor, m_Level - 1);
-        public virtual float Cooldown           => Mathf.Max(Mathf.Round(100f * m_Cooldown / LevelScaleFactor) / 100f, 0f);
-        public virtual int Damage               => (int)Math.Round(m_Damage * LevelScaleFactor);
-        public virtual int Heal                 => (int)Math.Round(m_Heal * LevelScaleFactor);
+        public virtual float Cooldown           => Mathf.Max(Mathf.Round(100f * m_Cooldown / GetSpellLevelFactor(ESpellProperty.Cooldowns)) / 100f, 0f);
+        public virtual int Damage               => (int)Math.Round(m_Damage * GetSpellLevelFactor(ESpellProperty.Damages));
+        public virtual int Heal                 => (int)Math.Round(m_Heal * GetSpellLevelFactor(ESpellProperty.Heal));
+        public virtual float LifeSteal          => m_LifeSteal * GetSpellLevelFactor(ESpellProperty.LifeSteal);
         public virtual float Duration           => m_Duration;
 
         #endregion
@@ -137,6 +158,9 @@ namespace Data
                 delay -= Time.deltaTime;
                 yield return null;
             }
+
+            if (GameManager.IsGameOver)
+                yield break;
 
             Cast(clientId, target, position, rotation, recalculateTarget: false);
         }
@@ -214,6 +238,7 @@ namespace Data
                 // setup spell data to level of this spell
                 var onHitSpellData = spellData.Clone(m_Level);
                 onHitSpellData.Override(this);
+                onHitSpellData.OverrideSpellSpawn(OnHitSpellSpawn);
                 onHitSpellData.Cast(clientId, target, position, rotation, false);
             }   
         }
@@ -260,6 +285,8 @@ namespace Data
                 ErrorHandler.Log("          - TO : " + GetProperty(spellProperty), ELogTag.Spells);
             }
         }
+
+        public virtual void OverrideSpellSpawn(ESpellSpawn spellSpawn) { }
 
         #endregion
 
@@ -469,11 +496,11 @@ namespace Data
                 infosDict.Add("Heal", Heal);
             if (Duration > 0)
                 infosDict.Add("Duration", Duration);
-            if (Size > 0)
+            if (m_Size > 0 && m_Size != 1)
                 infosDict.Add("Size", m_Size);
             
             infosDict.Add("Cooldown", Cooldown);
-            infosDict.Add("Cast", AnimationTimer);
+            infosDict.Add("CastDuration", AnimationTimer);
 
             if (Distance > 0)
                 infosDict.Add("Distance", Distance);
@@ -567,12 +594,18 @@ namespace Data
             }
         }
 
-        #endregion
+        protected float GetSpellLevelFactor(ESpellProperty property)
+        {
+            var data = m_SpellsScalingLevel.FirstOrDefault(spell => spell.Property == property);
+            return (float)Math.Pow( 1 + data.Value, m_Level - 1);
+        }
+
+    #endregion
 
 
-        #region Public Dependent Accessors
+    #region Public Dependent Accessors
 
-        public void ForceAutoTarget()
+    public void ForceAutoTarget()
         {
             if (IsAutoTarget)
                 return;
@@ -615,5 +648,6 @@ namespace Data
             || SpellTarget == ESpellTarget.AllyZoneCenter;
 
         #endregion
+
     }
 }

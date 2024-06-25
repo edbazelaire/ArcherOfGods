@@ -27,12 +27,10 @@ namespace Game.Spells
         {
             base.Initialize(clientId, target, spellName, level);
 
-            Controller targetController = GetTargetController();
-
             if (!IsServer)
                 return;
 
-            OnHitPlayer(targetController);
+            OnHitPlayer(GetTargetController());
             End();
         }
 

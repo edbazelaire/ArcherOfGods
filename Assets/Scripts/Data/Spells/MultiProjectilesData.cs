@@ -206,6 +206,25 @@ namespace Data
         #endregion
 
 
+        #region Overriders 
+
+        /// <summary>
+        /// Overrides projectile data of multiple projectile with provided projectile data
+        /// </summary>
+        /// <param name="overridingData"></param>
+        public void OverrideProjectile(ProjectileData overridingData)
+        {
+            ErrorHandler.Log("Overriding data of " + Name + " with " + overridingData.Name, ELogTag.Spells);
+
+            Animation       = overridingData.Animation;
+            IsCancellable   = overridingData.IsCancellable;
+            AnimationTimer  = overridingData.AnimationTimer;
+            m_Cooldown      = overridingData.Cooldown;
+        }
+
+        #endregion
+
+
         #region Level
 
         protected override void SetLevel(int level)

@@ -2,7 +2,6 @@
 using Game.Loaders;
 using Game.Spells;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,7 +12,7 @@ namespace Data
     {
         public override ESpellType SpellType => ESpellType.Buff;
 
-        public override float Duration => (float)Math.Round(m_Duration * LevelScaleFactor);
+        public override float Duration => (float)Math.Round(m_Duration * GetSpellLevelFactor(ESpellProperty.Duration));
 
 
         #region State Effect

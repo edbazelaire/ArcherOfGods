@@ -1,16 +1,19 @@
 ﻿using Game;
+using System;
 using Tools;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Data.GameManagement
 {
     public enum ESettings
     {
-        GlobalSpeed,
         CharacterSizeFactor,
         CharacterSpeedFactor,
         SpellSizeFactor,
         SpellSpeedFactor,
+        AutoAttackSpeedFactor,
+        CastSpeedFactor,
     }
 
     [CreateAssetMenu(fileName = "Settings", menuName = "Game/Management/Settings")]
@@ -20,21 +23,19 @@ namespace Data.GameManagement
 
         // GAME Speed & Size
         [Header("Game Speed & Size")]
-        [SerializeField] float m_GlobalSpeed;
         [SerializeField] float m_CharacterSizeFactor;
         [SerializeField] float m_CharacterSpeedFactor;
         [SerializeField] float m_SpellSizeFactor;
         [SerializeField] float m_SpellSpeedFactor;
+        [SerializeField] float m_AutoAttackSpeedFactor;
+        [SerializeField] float m_CastSpeedFactor;
 
-        // Level Up Management
-        [Header("Level Management")]
-        [SerializeField] float m_SpellScaleFactor;
-
-        public static float CharacterSizeFactor     { get => Instance.m_CharacterSizeFactor;    set => Instance.m_CharacterSizeFactor = value; }
-        public static float CharacterSpeedFactor    { get => Instance.m_CharacterSpeedFactor;   set => Instance.m_CharacterSpeedFactor = value; }
-        public static float SpellSizeFactor         { get => Instance.m_SpellSizeFactor;        set => Instance.m_SpellSizeFactor = value; }
-        public static float SpellSpeedFactor        { get => Instance.m_SpellSpeedFactor;       set => Instance.m_SpellSpeedFactor = value; }
-        public static float SpellScaleFactor        { get => Instance.m_SpellScaleFactor; }
+        public static float CharacterSizeFactor     { get => Get(ESettings.CharacterSizeFactor);    }
+        public static float CharacterSpeedFactor    { get => Get(ESettings.CharacterSpeedFactor);   }
+        public static float SpellSizeFactor         { get => Get(ESettings.SpellSizeFactor);        }
+        public static float SpellSpeedFactor        { get => Get(ESettings.SpellSpeedFactor);       }
+        public static float AutoAttackSpeedFactor   { get => Get(ESettings.AutoAttackSpeedFactor);  }
+        public static float CastSpeedFactor         { get => Get(ESettings.CastSpeedFactor);        }
 
         #endregion
 
@@ -45,15 +46,36 @@ namespace Data.GameManagement
 
         public static Settings Instance
         {
-
             get
             {
                 if (s_Instance == null)
                 {
-                    s_Instance = AssetLoader.Load<Settings>("Settings", AssetLoader.c_ManagementDataPath);
+                    Load();
                 }
 
                 return s_Instance;
+            }
+        }
+
+        public static void Reload()
+        {
+            // reset player prefs
+            foreach (string setting in Enum.GetNames(typeof(ESettings)))
+            {
+                PlayerPrefs.DeleteKey(setting);
+            }
+
+            Load();
+        }
+
+        static void Load()
+        {
+            s_Instance = AssetLoader.Load<Settings>("Settings", AssetLoader.c_ManagementDataPath);
+
+            // reset player prefs
+            foreach (ESettings setting in Enum.GetValues(typeof(ESettings)))
+            {
+                Set(setting, Get(setting));
             }
         }
 
@@ -62,25 +84,37 @@ namespace Data.GameManagement
 
         #region Getters & Setters
 
-        public static float Get(ESettings setting)
+        public static float Get(ESettings setting, bool defaultOnly = false)
         {
+            float defaultValue;
             switch (setting)
             {
-                case ESettings.GlobalSpeed:
-                    return Instance.m_GlobalSpeed;
                 case ESettings.CharacterSizeFactor:
-                    return Instance.m_CharacterSizeFactor;
+                    defaultValue = Instance.m_CharacterSizeFactor;
+                    break;
                 case ESettings.CharacterSpeedFactor:
-                    return Instance.m_CharacterSpeedFactor;
+                    defaultValue = Instance.m_CharacterSpeedFactor;
+                    break;
                 case ESettings.SpellSizeFactor:
-                    return Instance.m_SpellSizeFactor;
+                    defaultValue = Instance.m_SpellSizeFactor;
+                    break;
+                case ESettings.AutoAttackSpeedFactor:
+                    defaultValue = Instance.m_AutoAttackSpeedFactor;
+                    break;
                 case ESettings.SpellSpeedFactor:
-                    return Instance.m_SpellSpeedFactor;
+                    defaultValue = Instance.m_SpellSpeedFactor;
+                    break;
+                case ESettings.CastSpeedFactor:
+                    defaultValue = Instance.m_CastSpeedFactor;
+                    break;
 
                 default:
-                    ErrorHandler.Error("Unhandled setting : " + setting);
-                    return 1f;
+                    ErrorHandler.Warning("Unhandled setting : " + setting);
+                    defaultValue = 1f;
+                    break;
             }
+
+            return PlayerPrefs.GetFloat(setting.ToString(), defaultValue);
         }
 
         public static void Set(ESettings setting, float value)
@@ -88,38 +122,10 @@ namespace Data.GameManagement
             if (value <= 0)
             {
                 ErrorHandler.Error("Trying to set " + setting + " with a value <= 0 : " + value);
+                return;
             }
-            switch (setting)
-            {
-                case ESettings.GlobalSpeed:
-                    Instance.m_GlobalSpeed = value;
-                    Time.timeScale = value;
-                    return;
 
-                case ESettings.CharacterSizeFactor:
-                    Instance.m_CharacterSizeFactor = value;
-                    if (GameManager.Instance == null || ! GameManager.Instance.IsGameStarted)
-                        return;
-
-                    GameManager.Instance.RescaleCharacters();
-                    return;
-
-                case ESettings.CharacterSpeedFactor:
-                    Instance.m_CharacterSpeedFactor = value;
-                    return;
-                
-                case ESettings.SpellSizeFactor:
-                    Instance.m_SpellSizeFactor = value;
-                    return;
-                
-                case ESettings.SpellSpeedFactor:
-                    Instance.m_SpellSpeedFactor = value;
-                    return;
-
-                default:
-                    ErrorHandler.Error("Unhandled setting : " + setting);
-                    return;
-            }
+            PlayerPrefs.SetFloat(setting.ToString(), value);
         }
 
         #endregion

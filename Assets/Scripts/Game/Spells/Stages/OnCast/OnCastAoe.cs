@@ -1,4 +1,5 @@
-﻿using Tools;
+﻿using System.Threading;
+using Tools;
 using UnityEngine;
 
 namespace Game.Spells
@@ -17,6 +18,8 @@ namespace Game.Spells
         float m_Duration;
         /// <summary> curent value of the timer </summary>
         float m_Timer;
+
+        public float Timer => m_Timer;
 
         #endregion
 

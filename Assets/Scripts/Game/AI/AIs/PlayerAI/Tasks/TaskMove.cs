@@ -2,8 +2,6 @@ using AI;
 using Enums;
 using Game.AI;
 using Game.Character;
-using Game.Spells;
-using System;
 using System.Collections.Generic;
 using Tools;
 using UnityEngine;
@@ -15,6 +13,7 @@ public class TaskMove : Node
     // =============================================================================
     // Component & GameObjects
     protected Controller m_Controller;
+    protected ImmediatThreatTrigger m_ImmediatThreatTrigger;
     protected Movement m_Movement => m_Controller.Movement;
 
     // =============================================================================
@@ -36,6 +35,7 @@ public class TaskMove : Node
     public TaskMove(Controller controller)
     {
         m_Controller = controller;
+        m_ImmediatThreatTrigger = Finder.FindComponent<ImmediatThreatTrigger>(controller.gameObject);
     }
 
     #endregion
@@ -69,6 +69,7 @@ public class TaskMove : Node
 
         CheckObstacles();
         CheckZones();
+        CheckProjectiles();
 
         if (m_AllowedMovements.Count == 0)
             m_CurrentMoveX = 0;
@@ -131,6 +132,12 @@ public class TaskMove : Node
             // if any : un-allow movement
             m_AllowedMovements.Remove(moveX);
         }
+    }
+
+    protected virtual void CheckProjectiles()
+    {
+        if (m_AllowedMovements.Count == 0)
+            return;
     }
 
     #endregion
