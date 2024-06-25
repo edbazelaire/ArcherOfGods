@@ -17,8 +17,8 @@ public class Life : NetworkBehaviour
 
     // ===================================================================================
     // NETWORK VARIABLES
-    NetworkVariable<int>            m_MaxHp = new (1);
-    NetworkVariable<int>            m_Hp    = new (0);
+    NetworkVariable<int>            m_MaxHp     = new (1);
+    NetworkVariable<int>            m_Hp        = new (0);
     NetworkVariable<int>            m_Shield    = new (0);
 
     // ===================================================================================
@@ -104,6 +104,9 @@ public class Life : NetworkBehaviour
 
         // apply damages (after shield)
         m_Hp.Value -= damage;
+
+        if (!IsAlive)
+            DiedEvent?.Invoke();
 
         return damage;
     }

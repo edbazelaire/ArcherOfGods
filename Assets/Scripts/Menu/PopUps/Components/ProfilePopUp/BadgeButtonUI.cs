@@ -77,7 +77,11 @@ namespace Menu.PopUps.Components.ProfilePopUp
                 return;
             }
 
-            ProfileCloudData.SetCurrentBadge(m_Badge, ProfileCloudData.LastSelectedBadgeIndex);
+            var index = ProfileCloudData.LastSelectedBadgeIndex;
+            if (m_Badge != EBadge.None)
+                index = ProfileCloudData.GetFirstBadgeNoneIndex();
+
+            ProfileCloudData.SetCurrentBadge(m_Badge, index >= 0 ? index : ProfileCloudData.LastSelectedBadgeIndex);
         }
 
         #endregion

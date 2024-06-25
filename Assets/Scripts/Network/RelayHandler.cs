@@ -46,7 +46,7 @@ namespace Assets.Scripts.Network
 
             } catch (RelayServiceException e)
             {
-                Debug.LogError(e.Message);
+                ErrorHandler.Error(e.Message);
             }
 
             return "";

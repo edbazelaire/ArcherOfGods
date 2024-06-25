@@ -1,5 +1,10 @@
-﻿using Enums;
+﻿using Assets.Scripts.Managers.Sound;
+using Enums;
 using Game.Loaders;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
 
 namespace Tools
@@ -26,6 +31,39 @@ namespace Tools
 
                 GameObject.Destroy(child.gameObject);
             }
+        }
+
+        public static void SetUpDropdown<TEnum>(TMP_Dropdown dropdown, Enum defaultValue, Action<TEnum> onDropDownValueChanged, List<TEnum> excludeValues = default)
+        {
+            // Create a dropdown reward method based on that finds the value linked to the index change and call "onDropDownValueChanged" method
+            void OnDropDown(int index)
+            {
+                SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
+
+                if (!Enum.TryParse(typeof(TEnum), dropdown.options[index].text, true, out object enumValue))
+                {
+                    ErrorHandler.Error("Unable to convert " + dropdown.options[index].text + " as " + typeof(TEnum));
+                    enumValue = Enum.GetValues(typeof(TEnum)).GetValue(0);
+                }
+
+                onDropDownValueChanged.Invoke((TEnum)enumValue);
+            }
+
+            // setup option values
+            List<string> options = Enum.GetNames(typeof(TEnum)).ToList();
+            if (excludeValues != null && excludeValues.Count > 0)
+            {
+                List<string> excludeNames = excludeValues.Select(e => e.ToString()).ToList();
+                options = options.Where(option => !excludeNames.Contains(option)).ToList();
+            }
+            dropdown.options.Clear();
+            dropdown.AddOptions(options);
+
+            // change Lobby game mode on new selection
+            dropdown.onValueChanged.AddListener(OnDropDown);
+
+            // set value to last selected value
+            dropdown.value = options.IndexOf(defaultValue.ToString());
         }
 
         /// <summary>
@@ -90,8 +128,7 @@ namespace Tools
             CleanContent(parent);
 
             // get selected character preview
-            var characterData = CharacterLoader.GetCharacterData(character);
-            var characterPreview = characterData.InstantiateCharacterPreview(parent);
+            var characterPreview = CharacterLoader.GetCharacterData(character).InstantiateCharacterPreview(parent);
 
             // display character preview
             var baseScale = characterPreview.transform.localScale;

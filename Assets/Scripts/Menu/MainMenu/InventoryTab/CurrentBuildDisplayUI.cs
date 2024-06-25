@@ -113,7 +113,6 @@ namespace Menu.MainMenu
                 if (spellItemContainer.Spell == spell)
                 {
                     spellItemContainer.SetSpell(CurrentSelectedCard.Value);
-                    SpellsTabContent.ShowSpellItem(spell, true);
                     SetCurrentSelectedCard(null);
                     return;
                 }

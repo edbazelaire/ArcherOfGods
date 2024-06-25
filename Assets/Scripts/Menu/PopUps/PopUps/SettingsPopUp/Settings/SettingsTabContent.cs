@@ -2,7 +2,10 @@
 using Menu.MainMenu;
 using System;
 using Tools;
+using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Assets.Scripts.UI
 {
@@ -12,7 +15,8 @@ namespace Assets.Scripts.UI
 
         GameObject m_TemplateSettingOption;
 
-        GameObject  m_Content; 
+        GameObject  m_Content;
+        Button m_ResetButton; 
 
         #endregion
 
@@ -24,7 +28,8 @@ namespace Assets.Scripts.UI
             base.FindComponents();
 
             m_TemplateSettingOption = AssetLoader.Load<GameObject>("SettingOption", AssetLoader.c_SettingsPath);
-            m_Content = gameObject;
+            m_Content = Finder.Find(gameObject, "Content");
+            m_ResetButton = Finder.FindComponent<Button>(gameObject, "ResetButton");
         }
 
         protected override void SetUpUI()
@@ -54,6 +59,18 @@ namespace Assets.Scripts.UI
 
         #region Listeners
 
+        protected override void RegisterListeners()
+        {
+            base.RegisterListeners();
+
+            m_ResetButton.onClick.AddListener(OnResetButton);
+        }
+
+        void OnResetButton()
+        {
+            Settings.Reload();
+            SetUpUI();
+        }
 
         #endregion
     }

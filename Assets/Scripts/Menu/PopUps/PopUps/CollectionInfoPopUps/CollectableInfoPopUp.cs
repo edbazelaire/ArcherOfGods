@@ -251,10 +251,15 @@ namespace Menu.PopUps
 
         #region Tools
 
-        protected virtual bool CheckIsPercentageValue(string property)
+        public static bool CheckIsPercentageValue(string property)
         {
-            return property == EStateEffectProperty.LifeSteal.ToString()
-                || property.EndsWith("Perc");
+            return property.EndsWith("Perc")
+                || property == EStateEffectProperty.BonusLifeSteal.ToString()
+                || property == EStateEffectProperty.AttackSpeed.ToString()
+                || property == EStateEffectProperty.CastSpeed.ToString()
+                || property == EStateEffectProperty.LifeSteal.ToString()
+                || property == EStateEffectProperty.BonusLifeSteal.ToString()
+                ;
         }
 
         CollectableData LoadCollectionData(Enum enumValue, int level)

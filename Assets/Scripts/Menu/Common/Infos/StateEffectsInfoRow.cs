@@ -39,15 +39,5 @@ namespace Menu.Common.Infos
         }
 
         #endregion
-
-
-        #region GUI Manipulators
-
-        public void RefreshValue(int level)
-        { 
-            // TODO ========================================================
-        }
-
-        #endregion
     }
 }

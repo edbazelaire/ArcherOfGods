@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Rarety: 0
   Linked: 1
-  Graphics: {fileID: 2910976597878939058, guid: 6004c88444bcc9b48ad4d76700f22980, type: 3}
+  Graphics: {fileID: 2910976597878939058, guid: b31ba57748e748d4d98b43494ab559b1, type: 3}
   Preview: {fileID: 7274605584167926077, guid: 0961e062c4a6d3b40b81e8e5e6da0eae, type: 3}
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
+  OnHitSpellSpawn: 1
   AnimationSoundFX: {fileID: 0}
   CastSoundFX: {fileID: 0}
   PermanantSoundFX: {fileID: 0}
@@ -34,6 +35,13 @@ MonoBehaviour:
   OverrideOnHitProperties: 
   m_Duration: 0
   Delay: 0
+  m_SpellsScalingLevel:
+  - Property: 2
+    Value: 0.1
+  - Property: 1
+    Value: 0.1
+  - Property: 3
+    Value: 0.05
   m_Size: 1
   TriggerPlayer: 1
   EnemyStateEffects:
@@ -48,4 +56,4 @@ MonoBehaviour:
   AnimationTimer: 0.55
   m_Cooldown: 0.5
   Trajectory: 1
-  m_Speed: 12
+  m_Speed: 11

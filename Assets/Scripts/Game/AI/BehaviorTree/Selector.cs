@@ -1,17 +1,22 @@
-using Data.AI;
+using MyBox;
+using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 
 namespace AI
 {
     public class Selector : Node
     {
+        protected bool m_IsRandom = false;
+
         public Selector() : base() { }
-        public Selector(List<Node> children) : base(children) { }
+        public Selector(List<Node> children, bool random = false) : base(children) 
+        {
+            m_IsRandom = random;
+        }
 
         public override NodeState Evaluate()
         {
-            foreach (Node node in m_Children)
+            foreach (Node node in (m_IsRandom ? m_Children.ShuffleClone() : m_Children))
             {
                 switch (node.Evaluate())
                 {
@@ -31,7 +36,6 @@ namespace AI
             m_State = NodeState.FAILURE;
             return m_State;
         }
-
     }
 
 }

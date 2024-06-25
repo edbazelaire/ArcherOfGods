@@ -18,6 +18,8 @@ using Scripts.Menu.PopUps;
 using Unity.Services.Core.Environments;
 using Network;
 using Save.RSDs;
+using Assets.Scripts.Tools;
+
 
 
 #if UNITY_EDITOR
@@ -133,6 +135,7 @@ namespace Assets
             float timer = 30f; // set a timer of 30s to avoid inf loop
             while (
                 CharacterLoader.Instance            == null
+                || TimeErrorWrapper.Instance        == null
                 || SpellLoader.Instance             == null
                 || SceneLoader.Instance             == null
                 || ItemLoader.ChestRewardData       == null
@@ -286,6 +289,20 @@ namespace Assets
             }
         }
 
+        public static void SetCollectableSelectionPopUp<TEnum>(Action<TEnum> onCollectableClicked, bool unlockedOnly = true)
+        {
+            var popup = Instantiate(AssetLoader.Load<CollectableSelectionPopUp>(AssetLoader.c_PopUpsPath)); 
+            popup.Initialize(typeof(TEnum), (Enum value) =>
+            {
+            if (!Enum.TryParse(typeof(TEnum), value.ToString(), true, out object result))
+                {
+                    ErrorHandler.Error("Unable to parse " + value + " as " + typeof(TEnum).ToString());
+                    return;
+                }
+                onCollectableClicked((TEnum)result);
+            }, unlockedOnly);
+        }
+
         public static void DisplayRewards(SRewardsData rewardsData, ERewardContext context)
         {
             Main.SetPopUp(EPopUpState.RewardsScreen, rewardsData, context.ToString());
@@ -375,7 +392,7 @@ namespace Assets
         bool AuthorizeAccess()
         {
             // pseudo not changed : authorize access to pseudo popup
-            if (! ProfileCloudData.PseudoChanged)
+            if (!ProfileCloudData.PseudoChanged)
                 return true;
 
             return TokensRSD.IsTokenAuthorized(ProfileCloudData.Token);

@@ -426,6 +426,23 @@ namespace Save
             CurrentDataChanged?.Invoke(achR);
         }
 
+        /// <summary>
+        /// Get index of first "unset" badge in Current Badges. Returns -1 if all badges are set
+        /// </summary>
+        /// <returns></returns>
+        public static int GetFirstBadgeNoneIndex()
+        {
+            for (int index = 0; index < CurrentBadges.Length; index++)
+            {
+                if (CurrentBadges[index] == null || CurrentBadges[index] == EBadge.None.ToString() || CurrentBadges[index] == "")
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
         public static void SetCurrentBadge(EBadge badge, int index)
         {
             CurrentBadges[index] = BadgeToString(badge, Badges[badge]);

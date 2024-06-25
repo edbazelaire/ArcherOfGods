@@ -40,14 +40,26 @@ namespace Menu.MainMenu.ShopTab
         {
             base.SetUpUI();
 
-            InitializeDailyOffers();
-            InitializeSpecialBundles();
+            RefreshUI();
         }
 
         #endregion
 
 
+        protected void Update()
+        {
+            if (TimeCloudData.Instance.CheckTimeData())
+                RefreshUI();
+        }
+
+
         #region GUI Manipulators
+
+        void RefreshUI()
+        {
+            InitializeDailyOffers();
+            InitializeSpecialBundles();
+        }
 
         private void InitializeDailyOffers()
         {

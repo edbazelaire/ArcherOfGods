@@ -33,6 +33,7 @@ namespace Menu.PopUps
         GameObject          m_RewardDisplayContainer;
         GameObject          m_RewardIconSection;
         GameObject          m_RewardInfosSection;
+        GameObject          m_RewardInfosContent;
         TMP_Text            m_RewardTitle;
         CollectionFillBar   m_CollectionFillBar;
         TMP_Text            m_CollectionQty;
@@ -41,8 +42,10 @@ namespace Menu.PopUps
         SRewardsData        m_RewardsData;
         string              m_Context;
 
-        int                 m_Depth = 0;
-        GameObject          m_CurrentTemplateItem = null;
+        bool                m_CanSkip                   = false;
+        bool                m_Skip                      = false;
+        int                 m_Depth                     = 0;
+        GameObject          m_CurrentTemplateItem       = null;
         ChestRewardData     m_CurrentChestRewardData    = null;
 
         #endregion
@@ -63,6 +66,7 @@ namespace Menu.PopUps
 
             // Infos Section
             m_RewardInfosSection        = Finder.Find(gameObject, "RewardInfosSection");
+            m_RewardInfosContent        = Finder.Find(m_RewardInfosSection, "Content");
             m_RewardTitle               = Finder.FindComponent<TMP_Text>(m_RewardInfosSection, "RewardTitle");
             m_CollectionFillBar         = Finder.FindComponent<CollectionFillBar>(m_RewardInfosSection, "CollectionFillbar");
             m_CollectionQty             = Finder.FindComponent<TMP_Text>(m_RewardInfosSection, "CollectionQty");
@@ -75,9 +79,10 @@ namespace Menu.PopUps
         /// <param name="chestIndex"></param>
         public void Initialize(SRewardsData rewardsData, string context)
         {
-            m_RewardsData = rewardsData;
-            m_Context = context;
-            m_CurrentChestRewardData = null;
+            m_Skip                      = false;
+            m_RewardsData               = rewardsData;
+            m_Context                   = context;
+            m_CurrentChestRewardData    = null;
 
             base.Initialize();
         }
@@ -117,6 +122,51 @@ namespace Menu.PopUps
         #endregion
 
 
+        #region Update
+
+        protected override void Update()
+        {
+            base.Update();
+
+            if (m_CanSkip && Input.touchCount > 0 || Input.GetMouseButtonDown(0))
+            {
+                m_Skip = true;
+            }
+        }
+
+        IEnumerator WaitForCoroutineOrSkip(IEnumerator coroutine)
+        {
+            bool coroutineFinished = false;
+
+            // Wrap the coroutine to set a flag when it finishes
+            IEnumerator WrappedCoroutine()
+            {
+                yield return coroutine;
+                coroutineFinished = true;
+            }
+
+            // Start the wrapped coroutine
+            var currentCoroutine = StartCoroutine(WrappedCoroutine());
+
+            // Wait until either the coroutine is done or m_Skip is true
+            yield return new WaitUntil(() => coroutineFinished || m_Skip);
+
+            StopCoroutine(currentCoroutine);
+        }
+
+        IEnumerator WaitAnimationOrSkip(OvAnimation animation)
+        {
+            yield return new WaitUntil(() => animation.IsOver || m_Skip);
+
+            if (! animation.IsOver)
+            {
+                animation.End();
+            }
+        }
+
+        #endregion
+
+
         #region Rewards
 
         IEnumerator StartDisplay()
@@ -135,10 +185,11 @@ namespace Menu.PopUps
             foreach (SReward reward in rewards)
             {
                 ErrorHandler.Log("Reward : " + (++i) + "/" + rewards.Count, ELogTag.Rewards);
+
                 yield return DisplayReward(reward);
 
                 // Wait for the player to touch the screen before displaying the next reward
-                yield return new WaitUntil(() => myDepth == m_Depth && (Input.touchCount > 0 || Input.GetMouseButtonDown(0)));
+                yield return new WaitUntil(() => myDepth == m_Depth && m_Skip);
                 yield return null;                      // Ensure the coroutine yields at least once to avoid blocking the main thread
             }
 
@@ -149,6 +200,9 @@ namespace Menu.PopUps
         IEnumerator DisplayReward(SReward reward)
         {
             ErrorHandler.Log("DisplayReward : " + reward.RewardName, ELogTag.Rewards);
+
+            // reset skip before next reward
+            m_Skip = false;
 
             if (reward.RewardType == typeof(EChest) && Enum.TryParse(reward.RewardName, out EChest chestType))
             {
@@ -186,6 +240,8 @@ namespace Menu.PopUps
             ErrorHandler.Log("      + chestType : " + chestType, ELogTag.Rewards);
             ErrorHandler.Log("      + qty : " + qty, ELogTag.Rewards);
 
+            m_Skip = false;
+
             if (qty > 1)
                 ErrorHandler.Warning("Multiple Chests not handled yet");
 
@@ -208,9 +264,13 @@ namespace Menu.PopUps
             m_ChestUI.ActivateIdle(true, true);
 
             // wait until touch to display reward
-            yield return new WaitUntil(() => Input.touchCount > 0 || Input.GetMouseButtonDown(0));
+            yield return new WaitUntil(() => m_Skip);
 
-            yield return OpenChest();
+            m_Skip = false;
+
+            yield return WaitForCoroutineOrSkip(OpenChest());
+
+            m_Skip = false;
 
             yield return DisplayRewards(m_CurrentChestRewardData.GenerateRewards());
         }
@@ -229,6 +289,8 @@ namespace Menu.PopUps
         {
             ErrorHandler.Log("DisplayCurrencyReward() : ", ELogTag.Rewards);
             ErrorHandler.Log("      + currency : " + currency, ELogTag.Rewards);
+
+            m_Skip = false;
 
             // play sound effect
             SoundFXManager.PlayOnce(SoundFXManager.GoldsCollectedSoundFX);
@@ -256,7 +318,8 @@ namespace Menu.PopUps
 
             // -- setup collection fill bar
             m_CollectionFillBar.Initialize(currentlyOwnValue, currentlyOwnValue + qty);
-            yield return m_CollectionFillBar.CollectionAnimationCoroutine(qty);
+            yield return WaitForCoroutineOrSkip(m_CollectionFillBar.CollectionAnimationCoroutine(qty));
+            Destroy(m_CollectionFillBar.AudioSource.gameObject);    // make sure that audio source is destroyed (in case of skip)
 
             // add reward to collection of rewards
             InventoryManager.UpdateCurrency(currency, qty, m_Context);
@@ -277,21 +340,27 @@ namespace Menu.PopUps
             // if is character but has already been unlocked
             if (collectable.GetType() == typeof(ECharacter) && InventoryCloudData.Instance.GetCollectable(collectable).Level > 0)
             {
-                qty = 250;
+                qty = 1500;
             }
 
             // setup ui of the new collectable
             SetUpTemplateItem(collectable, qty);
-            SetUpRewardInfos(collectable, qty);
+            SetUpRewardInfos(collectable, qty, false);
 
             // skip one frame to be sure that the layout components are adjusted properly
             yield return null;
 
             // -- play collectable animation
             yield return PlayRewardAnimation();
+
             // -- play collection fill bar animation
-            yield return m_CollectionFillBar.CollectionAnimationCoroutine(qty);
-            
+            m_Skip = false;
+            yield return WaitForCoroutineOrSkip(m_CollectionFillBar.CollectionAnimationCoroutine(qty));
+
+            // make sure that audio source is destroyed(in case of skip)
+            if (! m_CollectionFillBar.AudioSource.IsDestroyed())
+                Destroy(m_CollectionFillBar.AudioSource.gameObject);    
+
             // add reward to collection of rewards
             InventoryManager.AddCollectable(collectable, qty);
         }
@@ -327,7 +396,7 @@ namespace Menu.PopUps
             ProfileCloudData.AddAchievementReward(arType, value);
 
             // wait for click to display next
-            yield return new WaitUntil(() => Input.touchCount > 0 || Input.GetMouseButtonDown(0));
+            yield return new WaitUntil(() => m_Skip);
         }
 
         void SetUpTemplateItem(Enum collectable, int qty)
@@ -349,7 +418,7 @@ namespace Menu.PopUps
             template.Initialize(value, ar);
         }
 
-        void SetUpRewardInfos(Enum collectable, int qty)
+        void SetUpRewardInfos(Enum collectable, int qty, bool showContent = true)
         {
             // get data from cloud manager
             SCollectableCloudData cloudData = InventoryCloudData.Instance.GetCollectable(collectable);
@@ -359,6 +428,9 @@ namespace Menu.PopUps
 
             // -- setup collection fill bar
             m_CollectionFillBar.Initialize(cloudData.GetQty(), CollectablesManagementData.GetLevelData(collectable, cloudData.Level).RequiredQty);
+
+            // set the content hidden or not
+            DisplayRewardInfosContent(showContent);
         }
 
         #endregion
@@ -385,7 +457,7 @@ namespace Menu.PopUps
             move.Initialize(duration: 0.2f, endPos: new Vector3(transform.position.x - 2, transform.position.y, transform.position.z));
 
             // wait until animation done playing or player skips it
-            yield return new WaitUntil(() => move.IsOver);
+            yield return WaitAnimationOrSkip(move);
 
             // re-activate infos content && set back layout of TemplateIcon
             DisplayRewardInfosContent(true);
@@ -395,7 +467,7 @@ namespace Menu.PopUps
             var fadeIn = m_RewardInfosSection.AddComponent<Fade>();
             fadeIn.Initialize(duration: 0.2f, startOpacity: 0f, startScale: 0.8f);
 
-            yield return new WaitUntil(() => fadeIn.IsOver);
+            yield return WaitAnimationOrSkip(fadeIn);
         }
 
         IEnumerator RemoveMysteryIcon()
@@ -413,7 +485,7 @@ namespace Menu.PopUps
             var rotation = m_CurrentTemplateItem.AddComponent<RotateAnimation>();
             rotation.Initialize(duration: 0.7f, rotation: new Vector3(0, 720, 0));
 
-            yield return new WaitUntil(() => rotation.IsOver);
+            yield return WaitAnimationOrSkip(rotation);
 
             if (componentUI.CollectableCloudData.Level == 0)
                 yield return UnlockAnimation();
@@ -424,7 +496,8 @@ namespace Menu.PopUps
             raretyColor.a = 0.6f;
             AnimationHandler.AddRaycast(m_RewardIconSection, color: raretyColor);
 
-            yield return new WaitForSeconds(0.45f);
+            if (! m_Skip)
+                yield return new WaitForSeconds(0.45f);
         }
 
         IEnumerator UnlockAnimation()
@@ -447,7 +520,7 @@ namespace Menu.PopUps
             var fadeIn = m_CurrentTemplateItem.AddComponent<Fade>();
             fadeIn.Initialize(duration: 0.35f, startScale: 0.8f, endScale:2f);
 
-            yield return new WaitUntil(() => fadeIn.IsOver);
+            yield return WaitAnimationOrSkip(fadeIn);
         }
 
         #endregion
@@ -457,10 +530,7 @@ namespace Menu.PopUps
 
         void DisplayRewardInfosContent(bool b)
         {
-            foreach (Transform child in m_RewardInfosSection.transform)
-            {
-                child.gameObject.SetActive(b);
-            }
+            m_RewardInfosContent.SetActive(b);
         }
 
         #endregion

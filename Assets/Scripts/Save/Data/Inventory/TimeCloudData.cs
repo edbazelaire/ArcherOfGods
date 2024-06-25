@@ -23,10 +23,10 @@ namespace Save
 
         public STimeData(string name, int nCollectionLeft, int resetAt = 0, string metaData = "")
         {
-            Name = name;
-            NCollectionLeft = nCollectionLeft;
-            ResetAt = resetAt;
-            MetaData = metaData;
+            Name                = name;
+            NCollectionLeft     = nCollectionLeft;
+            ResetAt             = resetAt;
+            MetaData            = metaData;
         }
 
         public bool IsExpired()
@@ -55,10 +55,10 @@ namespace Save
 
         // ===============================================================================================
         // CONSTANTS
-        public const string KEY_TIME_DATA     = "TimeData";
+        public const string KEY_TIME_DATA       = "TimeData";
 
-        public const string DAILY_SHOP_ID = "DailyShopOffer_";
-        public const string SPECIAL_OFFER_ID = "SpecialOffer_";
+        public const string DAILY_SHOP_ID       = "DailyShopOffer_";
+        public const string SPECIAL_OFFER_ID    = "SpecialOffer_";
 
         // ===============================================================================================
         // ACTIONS
@@ -248,6 +248,18 @@ namespace Save
             return (int)((DateTimeOffset)startOfNextDay).ToUnixTimeSeconds();
         }
 
+        public int GetTimestampIn(int nSeconds)
+        {
+            // Get the current date and time
+            DateTime now = DateTime.Now;
+
+            // Calculate the start of the next day
+            DateTime startOfNextDay = now.AddSeconds(nSeconds);
+
+            // Convert to Unix timestamp (seconds since the epoch)
+            return (int)((DateTimeOffset)startOfNextDay).ToUnixTimeSeconds();
+        }
+
         #endregion
 
 
@@ -320,30 +332,41 @@ namespace Save
 
         #region Checkers
 
-        void CheckTimeData()
+        public bool CheckTimeData()
         {
-            CheckDailyShopOffers();
-            CheckSpecialShopOffers();
+            var test = CheckDailyShopOffers()
+                || CheckSpecialShopOffers();
+            
+            if (test)
+                Save();
+
+            return test;
         }
 
-        void CheckDailyShopOffers()
+        bool CheckDailyShopOffers()
         {
+            bool updated = false;
             List<ESpell> usedSpells = new List<ESpell>();
             for (int dailyOfferIndex = 0; dailyOfferIndex < ShopManagementData.DailyOffersRareties.Count + 1; dailyOfferIndex++)
             {
                 STimeData? data = GetTimeData(GetDailyShopId(dailyOfferIndex));
                 if (data == null || data.Value.IsExpired())
                 {
-                    UpdateTimeData(GenerateNewDailyShopOffer(dailyOfferIndex, ref usedSpells));
+                    UpdateTimeData(GenerateNewDailyShopOffer(dailyOfferIndex, ref usedSpells), false);
+                    updated = true;
                 }
             }
+
+            return updated;
         }
 
-        void CheckSpecialShopOffers()
+        bool CheckSpecialShopOffers()
         {
             // TODO =====================================================================
             // check current data (+ delete non existant)
             // TODO =====================================================================
+
+            bool updated = false;
 
             // add missing data
             foreach (SShopData shopData in ShopManagementData.SpecialOffers)
@@ -355,12 +378,15 @@ namespace Save
                 STimeData? timeData = GetSpecialShopOffer(shopData.Name);
                 if (timeData == null || timeData.Value.IsExpired())
                 {
-                    UpdateTimeData(GenerateSpecialShopOffer(shopData));
+                    UpdateTimeData(GenerateSpecialShopOffer(shopData), false);
+                    updated = true;
                 }
             }
+
+            return updated;
         }
 
-         
+
         #endregion
 
 

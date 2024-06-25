@@ -17,10 +17,12 @@ MonoBehaviour:
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 0.14509699, g: 0.1981132, b: 0, a: 1}
   m_Animation: 0
+  m_OnApplySoundFX: {fileID: 0}
+  m_PermanantSoundFX: {fileID: 0}
   m_ConsumeState: 9
   m_DefaultState: 0
   m_Duration: 6
-  m_MaxStacks: 5
+  m_MaxStacks: 10
   m_SpeedBonus: 0
   m_CastSpeed: 0
   m_AttackSpeed: 0
@@ -35,14 +37,16 @@ MonoBehaviour:
     ScalingFactor: 0.1
   - StateEffectProperty: 11
     ScalingFactor: 0.1
+  - StateEffectProperty: 1
+    ScalingFactor: 0.1
   m_StateEffectScalingStacks:
   - StateEffectProperty: 11
     ScalingFactor: 1
   - StateEffectProperty: 13
     ScalingFactor: 1
-  m_Damages: 20
+  m_Damages: 15
   m_Heal: 0
   m_Tick: 1
-  m_TickDamages: 5
+  m_TickDamages: 3
   m_TickHeal: 0
   m_TickShield: 0

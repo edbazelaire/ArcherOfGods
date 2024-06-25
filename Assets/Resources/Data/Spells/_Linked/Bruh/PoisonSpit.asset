@@ -19,6 +19,7 @@ MonoBehaviour:
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
+  OnHitSpellSpawn: 1
   AnimationSoundFX: {fileID: 0}
   CastSoundFX: {fileID: 8300000, guid: 2f5fa469f5b8ed9489b48966de42b93f, type: 3}
   PermanantSoundFX: {fileID: 0}
@@ -34,6 +35,13 @@ MonoBehaviour:
   OverrideOnHitProperties: 
   m_Duration: 0
   Delay: 0
+  m_SpellsScalingLevel:
+  - Property: 2
+    Value: 0.1
+  - Property: 1
+    Value: 0.1
+  - Property: 3
+    Value: 0.05
   m_Size: 1
   TriggerPlayer: 1
   EnemyStateEffects:
@@ -48,4 +56,4 @@ MonoBehaviour:
   AnimationTimer: 0.6
   m_Cooldown: 0
   Trajectory: 1
-  m_Speed: 13
+  m_Speed: 11

@@ -22,7 +22,7 @@ namespace Game.Spells
         // ========================================================================================================
         // Data
         protected SpellData m_BaseSpellData;
-        SpellData m_SpellData => m_BaseSpellData;
+        SpellData m_SpellData  => m_BaseSpellData;
         protected Controller        m_Controller;
         protected Vector3           m_Target;
         protected GameObject        m_GraphicsContainer;
@@ -44,11 +44,27 @@ namespace Game.Spells
         // Public Accessors
         public SpellData SpellData => m_SpellData;
         public Controller Controller => m_Controller;
+        public Vector3 Target => m_Target;
+
+        public bool IsAutoAttack => m_SpellData.Name == m_Controller.SpellHandler.AutoAttack.ToString();
 
         #endregion
 
 
         #region Init & End
+
+        public override void OnNetworkSpawn()
+        {
+            GameManager.Instance.State.OnValueChanged += OnGameStateChanged;
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (GameManager.Exists)
+                GameManager.Instance.State.OnValueChanged -= OnGameStateChanged;
+        }
 
         protected virtual void SetSpellData(string spellName, int level)
         {
@@ -65,6 +81,9 @@ namespace Game.Spells
             m_Controller        = GameManager.Instance.GetPlayer(clientId);
             SetSpellData(spellName, level);
             m_HittedPlayerId    = new List<ulong>();
+
+            // add extra effects (damages bonus, on hit effects, ...) that the controller has at time of casting
+            AddExtraEffects();
 
             // set the target
             SetTarget(target);
@@ -235,7 +254,7 @@ namespace Game.Spells
 
             // add bonus damages from state bonus & boosts 
             int damages = m_Controller.StateHandler.ApplyBonusDamages(m_SpellData.Damage);
-
+            
             // check if target has counter(s)
             if (controller.CounterHandler.CheckCounters(this))
                 return false;
@@ -248,7 +267,7 @@ namespace Game.Spells
             ErrorHandler.Log(m_SpellData.Name + " : " + finalDamages, ELogTag.Spells);
 
             // apply lifesteal if any (remove 1 because floats values are always based on 1 as default value)
-            float lifeSteal = Mathf.Max(0f, m_Controller.StateHandler.GetFloat(EStateEffectProperty.LifeSteal) - 1);
+            float lifeSteal = SpellData.LifeSteal + Mathf.Max(0f, m_Controller.StateHandler.GetFloat(EStateEffectProperty.BonusLifeSteal) - 1);
             if (lifeSteal > 0 && finalDamages > 0)
             {
                 m_Controller.Life.Heal((int)Mathf.Round(lifeSteal * finalDamages));
@@ -260,11 +279,8 @@ namespace Game.Spells
                 }
             }
 
-            // if spell is AutoAttack & controller has a "AutoAttackRune" : add effects of the rune to the spell
-            if (m_Controller.RuneData.GetType() == typeof(AutoAttackRune) && m_SpellData.Name == m_Controller.SpellHandler.AutoAttack.ToString())
-            {
+            if (IsAutoAttack && m_Controller.RuneData.GetType() == typeof(AutoAttackRune))
                 ((AutoAttackRune)m_Controller.RuneData).ApplyOnHit(ref controller, m_Controller);
-            }
 
             // apply state effects specifics to enemies
             ApplyEnemyStateEffects(controller);
@@ -295,6 +311,14 @@ namespace Game.Spells
             return true;
         }
 
+        protected virtual void AddExtraEffects()
+        {
+            bool IsAutoAttack = m_SpellData.Name == m_Controller.SpellHandler.AutoAttack.ToString();
+
+            // if spell is AutoAttack & controller has a "AutoAttackRune" : add effects of the rune to the spell
+            m_Controller.StateHandler.AddExtraEffects(ref m_BaseSpellData, IsAutoAttack);
+        }
+
         /// <summary>
         /// Set the value of the target, update direction and rotation
         /// </summary>
@@ -318,9 +342,7 @@ namespace Game.Spells
             if (! IsServer)
                 return;
 
-            var position = transform.position;
-            position.y = 0;
-            m_SpellData.SpawnOnHitPrefab(OwnerClientId, position, position);
+            m_SpellData.SpawnOnHitPrefab(OwnerClientId, transform.position, transform.position);
         }
 
         protected virtual void ApplyStateEffects(Controller targetController, List<SStateEffectData> stateEffects)
@@ -413,6 +435,17 @@ namespace Game.Spells
             }
 
             return true;
+        }
+
+        #endregion
+
+
+        #region Listeners
+
+        void OnGameStateChanged(EGameState oldValue, EGameState state)
+        {
+            if (state >= EGameState.GameOver)
+                Destroy(gameObject);
         }
 
         #endregion

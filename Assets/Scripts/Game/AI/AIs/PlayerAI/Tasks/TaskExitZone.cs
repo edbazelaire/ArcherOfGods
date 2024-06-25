@@ -3,7 +3,6 @@ using Enums;
 using Game.AI;
 using Game.Spells;
 using System.Collections.Generic;
-using System.Linq;
 using Tools;
 using UnityEngine;
 
@@ -33,7 +32,7 @@ public class TaskExitZone : TaskMove
         (float? startX, float? endX) = GetZoneStartEnd(); 
         if (! startX.HasValue || !endX.HasValue)
         {
-            ErrorHandler.Error("TaskExitZone() was called but unable to find start/end of the zone : startX = " + startX + " | endX = " + endX);
+            m_State = NodeState.SUCCESS;
             return m_State;
         }
 
@@ -46,14 +45,13 @@ public class TaskExitZone : TaskMove
         return m_State;
     }
 
-
     /// <summary>
     /// Check if there is a zone spell on the ground that prevents movement on the left or the right
     /// </summary>
     /// <param name="allowedMovements"></param>
     (float?, float?) GetZoneStartEnd()
     {
-        Collider2D[] colliders = CollisionChecker.GetControllerCollisions(m_Controller, ELayer.Spell);
+        Collider2D[] colliders = CollisionChecker.GetColliderCollisions(m_ImmediatThreatTrigger.Collider, new List<ELayer> { ELayer.Spell });
 
         float? startX = null;
         float? endX = null;
@@ -89,17 +87,16 @@ public class TaskExitZone : TaskMove
     /// </summary>
     void SelectExitMovement(float startX, float endX)
     {
-
         // CHECK OBSTACLES  --------------------------------------------------------------------------------
         // START : check if there is Obstacles on the way to the start -> move towards the end
-        if (CollisionChecker.GetCollidersBetween(m_Position.x, startX - CollisionChecker.GetCharacterWidth(m_Controller), CollisionChecker.OBSTACLES_LAYERS).Length > 0)
+        if (CollisionChecker.GetCollidersBetween(m_Position.x, startX - CollisionChecker.GetColliderWidth(m_ImmediatThreatTrigger.Collider), CollisionChecker.OBSTACLES_LAYERS).Length > 0)
         {
             m_CurrentMoveX = 1;
             return;
         }
 
         // END : check if there is Obstacles on the way to the end -> move towards the start
-        if (CollisionChecker.GetCollidersBetween(m_Position.x, endX + CollisionChecker.GetCharacterWidth(m_Controller), CollisionChecker.OBSTACLES_LAYERS).Length > 0)
+        if (CollisionChecker.GetCollidersBetween(m_Position.x, endX + CollisionChecker.GetColliderWidth(m_ImmediatThreatTrigger.Collider), CollisionChecker.OBSTACLES_LAYERS).Length > 0)
         {
             m_CurrentMoveX = -1;
             return;
@@ -109,7 +106,7 @@ public class TaskExitZone : TaskMove
         Collider2D[] colliders;
         List<Spell> spells;
         // START : check if there is ZONES SPELLS on the way to the end (more than 1 because already in one) -> move towards the start
-        colliders = CollisionChecker.GetCollidersBetween(m_Position.x, startX - CollisionChecker.GetCharacterWidth(m_Controller), ELayer.Spell);
+        colliders = CollisionChecker.GetCollidersBetween(m_Position.x, startX - CollisionChecker.GetColliderWidth(m_ImmediatThreatTrigger.Collider), ELayer.Spell);
         spells = CollisionChecker.FilterSpells(colliders, ESpellType.Zone, (m_Controller.Team + 1) % 2);
         if (spells.Count > 1)
         {
@@ -118,7 +115,7 @@ public class TaskExitZone : TaskMove
         }
 
         // END : check if there is ZONES SPELLS on the way to the end (more than 1 because already in one) -> move towards the start
-        colliders = CollisionChecker.GetCollidersBetween(m_Position.x, endX + CollisionChecker.GetCharacterWidth(m_Controller), ELayer.Spell);
+        colliders = CollisionChecker.GetCollidersBetween(m_Position.x, endX + CollisionChecker.GetColliderWidth(m_ImmediatThreatTrigger.Collider), ELayer.Spell);
         spells = CollisionChecker.FilterSpells(colliders, ESpellType.Zone, (m_Controller.Team + 1) % 2);
         if (spells.Count > 1)
         {

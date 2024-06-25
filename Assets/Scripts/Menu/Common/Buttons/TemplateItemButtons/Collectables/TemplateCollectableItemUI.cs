@@ -52,17 +52,7 @@ namespace Menu.Common.Buttons
         {
             base.Initialize();
 
-            // load cloud data of the collectable
-            m_CollectableCloudData = InventoryCloudData.Instance.GetCollectable(collectable);
-
-            // setup ui elements (icon, collection fillbar, ...)
-            SetUpUI(asIconOnly);
-
-            // remove extra features if this is only requested as icon
-            AsIconOnly(asIconOnly);
-
-            // setup ui depending on context
-            RefreshUI();
+            SetUpCollectable(collectable, asIconOnly);
         }
 
         #endregion
@@ -92,6 +82,21 @@ namespace Menu.Common.Buttons
 
             // check context of state and apply it
             UpdateState();
+        }
+
+        public virtual void SetUpCollectable(Enum collectable, bool asIconOnly = false)
+        {
+            // load cloud data of the collectable
+            m_CollectableCloudData = InventoryCloudData.Instance.GetCollectable(collectable);
+
+            // setup ui elements (icon, collection fillbar, ...)
+            SetUpUI(asIconOnly);
+
+            // remove extra features if this is only requested as icon
+            AsIconOnly(asIconOnly);
+
+            // setup ui depending on context
+            RefreshUI();
         }
 
         public virtual void SetUpCollectionFillBar(bool activate)

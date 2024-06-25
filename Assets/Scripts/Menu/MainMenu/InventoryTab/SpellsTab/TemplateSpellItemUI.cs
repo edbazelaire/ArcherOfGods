@@ -268,8 +268,6 @@ namespace Menu.MainMenu
 
             // remove the spell from the current build display
             CurrentBuildDisplayUI.RemoveSpell(Spell);
-            // display the spell item in the list of spell items
-            SpellsTabContent.ShowSpellItem(Spell, true);
         }
 
         /// <summary>

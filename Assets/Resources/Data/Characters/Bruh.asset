@@ -18,13 +18,13 @@ MonoBehaviour:
   Ultimate: 12
   Size: 0.9
   BaseSpeed: 1.15
-  BaseHealth: 900
+  BaseHealth: 1100
   MaxEnergy: 100
   HealthScaleFactor: 0.1
   CharacterStatScaling:
-  - StateEffectProperty: 19
-    BaseValue: 3
+  - StateEffectProperty: 101
+    BaseValue: 0.1
     ScalingFactor: 0.1
   - StateEffectProperty: 16
     BaseValue: 0.1
-    ScalingFactor: 0.1
+    ScalingFactor: 0

@@ -35,7 +35,8 @@
     public enum EGameMode
     {
         Arena,
-        Ranked
+        Ranked,
+        Training,
     }
 
     public enum EArenaType
@@ -82,7 +83,7 @@
         FrozenOrb,
         FrostbiteTouch,
         Silence,
-        PyroBurst,
+        PyroBlast,
         FrostVenomBarrage,
         PyrotoxinMist,
         FireBarrage,
@@ -96,6 +97,11 @@
         CursedTimes,
         ThickSkin,
         WinterProtection,
+        ExtraHands,
+        PoisonedBlade,
+        Corrupted,
+        VoidEmbrace,
+        PlagueArrows,
 
         Count
     }
@@ -209,6 +215,13 @@
         AllyZoneCenter,
     }
 
+    public enum ESpellSpawn
+    {
+        None,
+        Ground,
+        OnPosition,
+    }
+
     public enum EMultiProjectileType
     {
         None,
@@ -279,6 +292,7 @@
         IceBreak,
         Infected,
         Malediction,
+        VoidPact,
     }
 
     public enum ESpellProperty
@@ -287,33 +301,45 @@
 
         Heal,
         Damages,
+        Cooldowns,
+        Duration,
+        LifeSteal,
     }
 
     public enum EStateEffectProperty
     {
-        None,
+        None = 0,
 
-        Duration,
-        MaxStacks,
-        SpeedBonus,
-        Shield,
-        ResistanceFix,
-        ResistancePerc,
-        BonusDamages,
-        BonusDamagesPerc,
+        Duration            = 1,
+        MaxStacks           = 2,
+        SpeedBonus          = 3,
+        Shield              = 4,
+        ResistanceFix       = 5,
+        ResistancePerc      = 6,
+        BonusDamages        = 7,
+        BonusDamagesPerc    = 8,
+        BonusLifeSteal      = 9,
+        MissingLifeFactor   = 10,
+        Damages             = 11,
+
+        Tick                = 12,
+        TickDamages         = 13,
+        TickHeal            = 14,
+        TickShield          = 15,
+        AttackSpeed         = 16,
+
+        CastSpeed           = 17,
+        ConsumeState        = 18,
+
+        BonusTickDamages        = 100,
+        BonusTickDamagesPerc    = 101,
+        BonusTickHeal           = 102,
+        BonusTickShield         = 103,
+
+        Heal,
         LifeSteal,
-        MissingLifeFactor,
-        Damages,
-        Tick,
-        TickDamages,
-        TickHeal,
-        TickShield,
-        AttackSpeed,
-        CastSpeed,
-        ConsumeState,
-        BonusTickDamages,
-        BonusTickHeal,
-        BonusTickShield,
+        BonusHeal,
+        BonusHealPerc,
     }
 
     public enum EAnimation
@@ -389,6 +415,8 @@
         AICheckers          = 202,
         AITaskAttack        = 203,
         AITaskMove          = 204,
+        AITaskJump          = 205,
+        AITaskCounter       = 206,
 
         // CloudData
         CloudData           = 300,

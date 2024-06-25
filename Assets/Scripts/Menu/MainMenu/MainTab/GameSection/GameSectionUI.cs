@@ -1,4 +1,5 @@
 ﻿using Enums;
+using Menu.MainMenu.MainTab.GameSection.Training;
 using System;
 using Tools;
 using UnityEngine;
@@ -9,36 +10,25 @@ namespace Menu.MainMenu.MainTab
     {
         #region Members
 
-        EGameMode m_GameMode;
+        EGameMode m_GameMode => PlayerPrefsHandler.GetGameMode();
         GameObject m_Content;
 
-        
         #endregion
 
 
         #region Init & End
-
-        public override void Initialize()
-        {
-            base.Initialize();
-
-            // init UI
-            if (!Enum.TryParse(PlayerPrefs.GetString("GameMode"), out m_GameMode))
-            {
-                ErrorHandler.Error("Unable to parse GameMode : " + PlayerPrefs.GetString("GameMode"));
-                SetGameMode(EGameMode.Arena);
-            } 
-            else
-            {
-                OnGameModeChangedEvent(m_GameMode);
-            }
-        }
 
         protected override void FindComponents()
         {
             m_Content = Finder.Find(gameObject, "Content");
         }
 
+        public override void Initialize()
+        {
+            base.Initialize();
+
+            OnGameModeChangedEvent(m_GameMode);
+        }
         
         #endregion
 
@@ -62,21 +52,16 @@ namespace Menu.MainMenu.MainTab
                     rankedModeUI.Initialize();
                     break;
 
+                case (EGameMode.Training):
+                    TrainingModeDisplayUI trainingModeUI = GameObject.Instantiate(AssetLoader.Load<TrainingModeDisplayUI>(AssetLoader.c_GameSectionPath), m_Content.transform);
+                    trainingModeUI.Initialize();
+                    break;
+
                 default:
                     ErrorHandler.Error("Unhandled game mode : " + m_GameMode);
                     return;
             }
            
-        }
-
-        #endregion
-
-
-        #region Static Methods
-
-        public static void SetGameMode(EGameMode gameMode)
-        {
-            PlayerPrefsHandler.SetGameMode(gameMode);
         }
 
         #endregion
@@ -98,11 +83,8 @@ namespace Menu.MainMenu.MainTab
             PlayerPrefsHandler.GameModeChangedEvent -= OnGameModeChangedEvent;
         }
 
-
         void OnGameModeChangedEvent(EGameMode gameMode)
         {
-            m_GameMode = gameMode;
-
             RefreshGameModeUI();
         }
 

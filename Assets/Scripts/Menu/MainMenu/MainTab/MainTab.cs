@@ -25,7 +25,6 @@ namespace Menu.MainMenu.MainTab
         CharacterSelectionWindow    m_CharacterSelection;
         GameSectionUI               m_GameSectionUI;
         Button                      m_PlayButton;
-        Image                       m_PlayButtonImage;
         TMP_Dropdown                m_GameTypeDropDown;
 
         #endregion
@@ -41,7 +40,6 @@ namespace Menu.MainMenu.MainTab
             m_CharacterSelection                = Finder.FindComponent<CharacterSelectionWindow>(gameObject, "CharacterSelectionWindow");
             m_GameSectionUI                     = Finder.FindComponent<GameSectionUI>(gameObject, "GameSection");
             m_PlayButton                        = Finder.FindComponent<Button>(gameObject, c_PlayButton);
-            m_PlayButtonImage                   = Finder.FindComponent<Image>(m_PlayButton.gameObject);
             m_GameTypeDropDown                  = Finder.FindComponent<TMP_Dropdown>(gameObject, c_Dropdown);
         }
 
@@ -57,7 +55,7 @@ namespace Menu.MainMenu.MainTab
             m_CharacterSelection.gameObject.SetActive(false);
 
             // set game modes
-            SetUpDropDownButton();
+            UIHelper.SetUpDropdown<EGameMode>(m_GameTypeDropDown, PlayerPrefsHandler.GetGameMode(), OnDropDown);
 
             // register to events
             m_PlayButton.onClick.AddListener(OnPlay);
@@ -73,24 +71,6 @@ namespace Menu.MainMenu.MainTab
             base.OnDestroy();
 
             m_PlayButton.onClick.RemoveAllListeners();
-        }
-
-        #endregion
-
-
-        #region Setup UI
-
-        void SetUpDropDownButton()
-        {
-            List<string> modes = Enum.GetNames(typeof(EGameMode)).ToList();
-
-            m_GameTypeDropDown.AddOptions(modes);
-
-            // change Lobby game mode on new selection
-            m_GameTypeDropDown.onValueChanged.AddListener(OnDropDown);
-
-            // set value to last selected value
-            m_GameTypeDropDown.value = modes.IndexOf(PlayerPrefsHandler.GetGameMode().ToString());
         }
 
         #endregion
@@ -193,25 +173,18 @@ namespace Menu.MainMenu.MainTab
                 return;
             }
 
-            if (LobbyHandler.Instance.GameMode == EGameMode.Ranked)
-                Main.SetPopUp(EPopUpState.LobbyScreen);
+            Main.SetPopUp(EPopUpState.LobbyScreen);
 
             JoinLobby();
         }
 
-        void OnDropDown(int index)
+        void OnDropDown(EGameMode gameMode)
         {
-            SoundFXManager.PlayOnce(SoundFXManager.ClickButtonSoundFX);
-
-            if (!Enum.TryParse(m_GameTypeDropDown.options[index].text, out EGameMode gameMode))
-            {
-                ErrorHandler.Error("Unable to convert " + m_GameTypeDropDown.options[index].text + " as game mode");
-            }
+            if (gameMode == PlayerPrefsHandler.GetGameMode())
+                return;
 
             PlayerPrefsHandler.SetGameMode(gameMode);
-            GameSectionUI.SetGameMode(gameMode);
         }
-
 
         #endregion
     }

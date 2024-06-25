@@ -65,7 +65,7 @@ namespace Game.Spells
         [Header("Damages")]
         [SerializeField] protected      int                         m_BonusDamages      = 0;
         [SerializeField] protected      float                       m_BonusDamagesPerc  = 0f;
-        [SerializeField] protected      float                       m_LifeSteal         = 0f;
+        [SerializeField] protected      float                       m_BonusLifeSteal    = 0f;
 
         [Header("Level Scaling")]
         /// <summary> Scaling factor for each properties depending on number of Stacks for each levels </summary>
@@ -102,6 +102,7 @@ namespace Game.Spells
         public virtual int              MaxStacks           => m_MaxStacks;
         public EStateEffect             ConsumeState        => m_ConsumeState;
         public EStateEffect             DefaultState        => m_DefaultState;
+        public int                      Level               => m_Level;
 
         public string StateEffectName
         {
@@ -125,18 +126,16 @@ namespace Game.Spells
             m_Controller = controller;
             m_Caster = caster;
 
+            // check if has overriding data
             if (stateEffectData.HasValue)
-                ApplyStateEffectData(stateEffectData.Value);
+                OverrideStateEffectData(stateEffectData.Value);
 
             if (!CheckBeforeGraphicInit())
             {
                 return false;
             }
 
-            m_RemainingShield = GetInt(EStateEffectProperty.Shield);
-
             RefreshStats();
-
             return true;
         }
 
@@ -166,7 +165,7 @@ namespace Game.Spells
                 return true;
 
             // can only apply to enemy with required state 
-            if (!m_Controller.StateHandler.HasState(m_ConsumeState))
+            if (! m_Controller.StateHandler.HasState(m_ConsumeState))
             {
                 // add DefaultState state (if any)
                 if (m_DefaultState != EStateEffect.None)
@@ -182,7 +181,7 @@ namespace Game.Spells
             return true;
         }
 
-        public void ApplyStateEffectData(SStateEffectData stateEffectData)
+        public void OverrideStateEffectData(SStateEffectData stateEffectData)
         {
             name = stateEffectData.StateEffect.ToString();
 
@@ -240,6 +239,7 @@ namespace Game.Spells
 
         protected virtual void RefreshStats()
         {
+            m_RemainingShield = GetInt(EStateEffectProperty.Shield); 
             m_Timer = m_Duration;
         }
 
@@ -273,6 +273,10 @@ namespace Game.Spells
         {
             StateEffect clone = Instantiate(this);
             clone.name = this.name;
+
+            // make sure that original level is copied
+            clone.m_Level = m_Level;
+
             clone.SetLevel(level);
 
             return clone;
@@ -284,37 +288,20 @@ namespace Game.Spells
             m_Level = level;
         }
 
-        protected virtual void ApplyNewLevelFactorAll(int level)
+        protected virtual void ApplyNewLevelFactorAll(int newLevel)
         {
             foreach (SStateEffectScaling stateEffectScaling in m_StateEffectScalingLevel)
             {
-                ApplyNewLevelScalingEffectFactor(stateEffectScaling, level - 1, m_Level - 1);
+                ApplyNewLevelScalingEffectFactor(stateEffectScaling, newLevel, m_Level);
             }
-        }
-
-        protected virtual void ApplyNewLevelFactor(EStateEffectProperty property, int level)
-        {
-            SStateEffectScaling stateEffectScaling = m_StateEffectScalingLevel.FirstOrDefault(effect => effect.StateEffectProperty == property);
-
-            // check that a scaling value was provided
-            if (stateEffectScaling.StateEffectProperty != property)
-                return;
-
-            if (stateEffectScaling.ScalingFactor <= 0f)
-            {
-                ErrorHandler.Warning("StateEffectProperty (" + stateEffectScaling.StateEffectProperty + ") was set with a ScalingFactor (" + stateEffectScaling.ScalingFactor + " ) < 0 for StateEffect " + name);
-                return;
-            }
-
-            ApplyNewLevelScalingEffectFactor(stateEffectScaling, level - 1, m_Level - 1);
         }
 
         protected virtual void ApplyNewLevelScalingEffectFactor(SStateEffectScaling stateEffectScaling, int newLevel, int oldLevel)
         {
             // factor of current level
-            float currentFactor = (float)Math.Pow(1 + stateEffectScaling.ScalingFactor, oldLevel);
+            float currentFactor = (float)Math.Pow(1 + stateEffectScaling.ScalingFactor, Math.Max(oldLevel - 1, 0));
             // factor of the level we are setting
-            float newFactor = (float)Math.Pow(1 + stateEffectScaling.ScalingFactor, newLevel);
+            float newFactor = (float)Math.Pow(1 + stateEffectScaling.ScalingFactor, Math.Max(newLevel - 1, 0));
 
             // current factor is 0 -> set value to 0 to avoid division by 0
             if (currentFactor == 0)
@@ -419,7 +406,6 @@ namespace Game.Spells
                 ErrorHandler.Error("Unable to parse value " + value + " of property " + property + " of state effect " + name + " into " + typeof(T));
                 return default;
             }
-            
         }
 
         #endregion
@@ -430,23 +416,21 @@ namespace Game.Spells
         public virtual int GetInt(EStateEffectProperty property) 
         {
             SStateEffectScaling stateEffectScalingStacks = m_StateEffectScalingStacks.FirstOrDefault(effect => effect.StateEffectProperty == property);
-            SStateEffectScaling stateEffectScalingLevel = m_StateEffectScalingLevel.FirstOrDefault(effect => effect.StateEffectProperty == property);
 
             int baseValue = GetProperty<int>(property);                                             // Base Value of the property
 
             if (baseValue == 0)
                 return 0;
 
-            float levelFactor       = stateEffectScalingLevel.StateEffectProperty == property ? Mathf.Pow(1f + stateEffectScalingLevel.ScalingFactor, m_Level) : 1f;
-            int valueLevelScaled    = (int)Mathf.Round(baseValue * levelFactor);
-            int boostedValue        = m_Controller.StateHandler.ApplyBonusInt(valueLevelScaled, property);                                                              // Bonus values applied to the property
+            if (m_Controller == null)
+                return baseValue;
+
+            int boostedValue        = m_Controller.StateHandler.ApplyBonusInt(baseValue, property);                                                              // Bonus values applied to the property
             float stacksFactor      = stateEffectScalingStacks.StateEffectProperty == property ? Stacks * stateEffectScalingStacks.ScalingFactor : 1f;                  // apply Stack bonus 
 
             ErrorHandler.Log("GetInt() : " + property, ELogTag.StateEffects);
             ErrorHandler.Log("      + Final Value : " + (int)Mathf.Round(boostedValue * stacksFactor), ELogTag.StateEffects);
             ErrorHandler.Log("      + baseValue : " + baseValue, ELogTag.StateEffects);
-            ErrorHandler.Log("      + levelFactor : " + levelFactor, ELogTag.StateEffects);
-            ErrorHandler.Log("      + valueLevelScaled : " + valueLevelScaled, ELogTag.StateEffects);
             ErrorHandler.Log("      + boostedValue : " + boostedValue, ELogTag.StateEffects);
             ErrorHandler.Log("      + stacksFactor : " + stacksFactor, ELogTag.StateEffects);
 
@@ -458,11 +442,19 @@ namespace Game.Spells
         {
             SStateEffectScaling stateEffectScaling = m_StateEffectScalingStacks.FirstOrDefault(effect => effect.StateEffectProperty == property);
 
+            float baseValue = GetProperty<float>(property);
+
             // check that a scaling value was provided
             if (stateEffectScaling.StateEffectProperty != property || stateEffectScaling.ScalingFactor == 0)
-                return GetProperty<float>(property);
+                return baseValue;
 
-            return Mathf.Round(100 * GetProperty<float>(property) * Stacks * (1f + stateEffectScaling.ScalingFactor)) / 100;
+            if (m_Controller == null)
+                return baseValue;
+
+            float boostedValue = m_Controller.StateHandler.ApplyBonus(baseValue, property);                                                              // Bonus values applied to the property
+            float stacksFactor = stateEffectScaling.StateEffectProperty == property ? Stacks * stateEffectScaling.ScalingFactor : 1f;                  // apply Stack bonus 
+
+            return Mathf.Round(100 * boostedValue * stacksFactor) / 100;
         }
 
         #endregion

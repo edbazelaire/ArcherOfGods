@@ -34,6 +34,9 @@ MonoBehaviour:
   OverrideOnHitProperties: 
   m_Duration: 2
   Delay: 0
+  m_SpellScalingLevel:
+  - Property: 3
+    Value: 0.05
   m_Size: 6
   TriggerPlayer: 0
   EnemyStateEffects: []
@@ -42,7 +45,6 @@ MonoBehaviour:
   Animation: 4
   IsCancellable: 0
   AnimationTimer: 0
-  CastAt: 1
   m_Cooldown: 35
   CounterType: 3
   CounterActivation: 1

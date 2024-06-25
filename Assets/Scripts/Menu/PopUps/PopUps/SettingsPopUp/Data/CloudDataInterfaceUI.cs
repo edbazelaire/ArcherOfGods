@@ -21,7 +21,7 @@ namespace Menu.PopUps
         TMP_Text m_Title;
         GameObject m_Content;
 
-        string m_Name => m_CloudDataManager != null ? TextHandler.Split(m_CloudDataManager.GetType().ToString().Split(".")[^1]) : "General";
+        string m_Name => m_CloudDataManager != null ? TextHandler.Split(m_CloudDataManager.GetType().ToString().Split(".")[^1]) : "Reset Data";
 
         #endregion
 

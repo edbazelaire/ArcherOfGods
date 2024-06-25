@@ -111,6 +111,9 @@ namespace Game.Character
         [ClientRpc]
         void OnStateEventClientRPC(EListEvent listEvent, string stateEffect, int stacks, float duration)
         {
+            if (GameManager.IsGameOver)
+                return;
+
             OnStateEvent?.Invoke(listEvent, stateEffect, stacks, duration);
 
             if (listEvent == EListEvent.Add)
@@ -165,25 +168,58 @@ namespace Game.Character
             return (int)Mathf.Round(damages * GetFloat(EStateEffectProperty.BonusDamagesPerc));   
         }
 
+        public int ApplyBonusHeal(int heal)
+        {
+            // apply percentage res
+            heal = Math.Max(0, heal + GetInt(EStateEffectProperty.BonusHeal));
+
+            // apply res fix first
+            return (int)Mathf.Round(heal * GetFloat(EStateEffectProperty.BonusHealPerc));   
+        }
+
         public float ApplyBonus(float baseValue, EStateEffectProperty stateEffectProperty)
         {
             switch (stateEffectProperty)
             {
                 case EStateEffectProperty.TickDamages:
-                    return baseValue + GetInt(EStateEffectProperty.BonusTickDamages);
+                    return (baseValue + GetInt(EStateEffectProperty.BonusTickDamages)) * GetFloat(EStateEffectProperty.BonusTickDamagesPerc);
 
                 case EStateEffectProperty.TickHeal:
-                    return baseValue + GetInt(EStateEffectProperty.BonusTickHeal);
-            }
+                    return (baseValue + GetInt(EStateEffectProperty.BonusTickHeal));
 
-            // apply percentage res
-            return baseValue + GetFloat(stateEffectProperty);
+                case EStateEffectProperty.Damages:
+                    return ApplyBonusDamages((int)Mathf.Round(baseValue));
+
+                case EStateEffectProperty.Heal:
+                    return ApplyBonusHeal((int)Mathf.Round(baseValue));
+
+                default:
+                    return baseValue;
+            }
         }
 
         public int ApplyBonusInt(int baseValue, EStateEffectProperty stateEffectProperty)
         {
             // apply percentage res
             return Math.Max(0, (int)Mathf.Round(ApplyBonus(baseValue, stateEffectProperty)));
+        }
+
+        public void AddExtraEffects(ref SpellData spellData, bool isAutoAttack)
+        {
+            foreach (StateEffect stateEffect in m_StateEffects)
+            {
+                if (stateEffect is not SpellEffect)
+                    continue;
+
+                SpellEffect spellEffect = (SpellEffect)stateEffect;
+
+                if (typeof(AutoAttackEffect) == spellEffect.GetType() && !isAutoAttack)
+                    continue;
+
+                spellData.OnHit.AddRange(spellEffect.OnHits);
+                spellData.AllyStateEffects.AddRange(spellEffect.AllyStateEffects);
+                spellData.EnemyStateEffects.AddRange(spellEffect.EnemyStateEffects);
+            }
         }
 
         #endregion

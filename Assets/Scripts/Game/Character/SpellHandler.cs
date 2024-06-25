@@ -1,5 +1,6 @@
 ﻿using Assets;
 using Data;
+using Data.GameManagement;
 using Enums;
 using Game.Loaders;
 using System;
@@ -53,6 +54,8 @@ namespace Game.Character
         ESpell                              m_SpecialAbility;
         /// <summary> enum of the character's ultimate </summary>
         ESpell                              m_Ultimate;
+        /// <summary> overriding spell data (in case of replacement or someting) </summary>
+        Dictionary<ESpell, SpellData>       m_OverridingSpellData;
         /// <summary> base spawn position of the spell </summary>
         Transform                           m_SpellSpawn;
         /// <summary> spell that will be selected at the end of the current one </summary>
@@ -101,6 +104,7 @@ namespace Game.Character
         {
             m_Controller = Finder.FindComponent<Controller>(gameObject);
             m_SpellSpawn = Finder.FindComponent<Transform>(gameObject, c_SpellSpawn);
+            m_OverridingSpellData = new Dictionary<ESpell, SpellData>();
 
             m_SelectedSpellNet.OnValueChanged += OnSelectedSpellChanged;
         }
@@ -219,7 +223,7 @@ namespace Game.Character
         {
             OnSpellCasted?.Invoke(spell);
 
-            SpellLoader.GetSpellData(spell).SpawnOnCastPrefabs(m_Controller.transform, m_TargetPos.Value);
+            GetSpellData(spell).SpawnOnCastPrefabs(m_Controller.transform, m_TargetPos.Value);
         }
 
         #endregion
@@ -238,7 +242,7 @@ namespace Game.Character
                 return true;
 
             return GetCooldown(spell) <= 0f                                                                    // spell not on cooldown 
-                && SpellLoader.GetSpellData(spell).EnergyCost <= m_Controller.EnergyHandler.Energy.Value;      // check enought energy
+                && GetSpellData(spell).EnergyCost <= m_Controller.EnergyHandler.Energy.Value;      // check enought energy
         }
 
         /// <summary>
@@ -382,6 +386,7 @@ namespace Game.Character
             return m_Controller.StateHandler.IsStunned                          // is stunned
                 || m_Controller.StateHandler.IsSilenced                         // is silenced
                 || m_Controller.StateHandler.HasState(EStateEffect.Frozen)      // is frozen 
+                || m_Controller.StateHandler.HasState(EStateEffect.Jump)        // is jumping
                 || m_Controller.CounterHandler.IsBlockingCast.Value;            // is using a counter
         }
 
@@ -392,7 +397,7 @@ namespace Game.Character
         /// <returns></returns>
         public bool CheckEnemyTargetable(ESpell spell)
         {
-            SpellData spellData = SpellLoader.GetSpellData(spell);
+            SpellData spellData = GetSpellData(spell);
             if (IsAutoTarget(spell))
                 spellData.ForceAutoTarget();
 
@@ -444,7 +449,7 @@ namespace Game.Character
                 yield break;
 
             // SETUP : get spell data and set animation to motion
-            SpellData spellData = SpellLoader.GetSpellData(spell);
+            SpellData spellData = GetSpellData(spell);
 
             // SETUP : casting data
             m_IsCurrentSpellCancellable = spellData.IsCancellable;
@@ -498,7 +503,7 @@ namespace Game.Character
             if (m_Controller.IsPlayer || Main.LogTags.Contains(ELogTag.AI))
                 ErrorHandler.Log("Cast : " + spell, ELogTag.SpellHandler);
 
-            SpellData spellData = SpellLoader.GetSpellData(spell, m_SpellLevelsNet[GetSpellIndex(spell)]);
+            SpellData spellData = GetSpellData(spell, m_SpellLevelsNet[GetSpellIndex(spell)]);
             if (m_IsSelectedAutoTarget)
                 spellData.ForceAutoTarget();
 
@@ -700,6 +705,22 @@ namespace Game.Character
             return m_IsAutoTarget[GetSpellIndex(spell)];
         }
 
+        /// <summary>
+        /// Is the spell an auto target type ?
+        /// </summary>
+        /// <param name="spell"></param>
+        /// <returns></returns>
+        public bool IsAutoTarget(string spellName)
+        {
+            if (Enum.TryParse(spellName, out ESpell spell))
+            {
+                var index = GetSpellIndex(spell);
+                if (index >= 0)
+                    return m_IsAutoTarget[index];
+            }
+
+            return GetSpellData(spell).IsAutoTarget;
+        }
 
         /// <summary>
         /// Check if click was in an targettable area
@@ -728,6 +749,41 @@ namespace Game.Character
         #endregion
 
 
+        #region Public Manipulators
+
+        public void ReplaceAutoAttack(SpellData spellData)
+        {
+            ReplaceSpell(AutoAttack, spellData);
+        } 
+
+        public void ReplaceSpell(ESpell spell, SpellData spellData)
+        {
+            if (!IsServer)
+                return;
+
+            m_OverridingSpellData[spell] = spellData;
+        }
+
+        public void RemoveOverridingSpell(ESpell spell)
+        {
+            m_OverridingSpellData.Remove(spell);
+        }
+
+        /// <summary>
+        /// Force player to not cast anything
+        /// </summary>
+        /// <param name="block"></param>
+        public void ForceBlockCast(bool block)
+        {
+            if (!IsServer)
+                return;
+
+            m_CastBlocked.Value = block;
+        }
+
+        #endregion
+
+
         #region Helpers 
 
         /// <summary>
@@ -746,19 +802,6 @@ namespace Game.Character
             return Spells.IndexOf(spellType);
         }
 
-        /// <summary>
-        /// Force player to not cast anything
-        /// </summary>
-        /// <param name="block"></param>
-        public void ForceBlockCast(bool block)
-        {
-            if (!IsServer)
-                return;
-
-            m_CastBlocked.Value = block;
-        }
-
-
         #endregion
 
 
@@ -768,11 +811,21 @@ namespace Game.Character
         {
             m_IsSelectedAutoTarget = IsAutoTarget(m_SelectedSpell);
         }
-
+        
         #endregion
 
 
         #region Getter / Setter / Dependent Properties
+
+        protected SpellData GetSpellData(ESpell spell, int level = 1)
+        {
+            if (m_OverridingSpellData.ContainsKey(spell))
+            {
+                return m_OverridingSpellData[spell];
+            }
+
+            return SpellLoader.GetSpellData(spell, level);
+        }
 
         ESpell m_SelectedSpell
         {
@@ -827,7 +880,7 @@ namespace Game.Character
 
         public bool IsAutoAttack => m_SelectedSpell == AutoAttack;
 
-        public float CurrentCastSpeedFactor => IsAutoAttack? m_Controller.StateHandler.GetFloat(EStateEffectProperty.AttackSpeed) : m_Controller.StateHandler.GetFloat(EStateEffectProperty.CastSpeed);
+        public float CurrentCastSpeedFactor => IsAutoAttack ? Settings.AutoAttackSpeedFactor * m_Controller.StateHandler.GetFloat(EStateEffectProperty.AttackSpeed) : Settings.CastSpeedFactor * m_Controller.StateHandler.GetFloat(EStateEffectProperty.CastSpeed);
 
         #endregion
     }

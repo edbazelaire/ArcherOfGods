@@ -17,9 +17,13 @@ MonoBehaviour:
   m_VisualEffect: {fileID: 0}
   m_ColorSwitch: {r: 0.025943398, g: 0.31864953, b: 0.5, a: 1}
   m_Animation: 0
+  m_OnApplySoundFX: {fileID: 0}
+  m_PermanantSoundFX: {fileID: 0}
+  m_ConsumeState: 0
+  m_DefaultState: 0
   m_Duration: 5
   m_MaxStacks: 1
-  m_SpeedBonus: -0.05
+  m_SpeedBonus: -0.1
   m_CastSpeed: 0
   m_AttackSpeed: 0
   m_Shield: 0

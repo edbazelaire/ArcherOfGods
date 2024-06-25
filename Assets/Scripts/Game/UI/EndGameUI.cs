@@ -1,20 +1,24 @@
 ﻿using Analytics.Events;
+using Assets;
 using Data.GameManagement;
 using Enums;
 using Game;
+using Game.UI;
 using Inventory;
 using Managers;
 using Network;
 using Save;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using Tools;
+using Tools.Animations;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
 
-public class EndGameUI : MonoBehaviour
+public class EndGameUI : MObject
 {
     #region Members
 
@@ -22,6 +26,11 @@ public class EndGameUI : MonoBehaviour
     const string c_TitleText = "TitleText";
     const string c_LeaveButton = "LeaveButton";
 
+    // Data
+    bool m_Win;
+
+    // Components
+    GameObject  m_Background;
     TMP_Text    m_TitleText;
     GameObject  m_RewardsContent;
     GameObject  m_XpRewardDisplay;
@@ -30,31 +39,17 @@ public class EndGameUI : MonoBehaviour
     TMP_Text    m_GoldsQty;
     Image       m_ChestRewardIcon;
     Button      m_LeaveButton;
+    GameObject  m_Fireworks;
 
     #endregion
 
 
     #region Init & End
 
-    // Use this for initialization
-    public void SetUpGameOver(bool win, bool preventiveLossApplied)
+    protected override void FindComponents()
     {
-        InitializeUI();
-
-        ErrorHandler.Log("END OF GAME : " + LobbyHandler.Instance.GameMode + " - " + (win ? "WIN" : "LOSS"), ELogTag.GameSystem);
-
-        m_TitleText.text = win ? "Victory" : "Defeat";
-        m_TitleText.color = win ? Color.green : Color.red;
-
-        HandleReward(win);
-        HandleProgression(win, preventiveLossApplied);
-        HandleEndGameData(win);
-
-        m_LeaveButton.onClick.AddListener(Leave);
-    }
-
-    void InitializeUI()
-    {
+        m_Background            = Finder.Find(gameObject, "Background");
+        m_Fireworks             = Finder.Find(gameObject, "Fireworks");
         m_TitleText             = Finder.FindComponent<TMP_Text>(gameObject, c_TitleText);
         m_LeaveButton           = Finder.FindComponent<Button>(gameObject, c_LeaveButton);
         m_RewardsContent        = Finder.Find(gameObject, "RewardsContent");
@@ -65,8 +60,46 @@ public class EndGameUI : MonoBehaviour
         m_ChestRewardIcon       = Finder.FindComponent<Image>(m_RewardsContent, "ChestRewardIcon");
     }
 
+    public override void Initialize()
+    {
+        base.Initialize();
+
+        gameObject.SetActive(false);
+    }
+
+    // Use this for initialization
+    public void Activate(bool win, bool preventiveLossApplied)
+    {
+        ErrorHandler.Log("END OF GAME : " + LobbyHandler.Instance.GameMode + " - " + (win ? "WIN" : "LOSS"), ELogTag.GameSystem);
+
+        // make sure that into is deactivated
+        GameUIManager.IntroGameUI.Deactivate();
+
+        // save if this is win or not
+        m_Win = win;
+
+        // set color and text according to context
+        m_TitleText.text = m_Win ? "Victory" : "Defeat";
+        m_TitleText.color = m_Win ? Color.green : Color.red;
+
+        // handle data processing before animation & stuff
+        HandleReward(win);
+        HandleProgression(win, preventiveLossApplied);
+        HandleEndGameData(win);
+
+        // activate game object
+        gameObject.SetActive(true);
+
+        // start animation coroutine
+        StartCoroutine(ActivationAnimation());
+    }
+
+
     void Leave()
     {
+        // stop animation coroutine
+        StopAllCoroutines();
+
         // reset network manager
         NetworkManager.Singleton.Shutdown();
 
@@ -87,6 +120,9 @@ public class EndGameUI : MonoBehaviour
         ErrorHandler.Log("HandleReward() : start", ELogTag.Rewards);
 
         SRewardCalculator reward = win ? Rewarder.WinGameReward : Rewarder.LossGameReward;
+        // no rewards for training mode
+        if (LobbyHandler.Instance.GameMode == EGameMode.Training)
+            reward = new SRewardCalculator(0, 0, 0, new List<SChestDropPercentage>());
 
         // ----------------------------------------------------------------------------
         // Xp   
@@ -171,6 +207,10 @@ public class EndGameUI : MonoBehaviour
                 ProgressionCloudData.UpdateLeagueValue(win);
                 break;
 
+            // no progression on training game
+            case EGameMode.Training:
+                break;
+
             default:
                 ErrorHandler.Error("Unhandled case : " + LobbyHandler.Instance.GameMode);
                 break;
@@ -185,6 +225,67 @@ public class EndGameUI : MonoBehaviour
     {
         // send analytics event (that also saves in StatCloudData)
         MAnalytics.SendEvent(new GameEndedEvent(LobbyHandler.Instance.GameMode, win, StaticPlayerData.Character, StaticPlayerData.CharacterLevel)); ;
+    }
+
+    #endregion
+
+
+    #region Animation
+
+    IEnumerator ActivationAnimation()
+    {
+        // Deactivate all components visual animated components
+        m_TitleText.gameObject.SetActive(false);
+        m_RewardsContent.SetActive(false);
+        m_LeaveButton.gameObject.SetActive(false);
+        m_Fireworks.SetActive(false);
+
+        // FADE IN : Background
+        var fadeIn = m_Background.AddComponent<Fade>();
+        fadeIn.Initialize(duration: 0.4f, startOpacity:0.5f);
+        yield return new WaitUntil(() => fadeIn.IsOver);
+
+        // BOUNCE : Rewards
+        m_RewardsContent.SetActive(true);
+        fadeIn = m_RewardsContent.AddComponent<Fade>();
+        fadeIn.Initialize(duration: 0.5f, startScale: 0.5f);
+
+        // Move : Title
+        m_TitleText.gameObject.SetActive(true);
+        var moveTitle = m_TitleText.gameObject.AddComponent<MoveAnimation>();
+        var pos = m_TitleText.gameObject.transform.position;
+        pos.y += 250;
+        moveTitle.Initialize(duration: 0.5f, startPos: pos);
+
+        // FadeIn : Button
+        m_LeaveButton.gameObject.SetActive(true);
+        var fadeInButton = m_LeaveButton.gameObject.AddComponent<Fade>();
+        fadeInButton.Initialize(duration: 0.5f, startOpacity: 0f);
+
+        // FIREWORKS particles (on win only)
+        if (m_Win)
+            m_Fireworks.SetActive(true);
+
+        yield return new WaitUntil(() => fadeIn.IsOver);
+    }
+
+    #endregion
+
+
+    #region Listeners
+
+    protected override void RegisterListeners()
+    {
+        base.RegisterListeners();
+
+        m_LeaveButton.onClick.AddListener(Leave);
+    }
+
+    protected override void UnRegisterListeners()
+    {
+        base.UnRegisterListeners();
+
+        m_LeaveButton.onClick?.RemoveListener(Leave);
     }
 
     #endregion

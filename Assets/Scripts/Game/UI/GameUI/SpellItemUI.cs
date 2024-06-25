@@ -86,8 +86,8 @@ namespace Game.UI
             m_Owner = GameManager.Instance.Owner;
 
             SpellData spellData = SpellLoader.GetSpellData(m_Spell, level);
-            m_BaseCooldown  = spellData.Cooldown;
-            m_CooldownTimer = 0;
+            m_BaseCooldown      = spellData.Cooldown;
+            m_CooldownTimer     = 0;
 
             // set initial UI of Cooldowns
             SetupCooldown();

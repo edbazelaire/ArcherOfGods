@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Rarety: 1
   Linked: 0
-  Graphics: {fileID: 2910976597878939058, guid: 6004c88444bcc9b48ad4d76700f22980, type: 3}
+  Graphics: {fileID: 4510707380993797748, guid: 51d6d62dbf340c44e8509011ca22e292, type: 3}
   Preview: {fileID: 0}
   OnAnimation: []
   OnCastPrefabs: []
   OnHit: []
+  OnHitSpellSpawn: 1
   AnimationSoundFX: {fileID: 0}
   CastSoundFX: {fileID: 8300000, guid: 54af383899a0037459aded7ebbf3c3f0, type: 3}
   PermanantSoundFX: {fileID: 0}
@@ -30,15 +31,23 @@ MonoBehaviour:
   EnergyCost: 0
   m_Damage: 0
   m_Heal: 0
-  Distance: 5
+  m_LifeSteal: 0
+  Distance: 6
   OverrideOnHitProperties: 
   m_Duration: 0
   Delay: 0
-  m_Size: 0.3
+  m_SpellsScalingLevel:
+  - Property: 2
+    Value: 0.1
+  - Property: 1
+    Value: 0.1
+  - Property: 3
+    Value: 0.05
+  m_Size: 1
   TriggerPlayer: 1
   EnemyStateEffects:
   - StateEffect: 13
-    Stacks: 1
+    Stacks: 3
     Duration: 0
     SpeedBonus: 0
   - StateEffect: 9
@@ -55,7 +64,7 @@ MonoBehaviour:
   m_Speed: 10
   ProjectileData: {fileID: 0}
   MultiProjectileType: 0
-  NProjectiles: 3
+  NProjectiles: 5
   m_ProjectileZoneSize: 0
   DelayBetweenLaunches: 0.3
   NWaves: 1

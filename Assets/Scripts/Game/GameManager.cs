@@ -1,11 +1,11 @@
+using Assets;
 using Assets.Scripts.Managers.Sound;
-using Data.GameManagement;
+using Assets.Scripts.Tools;
 using Enums;
 using Externals;
 using Game.Loaders;
 using Managers;
 using Network;
-using Save;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,7 +22,9 @@ namespace Game
 
         static GameManager s_Instance;
 
-        public const int POUTCH_CLIENT_ID = 999;
+        public const string TIME_WRAPPER_ID = "Game";
+
+        public const int BOT_CLIENT_ID = 999;
         public const int N_LOADING_STEPS = 3;
         public const int DEFAULT_PVP_LEVEL = 9;
 
@@ -42,10 +44,13 @@ namespace Game
         NetworkVariable<int> m_NPlayers = new NetworkVariable<int>(-1);
 
         // -- Player Data
+        /// <summary> [SERVER] number of player data expected to be received (includes bot's PlayerData) </summary>
+        protected int m_NPlayerDataExpected => 2;
         /// <summary> [SERVER] dict matching a client id to player data </summary>
         protected Dictionary<ulong, SPlayerData> m_PlayersData = new();
         /// <summary> [CLIENT/SERVER] dict matching a client id to a player controller </summary>
         protected Dictionary<ulong, Controller> m_Controllers = new();
+
 
         // -- Initialization
         /// <summary> [CLIENT/SERVER] has the GameManager current Instance been initialized ? </summary>
@@ -128,6 +133,9 @@ namespace Game
                 m_ProgressGameStart.Value = 0f;
             }
 
+            // cancel methods in TimeWrapper
+            TimeErrorWrapper.Instance.Cancel(TIME_WRAPPER_ID);
+
             // reset value of static Instance, so the Initialize() would be re-called
             s_Instance = null;
 
@@ -146,8 +154,7 @@ namespace Game
         /// <returns></returns>
         bool CheckConnectionDone()
         {
-            bool connectionDone = m_PlayersData.Count == LobbyHandler.Instance.MaxPlayers;
-            return connectionDone;
+            return m_PlayersData.Count == m_NPlayerDataExpected;
         }
 
         /// <summary>
@@ -189,9 +196,6 @@ namespace Game
                 SpawnPlayer(item.Key, item.Value);
                 m_ProgressGameStart.Value += 1f / (LobbyHandler.Instance.MaxPlayers * N_LOADING_STEPS);
             }
-
-            if (m_PlayersData.Count == 1)
-                SpawnPoutch();
         }
 
         /// <summary>
@@ -206,11 +210,20 @@ namespace Game
 
             int team = m_Controllers.Count;
 
-            // create player prefab and spawn it
-            GameObject playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab, ArenaManager.Instance.transform);
-
-            playerPrefab.GetComponent<NetworkObject>().SpawnWithOwnership(clientId, true);
-
+            GameObject playerPrefab;
+            if (playerData.IsPlayer)
+            {
+                // create player prefab and spawn it
+                playerPrefab = Instantiate(CharacterLoader.Instance.PlayerPrefab, ArenaManager.Instance.transform);
+                playerPrefab.GetComponent<NetworkObject>().SpawnWithOwnership(clientId, true);
+            }
+            else
+            {
+                // create an AI prefab and spawn it
+                playerPrefab = Instantiate(CharacterLoader.Instance.PlayerAIPrefab, ArenaManager.Instance.transform);
+                playerPrefab.GetComponent<NetworkObject>().Spawn();
+            }
+           
             // add player to list of player controllers
             Controller controller = Finder.FindComponent<Controller>(playerPrefab);
 
@@ -219,41 +232,12 @@ namespace Game
             // initialize player data
             controller.Initialize(
                 playerData: playerData,
-                team: team
+                team: team,
+                isPlayer: playerData.IsPlayer
             );
 
             // add event listener to the player's hp
-            controller.Life.Hp.OnValueChanged += CheckPlayerDeath;
-        }
-
-        /// <summary>
-        /// Spawn an immobile AI
-        /// </summary>
-        void SpawnPoutch()
-        {
-            if (!IsServer)
-                return;
-
-            // create player prefab and spawn it
-            GameObject poutch = Instantiate(CharacterLoader.Instance.PlayerAIPrefab, ArenaManager.Instance.transform);
-            poutch.GetComponent<NetworkObject>().Spawn();
-
-            // add player to list of player controllers
-            Controller poutchController = Finder.FindComponent<Controller>(poutch);
-
-            // initialize player data
-            var aiPlayerData = GetAIPlayerData();
-            poutchController.Initialize(
-                playerData: aiPlayerData,
-                team: 1,
-                false
-            );
-
-            // add AI player data to dict of player data
-            m_PlayersData.Add(poutchController.PlayerId, aiPlayerData);
-
-            // add event listener to the player's hp
-            poutchController.Life.Hp.OnValueChanged += CheckPlayerDeath;
+            controller.Life.DiedEvent += OnPlayerDied;
         }
 
         /// <summary>
@@ -261,13 +245,13 @@ namespace Game
         /// [Arena]
         ///     No changes
         /// 
-        /// [Ranked]
+        /// [Ranked || Test]
         ///     For test purpuses, all data (char and spells) are set to level 9
         /// </summary>
         /// <param name="playerData"></param>
         void UpdatePlayerData(ref SPlayerData playerData)
         {
-            if (LobbyHandler.Instance.GameMode != EGameMode.Ranked)
+            if (LobbyHandler.Instance.GameMode == EGameMode.Arena)
                 return;
 
             playerData.CharacterLevel = DEFAULT_PVP_LEVEL;
@@ -380,37 +364,6 @@ namespace Game
             }
         }
 
-        /// <summary>
-        /// Convert AI data into player data
-        /// </summary>
-        /// <returns></returns>
-        SPlayerData GetAIPlayerData()
-        {
-            // AI SOLO MODE
-            if (LobbyHandler.Instance.GameMode == EGameMode.Arena)
-            {
-                ArenaData arenaData = AssetLoader.LoadArenaData(LobbyHandler.Instance.ArenaType);
-                return arenaData.CreatePlayerData();
-            }
-
-            // AI MULTI PLAYER MODE
-            ECharacter character = ECharacter.Alexander;
-            SProfileCurrentData profileCurrentData = new SProfileCurrentData(
-                gamerTag: character.ToString()
-            );
-
-            return new SPlayerData(
-                character.ToString(),
-                1,
-                character,
-                ERune.None,
-                new ESpell[] { ESpell.Heal, ESpell.RockShower },
-                new int[] { 1, 1 },
-                profileCurrentData.AsNetworkSerializable()
-            );
-
-        }
-
         #endregion
 
 
@@ -505,12 +458,6 @@ namespace Game
 
                 controller.ActivateActionComponent(false);
             }
-        }
-
-        void CheckPlayerDeath(int oldValue, int newValue)
-        {
-            if (newValue <= 0)
-                OnPlayerDied();
         }
 
         void CheckGameEnd()
@@ -719,24 +666,30 @@ namespace Game
         void OnStateValueChanged(EGameState oldValue, EGameState newState)
         {
             ErrorHandler.Log("New state : " + newState, ELogTag.GameSystem);
+
             switch (newState)
             {
                 case EGameState.WaitingForConnection:
+                    TimeErrorWrapper.Instance.New(TIME_WRAPPER_ID, 30f, OnPreparingGameTimeLimit);
                     break;
 
                 case EGameState.PreparingGame:
+                    TimeErrorWrapper.Instance.New(TIME_WRAPPER_ID, 30f, OnPreparingGameTimeLimit);
                     StartCoroutine(WaitClientInitialized());
                     SpawnPlayers();
                     break;
 
                 case EGameState.Intro:
+                    TimeErrorWrapper.Instance.New(TIME_WRAPPER_ID, 30f, OnGameRunningTimeLimit);
                     StartIntro();
                     break;
 
                 case EGameState.GameRunning:
+                    TimeErrorWrapper.Instance.New(TIME_WRAPPER_ID, 5*60f, OnGameRunningTimeLimit);
                     break;
 
                 case EGameState.GameOver:
+                    TimeErrorWrapper.Instance.New(TIME_WRAPPER_ID, 15f, OnGameOverTimeLimit);
                     break;
             }
         }
@@ -745,6 +698,42 @@ namespace Game
         {
             CheckGameEnd();
         }
+
+        #endregion
+
+
+        #region Error Management
+
+        void ExitWithError(string message)
+        {
+            Main.AddStoredEvent(EAppState.MainMenu, () => Main.SetPopUp(EPopUpState.MessagePopUp, message));
+            GameManager.Instance.Shutdown();
+            SceneLoader.Instance.LoadScene("MainMenu");
+        }
+
+        void OnPreparingGameTimeLimit()
+        {
+            ExitWithError(
+                "An error has occured while creating " + LobbyHandler.Instance.GameMode + " game mode : "
+                    + "\n   + Game State : " + m_State
+                    + "\n   + Reason : Preparing game has reached time limit"
+            );
+        }
+
+        void OnGameRunningTimeLimit()
+        {
+            ExitWithError(
+                "An error has occured while playing " + LobbyHandler.Instance.GameMode + " game mode : "
+                    + "\n   + Game State : " + m_State
+                    + "\n   + Reason : Game has reached its safety time limit"
+            );
+        }
+
+        void OnGameOverTimeLimit()
+        {
+            SceneLoader.Instance.LoadScene("MainMenu");
+        }
+
 
         #endregion
 

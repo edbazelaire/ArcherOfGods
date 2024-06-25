@@ -10,6 +10,12 @@ namespace Tools
         GameMode,
         ArenaType,
         WarningMessageAccepted,
+
+        TrainingCharacter,
+        TrainingSpell,
+        TrainingRune,
+        TrainingDecisionRefresh,
+        TrainingRandomness,
     }
 
     public enum EDebugOption
@@ -46,6 +52,64 @@ namespace Tools
                 SetWarningAccepted(false);
         }
 
+
+        #endregion
+
+
+        #region General Getters & Setters
+
+        public static void SetString(EPlayerPref pref, string value, int index = -1)
+        {
+            string name = pref.ToString();
+            if (index >= 0)
+            {
+                name += "_" + index;
+            }
+
+            ErrorHandler.Warning("Saved " + name + " with value : " + value);
+
+            PlayerPrefs.SetString(name, value);
+            PlayerPrefs.Save();
+        }
+
+        public static TEnum GetString<TEnum>(EPlayerPref name, int index = -1)
+        {
+            return GetString<TEnum>(name.ToString(), index);
+        }
+
+        public static TEnum GetString<TEnum>(string name, int index = -1)
+        {
+            if (index >= 0)
+            {
+                name += "_" + index;
+            }
+
+            string value = PlayerPrefs.GetString(name, GetDefaultValue<TEnum>().ToString());
+            if (!Enum.TryParse(typeof(TEnum), value, out object result))
+            {
+                ErrorHandler.Error("Unable to parse " + value + " into " + typeof(TEnum));
+                return (TEnum)(object)GetDefaultValue<TEnum>();
+            }
+
+            return (TEnum)result;
+        }
+
+        public static Enum GetDefaultValue<TEnum>()
+        {
+            var enumType = typeof(TEnum);
+
+            if (enumType == typeof(ECharacter))
+                return ECharacter.Alexander;
+
+            if (enumType == typeof(ESpell))
+                return ESpell.Heal;
+
+            if (enumType == typeof(ERune))
+                return ERune.None;
+
+            ErrorHandler.Error("No default value provided for " + enumType);
+            return default;
+        }
 
         #endregion
 
@@ -140,6 +204,16 @@ namespace Tools
         public static bool GetDebug(EDebugOption option)
         {
             return PlayerPrefs.GetInt(option.ToString(), option == EDebugOption.ErrorHandler ? 1 : 0) == 1;
+        }
+
+        public static ESpell[] GetTrainingSpells()
+        {
+            return new ESpell[] {
+                GetString<ESpell>(EPlayerPref.TrainingSpell, 0),
+                GetString<ESpell>(EPlayerPref.TrainingSpell, 1),
+                GetString<ESpell>(EPlayerPref.TrainingSpell, 2),
+                GetString<ESpell>(EPlayerPref.TrainingSpell, 3),
+            };
         }
 
         #endregion

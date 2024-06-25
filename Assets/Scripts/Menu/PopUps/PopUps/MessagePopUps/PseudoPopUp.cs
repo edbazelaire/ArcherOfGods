@@ -26,6 +26,9 @@ namespace Menu.PopUps.PopUps.MessagePopUps
             m_InputField        = Finder.FindComponent<TMP_InputField>(m_WindowContent, "InputField");
             m_TokenInputField   = Finder.FindComponent<TMP_InputField>(m_WindowContent, "TokenInputField");
             m_ErrorMessage      = Finder.FindComponent<TMP_Text>( m_WindowContent,      "ErrorMessage");
+
+            if (ProfileCloudData.Token != "")
+                m_TokenInputField.gameObject.SetActive(false);
         }
 
         protected override void OnPrefabLoaded()
@@ -77,19 +80,23 @@ namespace Menu.PopUps.PopUps.MessagePopUps
             }
 
             // CHECK : Token
-            (success, reason) = await ProfileCloudData.IsTokenValid(m_TokenInputField.text);
-            if (!success)
+            if (ProfileCloudData.Token == "")
             {
-                // play error sound
-                SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
+                (success, reason) = await ProfileCloudData.IsTokenValid(m_TokenInputField.text);
+                if (!success)
+                {
+                    // play error sound
+                    SoundFXManager.PlayOnce(SoundFXManager.ErrorSoundFX);
 
-                // display why is not valid
-                m_ErrorMessage.text = reason;
-                return;
+                    // display why is not valid
+                    m_ErrorMessage.text = reason;
+                    return;
+                }
+
+                ProfileCloudData.SetToken(m_TokenInputField.text);
             }
 
             ProfileCloudData.SetGamerTag(m_InputField.text);
-            ProfileCloudData.SetToken(m_TokenInputField.text);
 
             base.OnValidateButton();
             Exit();
